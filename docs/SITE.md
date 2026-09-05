@@ -10,7 +10,7 @@ The public site is a static walkthrough and Windows download page. It does not r
 1. Verify tests, browser behavior, and the final Windows executable. Publish the versioned GitHub release and checksum.
 2. Update the pinned download and release links in the README and site. Keep model, streaming, credit, and signing disclosures accurate.
 3. Run `node scripts/build-site.mjs` and `node scripts/verify-site.mjs`.
-4. Inspect `vercel deploy --dry --json --cwd .artifacts/site --scope ucsandmans-projects`. It must contain exactly the 13 allowlisted public files and exclude environment/configuration data.
+4. Inspect `vercel deploy --dry --json --cwd .artifacts/site --scope ucsandmans-projects`. It must contain exactly the 10 allowlisted public files and exclude environment/configuration data.
 5. Deploy the approved release with `vercel deploy --prod --yes --cwd .artifacts/site --scope ucsandmans-projects`.
 6. Run `node scripts/verify-site.mjs https://jarvis-workbench.vercel.app`. Confirm the anonymous executable download hash, metadata, website link, and GitHub About text.
 
@@ -30,7 +30,7 @@ Screen/window sharing is the primary input; camera and upload remain available. 
 
 ## Verification
 
-The site suite performs 24 browser checks across the walkthrough, keyboard navigation, removed/private routes, download link, eight public assets, mobile fit and page errors. Public release evidence is appended below. Detailed historical investigations remain in [PLAYBOOK.md](../PLAYBOOK.md).
+The site suite checks all four current walkthrough steps on desktop and mobile, arrow/Home/End navigation, the draft replay disclosure, six public assets, seven removed/private routes, download link, overflow and page errors. Public release evidence is appended below. Detailed historical investigations remain in [PLAYBOOK.md](../PLAYBOOK.md).
 
 ### 0.6.0 publication
 
@@ -39,3 +39,27 @@ Published source 45e139d and GitHub release v0.6.0. CI run 33980839433 passed on
 ### Marketing refresh after 0.6.0
 
 The hero now shows the current Fable draft interface and leads with screen sharing and the Windows download. Model/effort choice, bounded Live build, incremental drafts, and version controls are visible before the earlier prepared walkthrough. Metadata and the social preview use the current product. The walkthrough keeps its historical captures and is labeled accordingly. The deployment allowlist now includes streaming.png, for 13 public files.
+
+### Complete capability and walkthrough alignment
+
+The walkthrough now covers window sharing, model and effort selection, single or automatic builds, Fable drafts, and refinement/export. Removed Daylight images are no longer deployed. The FAQ covers voice and all image inputs, preview sizes, source/download, saved versions and runtime reset, sample/setup recovery, allowance versus subscription limits, and frontend-only boundaries. The public site remains an instructional guide, not a hosted generator.
+
+Capability audit against public/index.html, public/app.js and the shipped model/launch implementation: | Product surface | Marketing location |
+| --- | --- |
+| Screen/window capture, explicit selected frame, exact sent-frame evidence | Hero, feature rows, walkthrough Share, privacy FAQ |
+| Camera selection, JPEG/PNG/WebP upload, text-only input | Share panel and input FAQ |
+| Local Windows dictation, local spoken replies | Choose panel and input FAQ |
+| Astra/Fable, five effort levels, low-effort shortcut | Feature rows, Choose panel, download steps, speed FAQ |
+| CLI install, sign-in, recheck/cancel, no-login local sample | Download steps and setup/sample FAQ |
+| Live build quiet time, interval choices, ten-build cap | Share/Refine panels and download steps |
+| Pause/cancel, stop capture, no restart on reload | Refine panel and privacy FAQ |
+| Animated status, elapsed time, Fable draft/code, last working version | Watch panel |
+| Astra completed-message limitation and draft script restriction | Features, Watch panel, speed FAQ |
+| Desktop/mobile/expanded preview, source, HTML export | Refine panel and output FAQ |
+| Twelve local versions, restore, reference images, confirmed reset | Refine panel and output FAQ |
+| Runtime-data reset, same-origin browser storage, retry preview | Output FAQ |
+| Local counter versus provider allowance, credits, no fallback | Setup/sample FAQ, download and privacy |
+| Frontend-only output, no desktop control/backend/deployment | Scope FAQ |
+| Windows launcher, shortcuts, tray quit, unsigned download, MIT | Download section and footer |
+
+Verification: rendered all four current panels at desktop and mobile widths, exercised keyboard navigation, and confirmed all seven obsolete/private routes return 404. The marketing deployment contains ten allowlisted files. Existing application tests and CI remain the product behavior checks.

@@ -23,16 +23,22 @@ const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console'
 try {
   assert.equal((await page.goto(base)).status(),200);
   await page.getByRole('link',{name:'Walk through an example'}).click();
-  assert.equal(await page.getByRole('tab',{name:'Reference'}).getAttribute('aria-selected'),'true');
-  assert.equal(await page.locator('#journey-reference img').getAttribute('src'),'/reference.svg');
-  await page.getByRole('tab',{name:'Prompt'}).click();
-  assert.equal(await page.getByRole('tab',{name:'Prompt'}).getAttribute('aria-selected'),'true');
-  assert.ok(await page.getByText('Say what the sketch should become.',{exact:true}).isVisible());
-  await page.getByRole('tab',{name:'Prepared result'}).press('ArrowRight');
-  assert.equal(await page.getByRole('tab',{name:'Revision'}).getAttribute('aria-selected'),'true');
-  assert.equal(await page.locator('#journey-revision img').count(),2);
-  assert.deepEqual(await page.locator('#journey-revision img').evaluateAll(images=>images.map(image=>image.getAttribute('src'))),['/workbench.png','/revision.png']);
-  assert.ok(await page.getByText('this page does not perform a live revision.',{exact:false}).isVisible());
+  const steps = ['Share a window','Choose & direct','Watch it build','Refine & keep'];
+  assert.equal(await page.getByRole('tab',{name:steps[0]}).getAttribute('aria-selected'),'true');
+  assert.ok(await page.getByText('Keep your design tool open beside Jarvis.',{exact:true}).isVisible());
+  await page.getByRole('tab',{name:steps[1]}).click();
+  assert.ok(await page.getByText('Say what should work, not just how it should look.',{exact:true}).isVisible());
+  await page.getByRole('tab',{name:steps[1]}).press('ArrowRight');
+  assert.equal(await page.getByRole('tab',{name:steps[2]}).getAttribute('aria-selected'),'true');
+  assert.equal(await page.locator('#journey-result img').getAttribute('src'),'/streaming.png');
+  await page.locator('#journey-result img').evaluate(image=>image.decode());
+  assert.ok(await page.getByText('This still illustrates the draft stage, not a result of the example direction above.',{exact:false}).isVisible());
+  await page.getByRole('tab',{name:steps[2]}).press('End');
+  assert.equal(await page.getByRole('tab',{name:steps[3]}).getAttribute('aria-selected'),'true');
+  assert.ok(await page.getByText('This page does not perform a live revision.',{exact:false}).isVisible());
+  await page.getByRole('tab',{name:steps[3]}).press('Home');
+  assert.equal(await page.getByRole('tab',{name:steps[0]}).getAttribute('aria-selected'),'true');
+  assert.equal(await page.locator('#walkthrough img[src="/reference.svg"], #walkthrough img[src="/workbench.png"], #walkthrough img[src="/revision.png"]').count(),0);
   assert.ok(await page.getByText('This site does not generate anything.',{exact:false}).isVisible());
   assert.equal(await page.locator('#demo, .sample, #reset-demo').count(),0);
   const faq = page.locator('summary').filter({hasText:'Can I generate here without installing anything?'});
@@ -41,12 +47,26 @@ try {
   assert.ok(await page.getByText('This website provides a prepared walkthrough.',{exact:false}).isVisible());
   const href=await page.locator('#download-zip').getAttribute('href');
   assert.equal(href,'https://github.com/ucsandman/jarvis/releases/download/v0.6.0/Jarvis-0.6.0-Windows-x64.exe');
-  for(const path of ['/robots.txt','/sitemap.xml','/llms.txt','/og.png','/mark.svg','/reference.svg','/workbench.png','/revision.png']) assert.equal((await page.request.get(`${base}${path}`)).status(),200,path);
-  for(const path of ['/api/session','/server.mjs','/.env','/demo.html']) assert.equal((await page.request.get(`${base}${path}`)).status(),404,path);
+  for(const path of ['/robots.txt','/sitemap.xml','/llms.txt','/og.png','/mark.svg','/streaming.png']) assert.equal((await page.request.get(`${base}${path}`)).status(),200,path);
+  for(const path of ['/api/session','/server.mjs','/.env','/demo.html','/reference.svg','/workbench.png','/revision.png']) assert.equal((await page.request.get(`${base}${path}`)).status(),404,path);
   await page.goto(base);await page.screenshot({path:'.artifacts/site-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  for (const step of steps) {
+    await page.getByRole('tab',{name:step}).click();
+    assert.equal(await page.locator('[role="tabpanel"]:visible').count(),1);
+    assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  }
+  for (const panel of ['reference','prompt','result','revision']) {
+    await page.locator(`[data-step="${panel}"]`).click();
+    await page.locator('#walkthrough').screenshot({path:`.artifacts/walkthrough-${panel}-mobile.png`});
+  }
   await page.screenshot({path:'.artifacts/site-mobile.png',fullPage:true});
+  await page.setViewportSize({width:1440,height:1000});
+  for (const panel of ['reference','prompt','result','revision']) {
+    await page.locator(`[data-step="${panel}"]`).click();
+    await page.locator('#walkthrough').screenshot({path:`.artifacts/walkthrough-${panel}-desktop.png`});
+  }
   assert.deepEqual(errors,[]);
-  console.log(`PASS: ${base}; 24 checks: walkthrough tabs and keyboard change, actual sketch and captured before/after evidence, explicit no-inference labels, sample section removed, FAQ, pinned download, 8 public assets, 4 removed/private routes absent, mobile layout, zero browser errors.`);
+  console.log(`PASS: ${base}; Current walkthrough verified: 4 steps on desktop and mobile, keyboard arrows/Home/End, draft image and replay disclosure, 6 public assets, 7 removed/private routes, pinned download, no overflow or browser errors.`);
 } finally {await browser.close();await new Promise(resolve=>server.close(resolve));}
