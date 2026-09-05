@@ -161,3 +161,5 @@ Walkthrough correction: retaining historical screenshots after refreshing the he
 ## 2026-09-05 Computer mode release
 
 User-approved desktop architecture extends the existing app with reviewed Windows accessibility actions and unchanged isolated subscription transport. Native fixture and real Fable/browser tests proved planning, text replacement, clicking and result inspection. The independent review caught stale-pattern validation and user-app shutdown containment before release. Keep a real native action test and user-app survival check alongside protocol/browser tests. Audit README, GitHub About, screenshots, marketing features, both tutorials, privacy, installation and model docs together whenever either mode changes.
+
+0.7.0 shipped and the anonymous release hash and production site were verified. Clean-PATH packaging caught a helper discovery bug that normal development missed; keep native startup in the system-only-PATH package test. Separate public release verification from optional local reopening, and report an automatic approval rejection explicitly when it prevents that final convenience step.

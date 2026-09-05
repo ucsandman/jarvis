@@ -69,3 +69,11 @@ Verification: rendered all four current panels at desktop and mobile widths, exe
 The hero now shows an actual Fable proposal from the native Windows verification app. The Computer mode guide covers local permission, selected-window inspection, fresh-text sharing, model/effort, review, single-use approvals, expiry and global Stop. The four-step prototype walkthrough remains distinct and functional. Both modes appear in features, FAQ, README, privacy/security docs and GitHub About. Download links point to 0.7.0.
 
 The static deployment contains 11 allowlisted files, including computer.png. Native code, local routes, logs, controller state and account data are excluded. The guide explicitly limits accessible-control automation and does not claim unrestricted desktop, canvas or shell access. The updated verifier covers both guides at desktop/mobile widths, 7 public assets and 7 forbidden/removed routes.
+
+### Published 0.7.0 verification
+
+Released v0.7.0 from code commit 25e1105. Windows and Linux CI run 33984559654 passed. Vercel production deployment dpl_2kkFMN7pPsEwwUHXGbL5Dfoi2kns is READY at the canonical website. The production browser check passed both guides, mobile layout, public assets, blocked routes and the pinned download. GitHub About, homepage and desktop topics were verified after updating. Existing search-verification tags, sitemap and Vercel analytics were preserved.
+
+The anonymous executable download was 171,325,440 bytes and matched SHA-256 bef0b66ee2b0f7d272191fc40dbe9995620ebb2fb48ac1451e8872ad5e3d0404. The final archive has 46 entries; all 23 first-party payload files match the shipped source, and 33 text files were scanned. Verification passed: 40 unit tests, 19 compiled filter cases, 14 native cases, 11 Computer UI checks, 20 packaged checks, 6 launcher lifecycle cases, plus user-app survival after Quit. Real Fable/browser/native execution completed three model steps and two reviewed actions; the final repeat took about 33 seconds.
+
+The installed app was not reopened after release: automatic approval review rejected that separate local launch with only a blocked-by-policy reason. Public download and production site verification completed successfully.
