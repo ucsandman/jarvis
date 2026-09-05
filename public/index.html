@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="description" content="Jarvis turns what you show and tell it at your desk into working software. A private local workbench for sketches, voice, and live prototypes.">
+  <meta name="theme-color" content="#191c1b">
+  <title>Jarvis — From your desk to something real</title>
+  <link rel="icon" href="/mark.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="i-camera" viewBox="0 0 24 24"><path d="M8 5 10 3h4l2 2h4v15H4V5z"/><circle cx="12" cy="12" r="4"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6"/></symbol>
+    <symbol id="i-mic" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M6 10v2a6 6 0 0 0 12 0v-2m-6 8v4m-4 0h8"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></symbol>
+    <symbol id="i-code" viewBox="0 0 24 24"><path d="m7 7-5 5 5 5m10-10 5 5-5 5m-4-13-2 20"/></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></symbol>
+    <symbol id="i-sound" viewBox="0 0 24 24"><path d="m11 4-5 5H2v6h4l5 5zM15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v13m-5-5 5 5 5-5M4 17v4h16v-4"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></symbol>
+  </defs></svg>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="Jarvis home"><span class="jarvis-mark"><i></i></span><span>JARVIS<span class="brand-caption">A SECOND PAIR OF EYES.</span></span></a>
+      <div class="header-middle"><span class="status-dot" id="provider-dot"></span><span id="provider-status">Checking connection</span><span class="divider">/</span><span>LOCAL WORKBENCH</span></div>
+      <div class="header-actions"><button class="quiet" id="new-session">New project</button><button class="icon-button" id="sound" aria-label="Enable spoken replies" aria-pressed="false" title="Enable spoken replies"><svg><use href="#i-sound"/></svg></button><button class="quiet privacy-button" id="privacy">Privacy</button></div>
+    </header>
+
+    <section class="intro" aria-labelledby="headline">
+      <div><p class="eyebrow"><span class="tiny-star">✳</span> YOUR IDEAS HAVE A NEW WAY IN.</p><h1 id="headline">Show me what <em>you’re thinking.</em></h1></div>
+      <p class="intro-note">A sketch on paper. A change in the margins.<br>Show it. Say it. See it working.</p>
+    </section>
+
+    <main class="workbench">
+      <section class="input-column" aria-label="Physical workspace">
+        <div class="section-bar"><span><b>01</b> YOUR DESK</span><span class="source-status" id="source-status"><span class="status-dot"></span> CAMERA OFF</span></div>
+        <div class="viewfinder" id="viewfinder">
+          <video id="camera" autoplay muted playsinline hidden></video>
+          <img id="reference" alt="The reference frame being used by Jarvis" hidden>
+          <div id="annotations" class="annotations" aria-hidden="true"></div>
+          <div class="viewfinder-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <div class="camera-empty" id="camera-empty">
+            <div class="aperture" aria-hidden="true"><div></div><span></span></div>
+            <h2>Let me see your idea.</h2>
+            <p>Point your camera at a sketch,<br>whiteboard, or design reference.</p>
+            <button class="button amber" id="connect"><svg><use href="#i-camera"/></svg> Connect camera</button>
+            <span class="local-note">Preview stays on this device.</span>
+          </div>
+          <span class="frame-label" id="frame-label" hidden></span>
+          <div class="frame-tools" id="frame-tools" hidden><button class="small-button" id="resume">Back to live camera</button><button class="small-button" id="clear-reference">Clear image</button></div>
+          <div class="scan-line" aria-hidden="true"></div>
+        </div>
+        <div class="source-controls">
+          <button class="quiet" id="upload"><svg><use href="#i-upload"/></svg> Upload reference</button>
+          <button class="quiet" id="example">Try a sample sketch <span>↗</span></button>
+          <input type="file" id="file" accept="image/jpeg,image/png,image/webp" hidden>
+        </div>
+        <div class="camera-controls" id="camera-controls" hidden><label for="camera-select">Camera</label><select id="camera-select" aria-label="Choose camera"></select><button class="quiet" id="camera-off">Turn off</button></div>
+
+        <div class="understanding">
+          <div class="understanding-heading"><span class="eyebrow">WHAT I’M SEEING</span><span id="observation-time">NO FRAME SENT</span></div>
+          <p id="observation-summary">I’ll read the details, connect them to your direction, and build from there.</p>
+          <ol class="observation-list" id="observations"></ol>
+        </div>
+        <div class="desk-tip"><span>THE DESK-TO-DEMO LOOP</span><p>Draw an idea. Build it. Cross something out.<br>Say “change it to this.”</p></div>
+      </section>
+
+      <section class="output-column" aria-label="Running prototype">
+        <div class="section-bar"><span><b>02</b> THE WORK TAKES SHAPE</span><div class="preview-actions"><button id="desktop-view" class="viewport-button active" aria-label="Desktop preview" aria-pressed="true">Desktop</button><button id="mobile-view" class="viewport-button" aria-label="Mobile preview" aria-pressed="false">Mobile</button><button class="icon-button small" id="expand" aria-label="Expand preview"><svg><use href="#i-expand"/></svg></button></div></div>
+        <div class="prototype" id="prototype">
+          <div class="browser-bar"><div class="browser-dots" aria-hidden="true"><i></i><i></i><i></i></div><span id="prototype-title">Your next idea, running.</span><span class="version-label" id="version-label">READY WHEN YOU ARE</span></div>
+          <div class="preview-stage" id="preview-stage">
+            <div class="preview-empty" id="preview-empty">
+              <span class="paper-index">THOUGHT → THING</span>
+              <div class="paper-composition" aria-hidden="true"><div class="sketch-paper"><span>the idea</span><div class="sketch-window"><i></i><div><b></b><b></b><b></b></div></div><em>make this real ↗</em></div><div class="result-paper"><span>the possibility</span><div class="mini-window"><i></i><div><b></b><b></b><b></b></div></div><small>● &nbsp; Running in your browser</small></div></div>
+              <h2>Less translating.<br><em>More making.</em></h2>
+              <p>Your reference becomes a working web prototype.<br>Then we keep building on it, together.</p>
+              <div class="empty-steps"><span><b>1</b> Show a reference</span><span><b>2</b> Give me direction</span><span><b>3</b> Try the result</span></div>
+            </div>
+            <iframe id="preview" title="Generated interactive prototype" sandbox="allow-scripts allow-forms" referrerpolicy="no-referrer" hidden></iframe>
+            <div class="build-overlay" id="build-overlay" hidden><div class="build-orbit" aria-hidden="true"></div><span class="eyebrow" id="build-phase">READING YOUR REFERENCE</span><h2 id="build-message">Connecting the dots.</h2><p id="build-detail">Looking at the frame you chose.</p><button class="small-button" id="cancel">Cancel</button></div>
+          </div>
+          <div class="prototype-footer"><span id="preview-note">A real preview will appear here.</span><div><button class="quiet" id="source" disabled><svg><use href="#i-code"/></svg> Source</button><button class="quiet" id="download" disabled><svg><use href="#i-download"/></svg> Download</button></div></div>
+        </div>
+        <section class="reply" aria-label="Jarvis reply"><span class="reply-mark" aria-hidden="true">J</span><div><div class="reply-byline">JARVIS <span id="reply-status">Standing by</span></div><p id="reply-text" aria-live="polite">Show me a sketch and tell me what should work. I’ll take it from there.</p><ul id="changes"></ul></div></section>
+        <div class="revision-heading"><span class="eyebrow">THE EVOLUTION</span><span id="revision-count">Every build keeps the previous version.</span></div>
+        <nav class="revisions" id="revisions" aria-label="Revision history"><p class="revision-empty">Your first version starts with an idea.</p></nav>
+      </section>
+    </main>
+
+    <footer class="composer-wrap">
+      <div class="suggestions" id="suggestions"><span>TRY SAYING</span><button data-prompt="Build the app in this sketch. Make the controls work.">“Build this.”</button><button data-prompt="Apply the changes in this new reference to the current app. Preserve everything else.">“Change it to this.”</button><button data-prompt="Make the current app work beautifully on a phone. Keep all its functionality.">“Make it work on mobile.”</button></div>
+      <form id="composer" class="composer"><button type="button" class="mic-button" id="mic" aria-label="Dictate direction" aria-pressed="false"><svg><use href="#i-mic"/></svg></button><label class="sr-only" for="direction">Tell Jarvis what to build or change</label><textarea id="direction" rows="1" maxlength="4000" placeholder="Tell me what to build, or what to change…"></textarea><button class="button amber build-button" id="build" type="submit">Make it real <svg><use href="#i-arrow"/></svg></button></form>
+      <div class="composer-meta"><span id="input-note">One chosen frame + your direction. Sent only when you build.</span><span id="activity" role="status">⌘ &nbsp; IDEAS WELCOME</span></div>
+      <div class="error-banner" id="error" role="alert" hidden><span id="error-text"></span><button id="dismiss-error" aria-label="Dismiss error">×</button></div>
+    </footer>
+  </div>
+
+  <dialog id="privacy-dialog" aria-labelledby="privacy-title"><button class="dialog-close icon-button" data-close="privacy-dialog" aria-label="Close privacy"><svg><use href="#i-close"/></svg></button><p class="eyebrow">YOUR DESK. YOUR CONTROL.</p><h2 id="privacy-title">What leaves this device.</h2><p>Camera preview stays local. Building shares your selected image, direction, and current prototype source with Astra through the official Codex CLI and your ChatGPT subscription. There is no continuous upload and no model API integration.</p><p>Revisions, including their reference images, are stored in this browser on this device. Up to 12 versions are kept. “New project” clears this project’s stored history.</p><p>Subscription login is required. When access or usage limits prevent a request, Jarvis stops. It never uses an API key, another model, or API billing as a fallback.</p><p>Generated applications run in a restricted frame. They cannot access Jarvis’s camera, credentials, or saved revisions. Prototype data resets when a version is reopened.</p><p class="muted">A request already received by Codex may finish after you cancel. Jarvis discards a canceled result.</p><button class="button amber" data-close="privacy-dialog">Understood</button></dialog>
+  <dialog id="consent-dialog" aria-labelledby="consent-title"><p class="eyebrow">BEFORE THE FIRST BUILD</p><h2 id="consent-title">Let Jarvis work with this reference.</h2><p>The selected image, your direction, and the current prototype source will be shared with <strong>Astra through your ChatGPT subscription</strong>, using the installed Codex CLI. No API key or metered model API is used.</p><p>Check that your frame contains only what you intend to share. This permission lasts for this page session. Subscription usage limits apply.</p><div class="dialog-actions"><button class="button secondary" id="decline-consent">Keep it local</button><button class="button amber" id="accept-consent">Allow and build</button></div></dialog>
+  <dialog id="voice-dialog" aria-labelledby="voice-title"><p class="eyebrow">LOCAL VOICE INPUT</p><h2 id="voice-title">Think out loud.</h2><p>Windows speech recognition processes your microphone locally. Dictation becomes editable text. You still choose when to build.</p><div class="dialog-actions"><button class="button secondary" data-close="voice-dialog">Use typing</button><button class="button amber" id="accept-voice">Enable local dictation</button></div></dialog>
+  <dialog id="reset-dialog" aria-labelledby="reset-title"><p class="eyebrow">A FRESH PAGE</p><h2 id="reset-title">Start a new project?</h2><p>This clears this browser’s saved versions and their reference images. Download any source you want to keep first.</p><div class="dialog-actions"><button class="button secondary" data-close="reset-dialog">Keep working</button><button class="button amber" id="confirm-reset">Clear and start fresh</button></div></dialog>
+  <dialog id="source-dialog" class="source-dialog" aria-labelledby="source-title"><div class="source-heading"><h2 id="source-title">The source is yours.</h2><button class="icon-button" data-close="source-dialog" aria-label="Close source"><svg><use href="#i-close"/></svg></button></div><p>One HTML file. Styles and interactions included.</p><pre><code id="source-code"></code></pre></dialog>
+</body>
+</html>

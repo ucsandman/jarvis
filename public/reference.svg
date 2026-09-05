@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="750" viewBox="0 0 1000 750">
+<defs><pattern id="grid" width="25" height="25" patternUnits="userSpaceOnUse"><path d="M 25 0 L 0 0 0 25" fill="none" stroke="#d8ddd7" stroke-width=".7"/></pattern></defs>
+<rect width="1000" height="750" fill="#eee9db"/><rect x="46" y="30" width="908" height="690" rx="3" fill="#faf7eb"/>
+<rect x="46" y="30" width="908" height="690" fill="url(#grid)"/>
+<g fill="none" stroke="#353f43" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+<path d="M104 156 L891 160 L887 630 L101 627 Z M104 217 L888 220 M290 222 L293 625"/>
+<path d="M328 307 L499 305 L497 549 L328 550 Z M520 306 L681 310 L682 551 L520 549 Z M704 306 L862 309 L860 550 L701 551 Z"/>
+<path d="M344 366 L480 365 L480 427 L343 430 Z M345 451 L478 451 L480 513 L344 515 Z M534 365 L665 367 L664 428 L534 425 Z M718 367 L846 366 L845 429 L719 428 Z"/>
+<path d="M801 264 L850 264 M826 241 L826 285"/>
+<path d="M181 80 Q430 67 504 120 M505 120 L488 98 M505 120 L477 119" stroke="#b56336"/>
+</g>
+<g font-family="'Segoe Print', 'Comic Sans MS', cursive" fill="#343f43">
+<text x="104" y="106" font-size="30">my daily focus board</text>
+<text x="125" y="197" font-size="25">DAYLIGHT</text><text x="721" y="197" font-size="19">Search tasks...</text>
+<text x="124" y="273" font-size="21">My day</text><text x="124" y="321" font-size="21">Projects</text><text x="124" y="369" font-size="21">Completed</text>
+<text x="331" y="272" font-size="27">Make room for good work.</text>
+<text x="345" y="341" font-size="21">Today</text><text x="539" y="341" font-size="21">In progress</text><text x="723" y="341" font-size="21">Done</text>
+<text x="354" y="391" font-size="15">Sketch homepage</text><text x="356" y="478" font-size="16">Review notes</text>
+<text x="543" y="392" font-size="15">Build prototype</text><text x="729" y="392" font-size="16">Morning plan</text>
+<text x="329" y="594" font-size="19">+ Add a task</text>
+<text x="108" y="678" font-size="23" fill="#b56336">warm colors / cards I can move / actually useful</text>
+</g>
+</svg>

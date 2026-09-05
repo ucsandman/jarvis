@@ -1,0 +1,12 @@
+.env
+.env.*
+!.env.example
+.secrets.env
+node_modules/
+.jarvis/
+.artifacts/
+.dashclaw-local/
+.offlocal/
+*.log
+.handoff-notes*.md
+.impeccable.md
