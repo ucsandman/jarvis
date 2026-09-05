@@ -13,6 +13,10 @@
   <p><a href="#quick-start">Quick start</a> · <a href="#the-demo">Demo</a> · <a href="#how-it-works">Architecture</a> · <a href="#privacy-and-control">Privacy</a> · <a href="CONTRIBUTING.md">Contributing</a></p>
 </div>
 
+**[See how Jarvis works](https://jarvis-workbench.vercel.app/)** or **[download Jarvis for Windows](https://github.com/ucsandman/jarvis/releases/download/v0.3.0/Jarvis-0.3.0-Windows-x64.exe)**. Real generation runs locally through your own eligible ChatGPT subscription; the public site shows a prepared walkthrough and does not host subscription login or inference.
+
+Public-site maintenance and deployment: [site runbook](docs/SITE.md).
+
 ![Jarvis onboarding with a working example and build controls near the top](docs/images/onboarding.png)
 
 *The included working example runs locally before sign-in. It is labeled sample content, not a new AI generation.*
@@ -44,7 +48,17 @@ Try the same loop with your own sketch, or choose **Try a sample sketch** to sta
 
 ## Quick start
 
-### Requirements
+### Windows: download and open
+
+1. Download **Jarvis-0.3.0-Windows-x64.exe** using the link above and open it. Node and the official Codex CLI are included; no terminal, npm, or administrator access is required.
+2. Jarvis opens in your browser. In **Setup**, choose **Sign in with ChatGPT** and complete the official browser flow. Existing eligible Codex ChatGPT sign-in is reused.
+3. Use the **Jarvis** shortcut on your desktop or Start menu next time. The tray menu has **Open Jarvis** and **Quit Jarvis**. Closing the browser leaves Jarvis running; Quit stops its server and child processes.
+
+Windows 10/11 x64 and a modern browser are required. The download is about 164 MiB and expands into your per-user application data directory. The outer Jarvis executable is unsigned, so Windows may show an unknown-publisher warning. The included Node and Codex binaries have verified upstream signatures. [Release notes and SHA-256 checksum](https://github.com/ucsandman/jarvis/releases/tag/v0.3.0) accompany the download. [Windows packaging and lifecycle details](docs/WINDOWS.md).
+
+A camera is optional. Model access and subscription allowance depend on your ChatGPT account. If Astra is unavailable, Jarvis stops instead of selecting another model or billing route.
+
+### Run from source (developers)
 
 - **Node.js 24 or newer.**
 - **Official Codex CLI installed through npm**, signed in using **ChatGPT**, with access to `gpt-6-astra`. Jarvis can install it from Setup after your confirmation.
@@ -53,9 +67,7 @@ Try the same loop with your own sketch, or choose **Try a sample sketch** to sta
 
 Model access and subscription limits depend on your account. This project does not provision access. If Astra is unavailable, Jarvis stops instead of selecting another model or billing route.
 
-### Install and launch
-
-On Windows, clone or download the repository and double-click **Start Jarvis.cmd**. The launcher opens the browser, reuses an existing Jarvis server, and reports missing Node or startup failures in a dialog. It does not wait for subscription login to open the workbench.
+The source checkout still supports **Start Jarvis.cmd** on Windows after installing Node. This developer path requires the prerequisites above; the executable download includes them.
 
 In **Setup**, choose **Install official Codex CLI** if needed, then **Sign in with ChatGPT**. Installation downloads the official npm package globally from the npm registry. Sign-in opens the official browser flow and changes the local Codex login only after you choose it. **Check again** refreshes readiness. The working example is available without either step.
 

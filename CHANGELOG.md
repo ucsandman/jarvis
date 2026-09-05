@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.3.0 · 2026-09-05
+
+- Windows executable bundles Node and official Codex: download, open, and use ChatGPT sign-in from Setup without terminal commands.
+- Per-user extraction, desktop and Start menu shortcuts, tray Open/Quit, single-session reuse, occupied-port refusal, and owned-process cleanup.
+- Pinned upstream package integrity and publisher verification; Jarvis's outer executable is unsigned and disclosed as such.
+- Desktop bootstrap protects local APIs with a per-launch key scoped to the browser origin, separate from restricted preview capabilities.
+- Public walkthrough explains reference, prompt, result, and revision; the task board is an optional sample rather than the main product demonstration.
+- Windows extraction, clean-profile authentication, rendered preview, and lifecycle verification scripts.
+
+## Public demo · 2026-09-05
+
+- Launched the free browser example at https://jarvis-workbench.vercel.app on the maintainer's existing Vercel plan.
+- Added a Windows download, explicit prerequisites, subscription setup guidance, and privacy details.
+- Static deployment uses an allowlist; no local server or ChatGPT credentials are hosted.
+- Added public metadata, sitemap, robots, llms, search ownership tags, and standard Vercel Web Analytics.
+- The initial public launch used the 0.2.0 source archive; 0.3.0 replaces it with the bundled Windows executable.
+
 ## 0.2.0 · 2026-09-05
 
 - Working example before login, setup checklist, explicit CLI installation and ChatGPT sign-in, and reconnect controls.

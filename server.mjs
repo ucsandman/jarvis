@@ -1,7 +1,7 @@
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { AppError, Vision } from './lib/vision.mjs';
 import { runProcess, subscriptionLogin, installCodex, SubscriptionError } from './lib/subscription.mjs';
 
@@ -30,7 +30,9 @@ async function readJson(req) {
   } catch { throw new AppError('The request is not valid JSON.'); }
 }
 
-export function createApp({ vision = new Vision(), maxCalls = 60, login = subscriptionLogin, install = installCodex } = {}) {
+export function createApp({ vision = new Vision(), maxCalls = 60, login = subscriptionLogin, install = installCodex, instanceId, desktopKey } = {}) {
+  if (desktopKey !== undefined && !/^[a-f0-9]{64}$/.test(desktopKey)) throw new Error('Invalid desktop launch key.');
+  const matchesKey = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value) && timingSafeEqual(Buffer.from(value),Buffer.from(desktopKey));
   const token = randomBytes(32).toString('hex');
   const previews = new Map();
   let busy = false; let calls = 0; let dictating = false;
@@ -53,7 +55,8 @@ export function createApp({ vision = new Vision(), maxCalls = 60, login = subscr
       if (!hosts.includes(host) || (origin && !hosts.some(h => origin === `http://${h}`))
         || req.headers['sec-fetch-site'] === 'cross-site') throw new AppError('Only the local Jarvis page can use this service.',403);
       const url = new URL(req.url,`http://${host}`);
-      if (req.method === 'GET' && url.pathname === '/api/health') return send(200,{ app:'jarvis-workbench',ready:true });
+      if (req.method === 'GET' && url.pathname === '/api/health') return send(200,{ app:'jarvis-workbench',ready:true,...(instanceId ? {instanceId} : {}) });
+      if (desktopKey && url.pathname.startsWith('/api/') && !matchesKey(req.headers['x-jarvis-launch'])) throw new AppError('Open Jarvis from its desktop shortcut to reconnect this browser.',403);
       if (req.method === 'GET' && url.pathname === '/api/local-session') return send(200,{ token,remaining:maxCalls-calls,dictation:process.platform === 'win32' });
       if (req.method === 'GET' && url.pathname === '/api/session') {
         const status = await vision.status(AbortSignal.timeout(15000));
@@ -135,7 +138,13 @@ export function createApp({ vision = new Vision(), maxCalls = 60, login = subscr
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  const app = createApp();
+  const desktopArg=process.argv.find(arg=>arg.startsWith('--desktop-instance='));
+  const instanceId=desktopArg?.split('=')[1];
+  if(desktopArg && !/^[a-f0-9]{32}$/.test(instanceId || '')) throw new Error('Invalid desktop instance identifier.');
+  const desktopKey=process.env.JARVIS_DESKTOP_KEY;
+  delete process.env.JARVIS_DESKTOP_KEY;
+  if (desktopArg && !desktopKey) throw new Error('Desktop launch key is required.');
+  const app = createApp({instanceId,desktopKey});
   app.listen(4317,'127.0.0.1',() => console.log('Jarvis is ready at http://127.0.0.1:4317'));
   app.on('error',error => { console.error(error.code === 'EADDRINUSE' ? 'Port 4317 is in use. Jarvis may already be running.' : 'Could not start Jarvis.'); process.exitCode = 1; });
 }

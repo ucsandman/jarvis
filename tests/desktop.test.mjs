@@ -1,0 +1,31 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { createApp } from '../server.mjs';
+
+test('desktop bootstrap protects sessions, previews and subscription operations from other local clients',async t=> {
+  const desktopKey='a'.repeat(64); let calls=0;
+  const app=createApp({desktopKey,instanceId:'public-id',vision:{status:async()=>{calls++;return {configured:false};}},login:async()=>{calls++;return {};}});
+  await new Promise(resolve=>app.listen(0,'127.0.0.1',resolve));
+  t.after(()=>{app.closeAllConnections();app.close();});
+  const base=`http://127.0.0.1:${app.address().port}`;
+  const health=await (await fetch(base+'/api/health')).json();
+  assert.deepEqual(health,{app:'jarvis-workbench',ready:true,instanceId:'public-id'});
+  for(const path of ['/api/local-session','/api/session']) assert.equal((await fetch(base+path)).status,403);
+  assert.equal((await fetch(base+'/preview/anything')).status,404);
+  assert.equal((await fetch(base+'/api/local-session',{headers:{'x-jarvis-launch':'b'.repeat(64)}})).status,403);
+  const local=await fetch(base+'/api/local-session',{headers:{'x-jarvis-launch':desktopKey}});
+  assert.equal(local.status,200);
+  assert.equal(local.headers.get('set-cookie'),null,'Cookies would leak the key to other loopback ports');
+  const {token}=await local.json();
+  const headers={'X-Jarvis-Launch':desktopKey,'X-Jarvis-Session':token,'Content-Type':'application/json'};
+  assert.equal((await fetch(base+'/api/session',{headers:{Cookie:'jarvisDesktop='+ 'b'.repeat(64)}})).status,403);
+  assert.equal((await fetch(base+'/api/session',{headers:{...headers,Origin:'https://outside.invalid'}})).status,403);
+  assert.equal((await fetch(base+'/api/login',{method:'POST',headers:{'X-Jarvis-Session':token,'Content-Type':'application/json'},body:'{"consent":true}'})).status,403);
+  assert.equal(calls,0);
+  assert.equal((await fetch(base+'/api/session',{headers})).status,200);
+  const preview=await (await fetch(base+'/api/preview',{method:'POST',headers,body:JSON.stringify({html:'<h1>Private preview</h1>'})})).json();
+  assert.match(preview.url,/^\/preview\/[a-f0-9]{40}$/);
+  assert.equal((await fetch(base+preview.url)).status,200,'Preview URL is a separate random capability inside the opaque iframe');
+  assert.match(await (await fetch(base+preview.url,{headers})).text(),/Private preview/);
+  assert.equal(calls,1);
+});

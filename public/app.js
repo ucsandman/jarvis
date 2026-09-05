@@ -1,5 +1,13 @@
 import { loadProject, saveProject } from './storage.js';
 
+let launchKey = new URLSearchParams(location.hash.slice(1)).get('launch');
+if (launchKey) history.replaceState(null,'',location.pathname+location.search);
+try {
+  if (launchKey && /^[a-f0-9]{64}$/.test(launchKey)) sessionStorage.setItem('jarvisLaunch',launchKey);
+  else launchKey = sessionStorage.getItem('jarvisLaunch');
+} catch { /* This tab can still work when browser storage is unavailable. */ }
+const launchHeaders = () => launchKey ? {'X-Jarvis-Launch':launchKey} : {};
+
 const $ = id => document.getElementById(id);
 const state = { token:'', configured:false, stream:null, image:null, imageLabel:'', observation:null,
   revisions:[], selected:null, busy:false, consent:false, voiceConsent:false, speaking:false, recognition:null, controller:null, previewSequence:0, remaining:null, setupBusy:false, setupController:null, dictation:false, inputBusy:false };
@@ -9,7 +17,7 @@ const hideError = () => { $('error').hidden = true; };
 const time = value => new Date(value).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
 
 async function api(path, body, signal) {
-  const response = await fetch(path,{ method:'POST',signal,headers:{ 'Content-Type':'application/json','X-Jarvis-Session':state.token },body:JSON.stringify(body) });
+  const response = await fetch(path,{ method:'POST',signal,headers:{ ...launchHeaders(),'Content-Type':'application/json','X-Jarvis-Session':state.token },body:JSON.stringify(body) });
   const data = await response.json();
   if (Number.isFinite(data.remaining)) { state.remaining = data.remaining; renderBudget(); }
   if (!response.ok) { const error = new Error(data.error || 'The request could not be completed.'); error.code = data.code; throw error; }
@@ -352,14 +360,14 @@ function renderBudget() {
 async function refreshSession() {
   $('recheck').disabled = true;
   try {
-    const local = await fetch('/api/local-session',{ signal:AbortSignal.timeout(3000) });
-    if (!local.ok) throw new Error('Local connection unavailable. Reopen Start Jarvis.cmd, then choose Reconnect.');
+    const local = await fetch('/api/local-session',{ signal:AbortSignal.timeout(3000),headers:launchHeaders() });
+    if (!local.ok) throw new Error('Local connection unavailable. Open Jarvis from its desktop shortcut, then choose Reconnect.');
     const connection = await local.json();
     state.token = connection.token; state.remaining = connection.remaining; state.dictation = connection.dictation;
     updateControls(); renderBudget();
     if (current()) await selectRevision(state.selected);
-    const response = await fetch('/api/session',{ signal:AbortSignal.timeout(17000) });
-    if (!response.ok) throw new Error('Could not connect to Jarvis. Reopen Start Jarvis.cmd, then choose Reconnect. Your saved source is available.');
+    const response = await fetch('/api/session',{ signal:AbortSignal.timeout(17000),headers:launchHeaders() });
+    if (!response.ok) throw new Error('Could not connect to Jarvis. Reopen Jarvis, then choose Reconnect. Your saved source is available.');
     const session = await response.json();
     state.token = session.token; state.configured = session.configured; state.remaining = session.remaining; state.dictation = session.dictation;
     $('provider-status').textContent = session.configured ? 'Astra · subscription' : 'Setup needed';

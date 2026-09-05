@@ -50,7 +50,7 @@ Change: review an explicit publish manifest, scan staged content, and verify the
 - The built-in DAYLIGHT example is explicitly labeled sample content and is usable before login. It uses the same restricted preview and version history as generated work.
 - Setup actions are human-operated buttons: install the official npm CLI, sign in with ChatGPT, recheck, reconnect, and renew the local request allowance. They do not introduce a model transport or alternate billing route.
 - CLI discovery supports official npm package layouts in standard and custom prefixes. Native executable-name fallback is intentionally excluded. Metadata validation does not protect against modification by the local account owner.
-- The existing README is the public product surface. There is no separately hosted marketing site, registry package, or deployment target in this repository.
+- The README and public Vercel site are product surfaces. The later 0.3.0 release adds a bundled Windows executable; see docs/SITE.md and docs/WINDOWS.md for their separate allowlisted release paths.
 
 ### Verification
 
@@ -88,3 +88,17 @@ What worked: failure-first regression checks and isolated browser profiles caugh
 What needed correction: broad executable discovery weakened the official-CLI boundary, and the camera button was hidden once a reference had been selected. The lint wrapper also attempted to parse a non-ESLint check as ESLint output.
 
 Change: retain npm-layout validation and negative discovery tests; keep input controls outside replaceable preview content; run the repository's actual lint/build scripts through its npm CLI when the harness wrapper misclassifies them. Keep these gates in the release checks.
+
+## 0.3.0 Windows and public launch
+
+The Windows download bundles the official runtime and CLI, opens a graphical browser workbench, and provides desktop/Start menu shortcuts and tray Open/Quit. Its build uses an explicit source allowlist, a fresh staging directory, pinned package integrity and verified upstream publishers. The Jarvis launcher itself is unsigned and this is disclosed beside the public download. Local subscription architecture and camera consent are unchanged.
+
+Verification: 22 unit tests and syntax/build checks pass. Nine recovery browser checks pass. The rebuilt executable passes 18 assertions covering extraction with system-only PATH, bundled discovery, explicitly isolated signed-out CLI status, API bootstrap denial, removed URL fragments, port-isolated browser storage, rendered preview and reload. Six actual Windows lifecycle checks pass, including occupied-port refusal, second-click reuse, Quit and forced launcher termination. No new inference or interactive sign-in was required for this package release; the earlier real subscription build/revision evidence remains above.
+
+Retro: the bundled runtime and process ownership checks worked. The first public task board confused an app input with a Jarvis prompt, so the site now shows the actual sketch, captured build and captured revision before offering the optional sample. The next demo must show the product's transformation, not just an output app's controls.
+
+Security review caught unauthenticated cross-account loopback access, then a cookie-based fix that leaked across ports. The final executable uses a random launch key in origin-isolated session storage and API headers; preview URLs are separate random capabilities. Preserve negative raw-client checks and never use host cookies for loopback port isolation. The external review service became unavailable before its final re-review; final source and executable checks were completed locally.
+
+Packaging failures: Windows PowerShell could not deserialize npm's empty root-package property, and native argument quoting stripped JavaScript string quotes. Parsing package integrity through Node stdin fixed both. HOME overrides also failed to create an unsigned-in Windows identity; the verifier now uses an explicit isolated CLI storage directory only for the signed-out status probe and does not claim a fresh OS account. Preserve these real failure cases when changing the packager or verifier.
+
+Public hosting remains a static allowlisted deployment on the approved existing Vercel Pro team. Google and Bing ownership are verified and sitemaps submitted. Initial Google indexing request hit the account's daily quota; indexing is not guaranteed. Standard Vercel analytics is enabled, without the Plus add-on.

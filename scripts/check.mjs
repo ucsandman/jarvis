@@ -1,7 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { readdir, readFile } from 'node:fs/promises';
 const files = ['server.mjs'];
-for (const dir of ['lib','public','scripts','tests']) {
+for (const dir of ['lib','public','site','scripts','tests']) {
   for (const file of await readdir(dir)) if (/\.(mjs|js)$/.test(file)) files.push(`${dir}/${file}`);
 }
 for (const file of files) execFileSync(process.execPath,['--check',file],{ stdio:'pipe' });
