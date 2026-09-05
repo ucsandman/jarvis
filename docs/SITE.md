@@ -63,3 +63,9 @@ Capability audit against public/index.html, public/app.js and the shipped model/
 | Windows launcher, shortcuts, tray quit, unsigned download, MIT | Download section and footer |
 
 Verification: rendered all four current panels at desktop and mobile widths, exercised keyboard navigation, and confirmed all seven obsolete/private routes return 404. The marketing deployment contains ten allowlisted files. Existing application tests and CI remain the product behavior checks.
+
+## 0.7 Computer mode surface audit
+
+The hero now shows an actual Fable proposal from the native Windows verification app. The Computer mode guide covers local permission, selected-window inspection, fresh-text sharing, model/effort, review, single-use approvals, expiry and global Stop. The four-step prototype walkthrough remains distinct and functional. Both modes appear in features, FAQ, README, privacy/security docs and GitHub About. Download links point to 0.7.0.
+
+The static deployment contains 11 allowlisted files, including computer.png. Native code, local routes, logs, controller state and account data are excluded. The guide explicitly limits accessible-control automation and does not claim unrestricted desktop, canvas or shell access. The updated verifier covers both guides at desktop/mobile widths, 7 public assets and 7 forbidden/removed routes.

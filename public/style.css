@@ -289,3 +289,25 @@
   .draft-controls p,.draft-controls summary {font-size:12px;line-height:1.6;margin:10px 0;}
   .draft-controls pre {max-height:180px;overflow:auto;white-space:pre-wrap;overflow-wrap:anywhere;font:11px/1.5 monospace;background:#13190f;padding:12px;}
   .draft-controls [aria-pressed=true] {border-color:#e5bd7c;color:#e5bd7c;}
+:root { --computer-line: #515448; }
+.computer-mode { border: 1px solid var(--computer-line); margin: 24px 0; }
+.computer-mode > summary { cursor: pointer; padding: 18px 22px; color: var(--amber, #e5bb77); }
+.computer-mode > summary span { color: #d0cbbb; margin-left: 16px; font-size: 13px; }
+.computer-content { padding: 24px; }
+.computer-heading { display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.computer-heading h2 { font: 36px Georgia, serif; margin: 10px 0 18px; }
+.computer-content p { line-height: 1.65; max-width: 1000px; }
+.computer-boundary, .computer-consent { font-size: 13px; color: #d0cbbb; }
+.computer-actions { display: flex; flex-wrap: wrap; gap: 14px; align-items: end; margin: 18px 0; }
+.computer-actions label { flex: 1; min-width: 180px; }
+.computer-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; border-top: 1px solid var(--computer-line); padding-top: 20px; }
+.computer-content label { display: block; line-height: 1.6; }
+.computer-content select, .computer-content textarea { display: block; width: 100%; margin: 6px 0 14px; padding: 10px; background: #242820; color: #f0eadc; border: 1px solid #727564; font: inherit; }
+.computer-content input[type=checkbox] { width: auto; margin-right: 8px; }
+.computer-content textarea { min-height: 104px; resize: vertical; }
+.computer-content pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 260px; overflow: auto; background: #171a16; padding: 16px; font-size: 13px; }
+.computer-review { border: 1px solid #e5bb77; padding: 22px; margin: 24px 0; }
+#computer-status { border-left: 3px solid #e5bb77; padding: 10px 15px; background: #292d24; }
+#computer-history { padding-left: 22px; line-height: 1.8; }
+#computer-count { color: #c8c2b4; margin-left: 12px; }
+@media(max-width: 700px) { .computer-grid { grid-template-columns: 1fr; } .computer-heading { align-items: start; flex-direction: column; } .computer-content { padding: 16px; } .computer-mode > summary span { display: block; margin: 8px 0 0; } }

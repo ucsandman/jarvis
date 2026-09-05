@@ -1,10 +1,10 @@
 <div align="center">
   <img src="public/mark.svg" width="72" height="72" alt="Jarvis">
   <h1>Jarvis</h1>
-  <p><strong>Share your screen. Build as you draw.</strong></p>
-  <p>Turn a drawing, design window, or sketch into a working web prototype.</p>
+  <p><strong>Build prototypes. Work in Windows apps.</strong></p>
+  <p>Build web prototypes from visual references, or work in Windows apps with reviewed desktop actions.</p>
   <p><a href="https://github.com/ucsandman/jarvis/actions/workflows/ci.yml"><img src="https://github.com/ucsandman/jarvis/actions/workflows/ci.yml/badge.svg" alt="Windows and Linux checks"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-e5b977" alt="MIT license"></a> <a href="https://github.com/ucsandman/jarvis/releases/latest"><img src="https://img.shields.io/github/v/release/ucsandman/jarvis" alt="Latest release"></a></p>
-  <p><a href="https://jarvis-workbench.vercel.app/">Website</a> · <a href="https://github.com/ucsandman/jarvis/releases/download/v0.6.0/Jarvis-0.6.0-Windows-x64.exe">Download for Windows</a> · <a href="#getting-started">Get started</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
+  <p><a href="https://jarvis-workbench.vercel.app/">Website</a> · <a href="https://github.com/ucsandman/jarvis/releases/download/v0.7.0/Jarvis-0.7.0-Windows-x64.exe">Download for Windows</a> · <a href="#getting-started">Get started</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
 </div>
 
 Jarvis runs on your computer and uses your eligible **ChatGPT or Claude subscription** for generation. Choose **Astra** or **Fable 5.1**, set the effort, and build from a shared screen, uploaded image, camera frame, or typed direction. No model API key is needed.
@@ -23,16 +23,32 @@ Jarvis runs on your computer and uses your eligible **ChatGPT or Claude subscrip
 - **Keep your work.** Up to 12 versions stay in your browser. Restore a version, inspect source, or download HTML.
 - **Choose your input.** Screen sharing, image upload, camera, typed directions, and optional local Windows dictation.
 
+- **Work in Windows apps.** Computer mode reads accessible controls, proposes one action, and waits for your approval. Click, replace text, scroll, use supported shortcuts, or open Notepad, Calculator and Paint. [Computer mode guide](docs/COMPUTER.md).
+
 ## Getting started
 
-1. [Download Jarvis 0.6.0 for Windows](https://github.com/ucsandman/jarvis/releases/download/v0.6.0/Jarvis-0.6.0-Windows-x64.exe) and open it. No terminal, Node.js installation, or administrator access is required.
+1. [Download Jarvis 0.7.0 for Windows](https://github.com/ucsandman/jarvis/releases/download/v0.7.0/Jarvis-0.7.0-Windows-x64.exe) and open it. No terminal, Node.js installation, or administrator access is required.
 2. Choose **Astra** or **Fable 5.1**. In **Setup**, use the selected provider's sign-in button. Codex is included. For Fable, **Install official Claude Code** downloads and verifies Anthropic's runtime if needed.
 3. Choose **Share screen or window**, select your drawing or design window, and describe the product. For one build, check the frame-sharing control and click **Make it real**.
 4. For automatic updates, click **Start Live build** and review the separate sharing and usage notice.
 
 Use the desktop or Start menu shortcut next time. **Quit Jarvis** in the tray menu stops its server. Closing the browser leaves it running.
 
-Windows 10/11 x64 is required. Desktop Chrome or Edge is recommended for screen sharing. The download is about 164 MiB. **The Jarvis executable is unsigned**, so Windows may show an unknown-publisher warning. The [release includes a SHA-256 checksum](https://github.com/ucsandman/jarvis/releases/tag/v0.6.0), and upstream runtime publishers are verified. [Installation, updates, and removal](docs/WINDOWS.md).
+Windows 10/11 x64 is required. Desktop Chrome or Edge is recommended for screen sharing. The download is about 164 MiB. **The Jarvis executable is unsigned**, so Windows may show an unknown-publisher warning. The [release includes a SHA-256 checksum](https://github.com/ucsandman/jarvis/releases/tag/v0.7.0), and upstream runtime publishers are verified. [Installation, updates, and removal](docs/WINDOWS.md).
+
+## Computer mode
+
+![Computer mode waiting for approval](docs/images/computer.png)
+
+*Actual Fable proposal against an isolated Windows test app. The desktop action waits for approval.*
+
+1. Open **Computer mode** and allow local inspection for ten minutes.
+2. Open an app or select an existing window. **Inspect selected window** shows its accessible controls locally.
+3. Choose Astra or Fable and effort, enter the task, and allow sharing the selected window’s current accessible text. Each **Plan next action** takes a fresh reading.
+4. Review the exact target, text or shortcut. **Approve this action** performs one operation; **Reject** performs nothing. Plan the next step to inspect the result and continue.
+5. **Stop computer control**, uncheck permission, or press **Ctrl+Shift+F12** from any app. Closing the page stops control; it does not undo completed actions.
+
+Every UI action can have consequences in the target app, including sending or deleting. Review each approval. The controller does not guarantee that arbitrary applications are trustworthy. Up to 20 model steps per enabled session; each consumes subscription allowance or eligible Claude credits. [Capabilities, limits and protocol](docs/COMPUTER.md).
 
 ## Models and speed
 
@@ -62,9 +78,10 @@ Share the design window rather than Jarvis itself to avoid capture feedback. Ani
 | Accounts | The CLI manages sign-in. Jarvis does not read credential files or accept API-key login. No automatic model or API fallback. |
 | Drafts | Partial HTML is not saved in history. Scripts are disabled; temporary draft URLs expire when the build ends. Reasoning and raw CLI logs are not shown. |
 | Completed prototypes | Run in a restricted iframe with network requests, nested frames, and camera/microphone access blocked. Downloaded HTML runs outside that preview boundary. |
+| Computer mode | Window selection is local. Planning sends a fresh bounded accessibility tree, editable values, task and recent action descriptions after consent. No desktop image or audio is captured by this mode. Action history is session-only. |
 | Saved work | Source versions and references stay in this browser on this device. Use the same profile and local URL. |
 
-Jarvis builds frontend prototypes. It does not control your desktop, edit repositories, deploy services, or connect real backends. Review generated output before using it elsewhere. [Security details and reporting](SECURITY.md).
+The prototype builder creates frontend pages. Separately enabled Computer mode controls accessible Windows UI with per-action approval. It is not unrestricted desktop automation: canvas interaction, Explorer, address bars, terminals and administrator prompts are excluded. There is no generic shell or repository-editing tool, backend builder, or deployment integration. Review generated output before using it elsewhere. [Security details and reporting](SECURITY.md).
 
 ## Run from source
 

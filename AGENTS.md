@@ -7,3 +7,5 @@
 - Preserve camera sharing alongside screen capture and show which frame was used. Live build was explicitly approved by the maintainer: separately consented, bounded screen snapshots only. Never silently upload a live stream or capture audio.
 
 These constraints apply to development, verification, and published code.
+
+- The maintainer explicitly approved Computer mode on 2026-09-05: a local Windows accessibility broker, opt-in sessions, per-action review, and emergency stop. Models still return structured data through the existing isolated subscription transports; do not enable arbitrary CLI tools. Keep fixed launch targets, fresh target validation, and fail-closed action permissions.

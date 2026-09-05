@@ -37,3 +37,7 @@ All existing session, desktop-key, consent, input-validation, concurrency, timeo
 Tests cover partial JSON escapes, output filtering, unexpected models/tools, early process output, sanitized stream failure, draft CSP and revocation. Browser checks cover progressive updates, script blocking, switching to the working version, cancellation, completion and mobile layout.
 
 One real Fable/low request produced first HTML at 18.9 seconds and finished at 20.5 seconds with two draft updates. The result was 2,949 characters. This is not a latency guarantee or a comparison with a different request.
+
+## Computer planning
+
+Computer mode uses the same pinned model and effort selection, authentication and isolated subscription inference. Its output schema describes one proposed Windows accessibility action instead of HTML. Neither CLI executes the action. The local broker waits for a separate human approval. Each Plan next action consumes one request, with a 20-step ceiling per ten-minute control session plus the shared local request allowance. No incremental desktop action executes while a model is thinking.

@@ -12,6 +12,7 @@ Copy-Item -LiteralPath (Join-Path $jarvisRoot 'desktop/Launcher.cs') -Destinatio
 New-Item -ItemType Directory -Force -Path (Join-Path $jarvisPayload 'scripts') | Out-Null
 Copy-Item -LiteralPath (Join-Path $jarvisRoot 'scripts/dictate.ps1') -Destination (Join-Path $jarvisPayload 'scripts')
 Copy-Item -LiteralPath (Join-Path $jarvisRoot 'scripts/check-publisher.ps1') -Destination (Join-Path $jarvisPayload 'scripts')
+foreach ($file in @('computer.ps1','Computer.cs')) { Copy-Item -LiteralPath (Join-Path $jarvisRoot "scripts/$file") -Destination (Join-Path $jarvisPayload 'scripts') }
 foreach ($dir in @('lib','public')) {
     $target = Join-Path $jarvisPayload $dir
     New-Item -ItemType Directory -Force -Path $target | Out-Null

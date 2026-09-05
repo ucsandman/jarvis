@@ -21,6 +21,7 @@ internal static class Launcher {
     static NotifyIcon Tray;
     static Mutex Instance;
     static EventWaitHandle OpenSignal,QuitSignal;
+    static readonly System.Collections.Generic.List<EventWaitHandle> AppSignals=new System.Collections.Generic.List<EventWaitHandle>();
     static readonly string SessionId=Guid.NewGuid().ToString("N");
     static readonly string LaunchKey=NewKey();
     static bool AppReady;
@@ -64,6 +65,13 @@ internal static class Launcher {
             OpenSignal=new EventWaitHandle(false,EventResetMode.AutoReset,"Local\\JarvisDesktopOpen");
             QuitSignal=new EventWaitHandle(false,EventResetMode.AutoReset,"Local\\JarvisDesktopQuit");
             loading.Handle.ToString();
+            // User applications start from the launcher, outside the server's kill-on-close job.
+            foreach(string appName in new [] {"notepad","calculator","paint"}) {
+                string selectedApp=appName;
+                var signal=new EventWaitHandle(false,EventResetMode.AutoReset,"Local\\JarvisOpenApp-"+SessionId+"-"+selectedApp);
+                AppSignals.Add(signal);
+                ThreadPool.RegisterWaitForSingleObject(signal,delegate { loading.BeginInvoke((Action)(()=>OpenDesktopApp(selectedApp))); },null,-1,false);
+            }
             ThreadPool.RegisterWaitForSingleObject(OpenSignal,delegate { if(AppReady) loading.BeginInvoke((Action)Open); },null,-1,false);
             ThreadPool.RegisterWaitForSingleObject(QuitSignal,delegate { loading.BeginInvoke((Action)Application.Exit); },null,-1,true);
             loading.Shown += async delegate {
@@ -111,7 +119,21 @@ internal static class Launcher {
             if(Job!=IntPtr.Zero) CloseHandle(Job);
             if(OpenSignal!=null) OpenSignal.Dispose();
             if(QuitSignal!=null) QuitSignal.Dispose();
+            foreach(var signal in AppSignals)signal.Dispose();
         }
+    }
+
+    static void OpenDesktopApp(string app) {
+        string executable=app=="notepad"?"notepad.exe":app=="calculator"?"calc.exe":"mspaint.exe";
+        try {
+            string path=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),executable);
+            if(File.Exists(path)) Process.Start(new ProcessStartInfo(path) {UseShellExecute=false});
+            else {
+                string registered=app=="notepad"?"Microsoft.WindowsNotepad_8wekyb3d8bbwe!App":app=="calculator"?"Microsoft.WindowsCalculator_8wekyb3d8bbwe!App":"Microsoft.Paint_8wekyb3d8bbwe!App";
+                Process.Start(new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows),"explorer.exe"),"shell:AppsFolder\\"+registered) {UseShellExecute=false});
+            }
+        }
+        catch { MessageBox.Show("Windows could not open that application. Open it yourself and refresh the window list.","Jarvis"); }
     }
 
     static bool Ready() {

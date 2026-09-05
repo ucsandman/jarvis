@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0 — Reviewed computer actions
+
+- Added Windows Computer mode with explicit local and subscription sharing consent.
+- Added accessible-control inspection, click, text replacement, scroll, supported shortcuts, window focus, and fixed app launches.
+- Added one-action approvals, rejection, expiry, target revalidation, session history and a global Ctrl+Shift+F12 stop shortcut.
+- Preserved the isolated Astra/Fable subscription transports and the prototype builder.
+- Documented native limitations and updated the public Computer mode guide and Windows download.
+
 ## 0.6.0 · 2026-09-05
 
 - Fable streams real partial HTML into a script-disabled live draft and code view. Switch to the last working version during generation.

@@ -31,3 +31,6 @@ jobs:
       - run: npm test
       - run: npm run lint
       - run: npm run build
+      - name: Compile and verify Windows control filters
+        if: runner.os == 'Windows'
+        run: powershell.exe -NoProfile -File scripts/verify-computer-filters.ps1

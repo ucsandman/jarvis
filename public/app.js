@@ -1,5 +1,6 @@
 import { loadProject, saveProject } from './storage.js';
 import { LiveFrames } from './live.js';
+import { initComputer } from './computer.js';
 
 let launchKey = new URLSearchParams(location.hash.slice(1)).get('launch');
 if (launchKey) history.replaceState(null,'',location.pathname+location.search);
@@ -83,9 +84,9 @@ function buildProgress(event) {
 $('show-draft').addEventListener('click',()=>chooseDraft(true));
 $('show-working').addEventListener('click',()=>chooseDraft(false));
 
-async function api(path, body, signal) {
+async function api(path, body, signal, keepalive=false) {
   if (['/api/build','/api/observe','/api/login','/api/install-codex'].includes(path)) body={...body,model:state.model,effort:state.effort};
-  const response = await fetch(path,{ method:'POST',signal,headers:{ ...launchHeaders(),'Content-Type':'application/json','X-Jarvis-Session':state.token,...(path==='/api/build'?{Accept:'application/x-ndjson'}:{}) },body:JSON.stringify(body) });
+  const response = await fetch(path,{ method:'POST',signal,keepalive,headers:{ ...launchHeaders(),'Content-Type':'application/json','X-Jarvis-Session':state.token,...(path==='/api/build'?{Accept:'application/x-ndjson'}:{}) },body:JSON.stringify(body) });
   let data;
   if(response.headers.get('content-type')?.includes('application/x-ndjson')) {
     const reader=response.body.getReader(),decoder=new TextDecoder();let pending='',received=0;
@@ -639,4 +640,10 @@ async function init() {
   } catch(error) { showError(error.message); }
   await refreshSession();
 }
+initComputer({api,getSelection:()=>({model:state.model,effort:state.effort}),openSetup:selected=>{
+  if(state.busy || state.live || state.setupBusy)throw new Error('Finish the current request or pause Live build before changing Setup.');
+  $('model-choice').value=selected.model;$('effort-choice').value=selected.effort;
+  $('model-choice').dispatchEvent(new Event('change'));
+  $('setup-panel').open=true;$('setup-panel').scrollIntoView({block:'start',behavior:'smooth'});
+}});
 init();

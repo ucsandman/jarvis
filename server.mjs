@@ -5,13 +5,14 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { AppError, Vision } from './lib/vision.mjs';
 import { runProcess, subscriptionLogin, installCodex, SubscriptionError } from './lib/subscription.mjs';
 import { MODELS, selection, SelectionError } from './lib/models.mjs';
+import { Computer } from './lib/computer.mjs';
 
 export const PREVIEW_CSP = "sandbox allow-scripts allow-forms; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'";
 export const DRAFT_CSP = "sandbox; default-src 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'";
 const APP_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
 const assets = new Map([
   ['/', ['index.html','text/html']], ['/style.css',['style.css','text/css']],
-  ['/live.js',['live.js','text/javascript']], ['/app.js',['app.js','text/javascript']], ['/storage.js',['storage.js','text/javascript']],
+  ['/computer.js',['computer.js','text/javascript']], ['/live.js',['live.js','text/javascript']], ['/app.js',['app.js','text/javascript']], ['/storage.js',['storage.js','text/javascript']],
   ['/mark.svg',['mark.svg','image/svg+xml']], ['/reference.svg',['reference.svg','image/svg+xml']],
   ['/demo.html',['demo.html','text/html']]
 ]);
@@ -32,7 +33,8 @@ async function readJson(req) {
   } catch { throw new AppError('The request is not valid JSON.'); }
 }
 
-export function createApp({ vision = new Vision(), maxCalls = 60, login = subscriptionLogin, install = installCodex, instanceId, desktopKey } = {}) {
+export function createApp({ vision = new Vision(), computer, maxCalls = 60, login = subscriptionLogin, install = installCodex, instanceId, desktopKey } = {}) {
+  computer ||= new Computer({launcherInstance:instanceId});
   if (desktopKey !== undefined && !/^[a-f0-9]{64}$/.test(desktopKey)) throw new Error('Invalid desktop launch key.');
   const matchesKey = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value) && timingSafeEqual(Buffer.from(value),Buffer.from(desktopKey));
   const token = randomBytes(32).toString('hex');
@@ -80,9 +82,17 @@ export function createApp({ vision = new Vision(), maxCalls = 60, login = subscr
         const data = await readFile(new URL(`./public/${name}`,import.meta.url));
         res.writeHead(200,{'Content-Type':`${type}; charset=utf-8`}); return res.end(data);
       }
-      if (req.method !== 'POST' || !['/api/observe','/api/build','/api/preview','/api/dictate','/api/login','/api/install-codex','/api/reset-budget'].includes(url.pathname)) throw new AppError('Not found.',404);
+      if (req.method !== 'POST' || !['/api/computer','/api/observe','/api/build','/api/preview','/api/dictate','/api/login','/api/install-codex','/api/reset-budget'].includes(url.pathname)) throw new AppError('Not found.',404);
       if (req.headers['x-jarvis-session'] !== token) throw new AppError('Reload Jarvis to reconnect your local session.',403);
       const data = await readJson(req);
+      if(url.pathname==='/api/computer') {
+        if(data.op==='propose' && (busy || calls>=maxCalls)) throw new AppError(busy?'Another model request is running.':'Your local request allowance is used up. Reset it in Setup.',409);
+        const controller=new AbortController();const abort=()=>{controller.abort();if(data.op!=='status')computer.stop();};
+        res.once('close',abort);
+        if(data.op==='propose'){busy=true;calls++;}
+        try {return send(200,{...await computer.handle(data,controller.signal),remaining:maxCalls-calls});}
+        finally {if(data.op==='propose')busy=false;res.removeListener('close',abort);}
+      }
       if (url.pathname === '/api/reset-budget') {
         if (data.consent !== true) throw new AppError('Confirm a new local request allowance.',403);
         if (busy) throw new AppError('Wait for the current request to finish.',409,'BUSY');
@@ -156,6 +166,7 @@ export function createApp({ vision = new Vision(), maxCalls = 60, login = subscr
   });
   server.requestTimeout = 320000;
   server.headersTimeout = 10000;
+  server.on('close',()=>computer.stop());
   return server;
 }
 

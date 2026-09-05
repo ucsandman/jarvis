@@ -46,12 +46,18 @@ try {
   await faq.press('Enter');
   assert.ok(await page.getByText('This website provides a prepared walkthrough.',{exact:false}).isVisible());
   const href=await page.locator('#download-zip').getAttribute('href');
-  assert.equal(href,'https://github.com/ucsandman/jarvis/releases/download/v0.6.0/Jarvis-0.6.0-Windows-x64.exe');
-  for(const path of ['/robots.txt','/sitemap.xml','/llms.txt','/og.png','/mark.svg','/streaming.png']) assert.equal((await page.request.get(`${base}${path}`)).status(),200,path);
+  assert.equal(href,'https://github.com/ucsandman/jarvis/releases/download/v0.7.0/Jarvis-0.7.0-Windows-x64.exe');
+  for(const path of ['/robots.txt','/sitemap.xml','/llms.txt','/og.png','/mark.svg','/streaming.png','/computer.png']) assert.equal((await page.request.get(`${base}${path}`)).status(),200,path);
   for(const path of ['/api/session','/server.mjs','/.env','/demo.html','/reference.svg','/workbench.png','/revision.png']) assert.equal((await page.request.get(`${base}${path}`)).status(),404,path);
+  await page.getByRole('link',{name:'Computer mode',exact:true}).click();
+  await page.locator('#computer img').evaluate(image=>image.decode());
+  assert.match(await page.locator('#computer').innerText(),/Ctrl\+Shift\+F12/);
+  assert.match(await page.locator('#computer').innerText(),/No canvas drawing/);
+  await page.locator('#computer').screenshot({path:'.artifacts/site-computer-desktop.png'});
   await page.goto(base);await page.screenshot({path:'.artifacts/site-desktop.png',fullPage:true});
   await page.setViewportSize({width:390,height:844});
   assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await page.locator('#computer').screenshot({path:'.artifacts/site-computer-mobile.png'});
   for (const step of steps) {
     await page.getByRole('tab',{name:step}).click();
     assert.equal(await page.locator('[role="tabpanel"]:visible').count(),1);
@@ -68,5 +74,5 @@ try {
     await page.locator('#walkthrough').screenshot({path:`.artifacts/walkthrough-${panel}-desktop.png`});
   }
   assert.deepEqual(errors,[]);
-  console.log(`PASS: ${base}; Current walkthrough verified: 4 steps on desktop and mobile, keyboard arrows/Home/End, draft image and replay disclosure, 6 public assets, 7 removed/private routes, pinned download, no overflow or browser errors.`);
+  console.log(`PASS: ${base}; Current walkthrough verified: 4 steps on desktop and mobile, keyboard arrows/Home/End, draft image and replay disclosure, Computer mode guide on desktop/mobile, 7 public assets, 7 removed/private routes, pinned download, no overflow or browser errors.`);
 } finally {await browser.close();await new Promise(resolve=>server.close(resolve));}

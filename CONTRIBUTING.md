@@ -37,3 +37,5 @@ Browser checks require Chrome and Playwright or an existing global `@playwright/
 - Prefer platform features over new dependencies. Never weaken a test assertion to hide a regression.
 
 Include the behavior changed, verification performed, and screenshots for visual changes. Keep credentials, personal paths, transcripts, and private references out of commits and issues. Contributions are under the [MIT license](LICENSE). See [SECURITY.md](SECURITY.md) for vulnerability reporting.
+
+Computer-mode checks: `npm run verify:computer` uses synthetic planning and native responses. On an interactive Windows desktop, `npm run verify:computer-native` compiles and opens its own fixture, tests UIA actions and the global stop shortcut, then closes only its own process. `powershell -NoProfile -File scripts/verify-computer-filters.ps1` checks the compiled protection regexes. The optional `node scripts/verify-computer-live.mjs --allow-subscription` uses Fable with that fixture and consumes allowance. Run the native verifier first to create the fixture. Never test against personal documents, terminals or real outgoing messages.

@@ -18,6 +18,9 @@ const hash=createHash('sha256').update(await readFile(join(build,'payload.zip'))
 const installed=join(env.LOCALAPPDATA,'Jarvis','versions',`${version}-${hash.slice(0,12)}`);
 const node=join(installed,'runtime','node.exe');
 const transport=pathToFileURL(join(installed,'lib','subscription.mjs')).href;
+const nativeUrl=pathToFileURL(join(installed,'lib','computer.mjs')).href;
+const nativeStatus=JSON.parse(execFileSync(node,['--input-type=module','-e',`import {WindowsComputer} from ${JSON.stringify(nativeUrl)};const native=new WindowsComputer();try{console.log(JSON.stringify(await native.call({op:'status'})));}finally{native.close();}`],{env,encoding:'utf8',windowsHide:true}));
+assert.equal(nativeStatus.armed,false);assert.equal(nativeStatus.hotkey,true);
 const discovery=JSON.parse(execFileSync(node,['--input-type=module','-e',`import {codexCommand,subscriptionStatus} from ${JSON.stringify(transport)};console.log(JSON.stringify({cli:await codexCommand(),status:await subscriptionStatus()}))`],{env,encoding:'utf8',windowsHide:true}));
 assert.ok(discovery.cli.prefix[0].startsWith(join(installed,'runtime','node_modules')));
 assert.equal(discovery.status.cli,true);
@@ -59,5 +62,5 @@ try {
     assert.equal(errors.length,0);
     await page.screenshot({path:'.artifacts/windows-first-run.png'});
   } finally {await browser.close();}
-  console.log('PASS: 18 assertions: executable extraction; bundled Node/Codex with system-only PATH; explicit signed-out CLI status probe; desktop bootstrap denial, fragment removal, port-isolated session storage, rendered setup/preview and reload. Existing Windows account untouched; no model calls.');
+  console.log('PASS: 20 assertions: packaged Computer controller compiles and starts disarmed with global hotkey; executable extraction; bundled Node/Codex with system-only PATH; explicit signed-out CLI status probe; desktop bootstrap denial, fragment removal, port-isolated session storage, rendered setup/preview and reload. Existing Windows account untouched; no model calls.');
 } finally {service.kill();}
