@@ -31,3 +31,7 @@ Screen/window sharing is the primary input; camera and upload remain available. 
 ## Verification
 
 The site suite performs 24 browser checks across the walkthrough, keyboard navigation, removed/private routes, download link, eight public assets, mobile fit and page errors. Public release evidence is appended below. Detailed historical investigations remain in [PLAYBOOK.md](../PLAYBOOK.md).
+
+### 0.6.0 publication
+
+Published source 45e139d and GitHub release v0.6.0. CI run 33980839433 passed on Windows and Linux. Vercel deployment dpl_9DBCD1x4HN27ZX2TbyNRu8Sv47Tk is ready on the production alias; all 24 public browser checks passed. The anonymous Windows download matched its published SHA-256 and 171,309,056-byte size. GitHub reports MIT and the correct homepage. The local desktop launcher was restarted and serves the new draft UI.
