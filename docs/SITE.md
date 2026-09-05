@@ -66,3 +66,5 @@ Production deployment `dpl_Dk8zgMJQYqs6qzb6cEXhuBKXXtup` is READY. Its dry-run/u
 ## 0.4.0 model selection
 
 The Windows download now supports Astra/ChatGPT and Fable 5.1/Claude with five effort levels. The public page explains Claude Code installation through Setup and explicitly warns about paid Claude usage credits. Generation and subscription sign-in remain local. The removed optional sample section remains absent.
+
+Published evidence: v0.4.0 targets commit `a48222f`. GitHub CI run `33977961959` passed on Windows and Linux. The anonymous executable download returned HTTP 200 and 171,300,352 bytes, with SHA-256 `4714e74cde073d43538eee8b6a463b34b5813934c2004f40e7055aa6809c8da3` matching the release checksum. Production Vercel deployment `dpl_5aEgJxyHDmcRQ9FAdURAUrJoh8F6` is READY; all 24 site checks passed against the live alias. The restarted local 0.4.0 desktop server is ready and serves both selectors.
