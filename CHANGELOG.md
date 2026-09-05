@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0 · 2026-09-05
+
+- Share a screen or window and opt into Live build while drawing or editing. Camera and upload remain available.
+- Local change detection, three quiet seconds, configurable minimum intervals, one request at a time, and ten builds per start. Pause cancels unfinished inference; Stop sharing releases capture.
+- Exact sent-frame evidence, explicit automatic-sharing and usage-credit consent, and no automatic resume after reload.
+- Animated Astra/Fable waiting messages, elapsed time, reduced-motion support, and a status panel that keeps the current prototype usable.
+- Windows package, privacy documentation, public download guidance, and deterministic live-loop verification updated.
+
 ## 0.4.0 · 2026-09-05
 
 - Choose Astra or Fable 5.1 and low, medium, high, xhigh, or max effort in the workbench. Preferences persist; each build records its selection.

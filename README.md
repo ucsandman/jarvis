@@ -2,7 +2,7 @@
   <img src="public/mark.svg" width="80" height="80" alt="Jarvis mark">
   <h1>Jarvis</h1>
   <p><strong>Show a sketch. Describe the idea. Try the working prototype.</strong></p>
-  <p>A camera-aware workbench that turns references from your desk into interactive web interfaces.</p>
+  <p>A visual workbench that turns your shared screen, sketches, and references into interactive web interfaces.</p>
   <p>
     <a href="https://github.com/ucsandman/jarvis/actions/workflows/ci.yml"><img src="https://github.com/ucsandman/jarvis/actions/workflows/ci.yml/badge.svg" alt="CI status"></a>
     <img src="https://img.shields.io/badge/Node.js-24%2B-43853d?logo=nodedotjs&amp;logoColor=white" alt="Node.js 24 or newer">
@@ -13,7 +13,7 @@
   <p><a href="#quick-start">Quick start</a> · <a href="#the-demo">Demo</a> · <a href="#how-it-works">Architecture</a> · <a href="#privacy-and-control">Privacy</a> · <a href="CONTRIBUTING.md">Contributing</a></p>
 </div>
 
-**[See how Jarvis works](https://jarvis-workbench.vercel.app/)** or **[download Jarvis for Windows](https://github.com/ucsandman/jarvis/releases/download/v0.4.0/Jarvis-0.4.0-Windows-x64.exe)**. Real generation runs locally through your own eligible ChatGPT or Claude subscription; the public site shows a prepared walkthrough and does not host subscription login or inference.
+**[See how Jarvis works](https://jarvis-workbench.vercel.app/)** or **[download Jarvis for Windows](https://github.com/ucsandman/jarvis/releases/download/v0.5.0/Jarvis-0.5.0-Windows-x64.exe)**. Real generation runs locally through your own eligible ChatGPT or Claude subscription; the public site shows a prepared walkthrough and does not host subscription login or inference.
 
 Public-site maintenance and deployment: [site runbook](docs/SITE.md).
 
@@ -50,11 +50,11 @@ Try the same loop with your own sketch, or choose **Try a sample sketch** to sta
 
 ### Windows: download and open
 
-1. Download **Jarvis-0.4.0-Windows-x64.exe** using the link above and open it. Node and the official Codex CLI are included; no terminal, npm, or administrator access is required.
+1. Download **Jarvis-0.5.0-Windows-x64.exe** using the link above and open it. Node and the official Codex CLI are included; no terminal, npm, or administrator access is required.
 2. Choose **Astra** or **Fable 5.1**, then an effort level. In **Setup**, use the selected provider’s sign-in button. For Fable, **Install official Claude Code** downloads Anthropic’s verified runtime if needed. Existing eligible subscription sign-in is reused.
 3. Use the **Jarvis** shortcut on your desktop or Start menu next time. The tray menu has **Open Jarvis** and **Quit Jarvis**. Closing the browser leaves Jarvis running; Quit stops its server and child processes.
 
-Windows 10/11 x64 and a modern browser are required. The download is about 164 MiB and expands into your per-user application data directory. The outer Jarvis executable is unsigned, so Windows may show an unknown-publisher warning. The included Node and Codex binaries have verified upstream signatures. [Release notes and SHA-256 checksum](https://github.com/ucsandman/jarvis/releases/tag/v0.4.0) accompany the download. [Windows packaging and lifecycle details](docs/WINDOWS.md).
+Windows 10/11 x64 and a modern browser are required. The download is about 164 MiB and expands into your per-user application data directory. The outer Jarvis executable is unsigned, so Windows may show an unknown-publisher warning. The included Node and Codex binaries have verified upstream signatures. [Release notes and SHA-256 checksum](https://github.com/ucsandman/jarvis/releases/tag/v0.5.0) accompany the download. [Windows packaging and lifecycle details](docs/WINDOWS.md).
 
 A camera is optional. Access and allowance depend on the selected account. Fable can use paid Claude usage credits. Jarvis stops if the selected model is unavailable.
 
@@ -87,7 +87,7 @@ Jarvis has zero application package dependencies. The official Codex npm package
 ### Your first build
 
 1. Choose **Try the working example** to add, move, and search sample tasks immediately, without inference or camera access.
-2. Choose **Try a sample sketch**, upload a reference, connect a camera, or type an idea.
+2. Choose **Share screen or window**, upload a reference, connect a camera, or type an idea.
 3. Check **Include the selected frame** only when you want that image sent. Describe the behavior you want.
 4. Click **Make it real** and review the sharing consent. A visual build returns observations and the prototype together in one subscription turn.
 5. Try the controls, then type a change. The previous frame remains visible as evidence, but is unchecked for the next request. Check it again or select a new reference to include it.
@@ -95,11 +95,23 @@ Jarvis has zero application package dependencies. The official Codex npm package
 
 For readable camera input, fill the frame with the page and use even lighting. The preview is not mirrored. Dictation returns editable text; you still click Build to send it.
 
+## Build as you draw
+
+Choose **Share screen or window** and select your drawing or design window in the browser picker. Screen preview stays local until you build or separately approve **Live build**. Camera and upload remain available.
+
+1. Describe the product you want, choose a model and effort, then click **Start Live build**.
+2. Review the automatic-sharing and usage notice. Fable can consume paid Claude usage credits.
+3. Keep working in the shared window. Jarvis waits for three quiet seconds and a meaningful visual change. It sends at most one build at a time, at least 30 seconds apart by default. Choose 60 seconds or two minutes for fewer updates.
+4. Try the current prototype while the next version builds. **Astra is thinking** and **Fable is grinding** animate alongside elapsed time. These are waiting states, not model progress percentages. Review the exact snapshot in **Frame sent**.
+5. **Pause** cancels unfinished inference and stops new snapshots. **Stop sharing** also releases capture. Live build pauses after ten requests, on capture loss, or on a build error. A reload never resumes sharing automatically.
+
+Live updates take as long as generation requires. Busy or continuously animated surfaces may never settle; very small edits can be ignored by thumbnail comparison. Share the design window rather than Jarvis itself to avoid feedback from the changing prototype. No audio or full video stream is sent. Existing preview runtime state resets when a new version replaces it; source versions stay saved.
+
 ## How it works
 
 ```mermaid
 flowchart LR
-    A[Camera frame or uploaded image] --> B[Local workbench]
+    A[Screen snapshot, camera frame, or image] --> B[Local workbench]
     T[Typed or locally dictated direction] --> B
     B --> C{Sharing consent}
     C -->|Approved build| D[Loopback Node server]
@@ -139,7 +151,7 @@ docs/images/          Reviewed screenshots from the real demo
 
 | Boundary | Behavior |
 | --- | --- |
-| Camera | Preview stays local. Only the selected frame is shared when you build. No continuous stream is uploaded. |
+| Camera and screen | Preview stays local. Manual builds send one selected frame. Separately approved Live build sends changed screen snapshots after a pause. No continuous stream or desktop audio is uploaded. |
 | Model input | Selected image, direction, and selected prototype source go through the official subscription-authenticated CLI after consent. |
 | Credentials | Jarvis does not read environment files or subscription credentials. API-key authentication is rejected. |
 | Generated code | Runs in a restricted preview with network requests, nested frames, form destinations, and camera/microphone permissions blocked. |
@@ -151,7 +163,7 @@ The workbench runs locally; inference is remote through your subscription. Your 
 
 ## Current limits
 
-- **Snapshot-based awareness.** Jarvis reads chosen frames. It does not continuously understand or control a room.
+- **Snapshot-based awareness.** Live build samples a shared screen locally and sends settled snapshots. Jarvis does not control the desktop or continuously stream it to a provider.
 - **Frontend prototypes.** It does not edit repositories, build backends, deploy services, or execute generated code on the host computer.
 - **Generation takes time.** One verified combined visual build took 209.7 seconds at medium reasoning effort. This is a single measurement, not a latency guarantee or a controlled speedup comparison. Progress and the timeout countdown stay visible; builds may still time out.
 - **Source persists; runtime state resets.** Data entered inside a generated preview resets when it is reopened. Saved source versions remain available.
@@ -164,14 +176,14 @@ The workbench runs locally; inference is remote through your subscription. Your 
 
 ```sh
 npm run dev       # Restart the server after source changes
-npm test          # 28 tests; no model calls or account required
+npm test          # 31 tests; no model calls or account required
 npm run lint      # JavaScript syntax and required-asset checks
 npm run build     # Same checks; no compilation step required
 ```
 
 There is no third-party lint engine or bundler. CI runs installation, tests, lint, and build on Node.js 24 on Windows and Linux. It never calls a model or uses subscription credentials.
 
-The model-selection release passes **28 unit tests**, **13 model/effort browser checks**, and **9 recovery browser checks**. Browser checks reported zero page errors. A real combined visual build also completed through the subscription CLI. See [PLAYBOOK.md](PLAYBOOK.md) for scope and limitations.
+The model-selection release passes **31 unit tests**, **22 live-build browser checks**, **13 model/effort browser checks**, and **9 recovery browser checks**. Browser checks reported zero page errors. A real combined visual build also completed through the subscription CLI. See [PLAYBOOK.md](PLAYBOOK.md) for scope and limitations.
 
 <details>
 <summary><strong>Optional end-to-end browser checks</strong></summary>
@@ -180,6 +192,7 @@ Requires Chrome and Playwright, either installed locally or available through an
 
 ```sh
 npm run verify:recovery
+node scripts/verify-live.mjs # Synthetic screen and model, no subscription usage
 npm run verify:vision
 npm run verify:browser
 node scripts/verify-revision.mjs

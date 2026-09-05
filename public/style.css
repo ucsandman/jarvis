@@ -260,3 +260,24 @@
 .model-controls select{font-size:14px;min-height:42px;padding:9px 12px}
 .model-controls p{font-size:12px;color:var(--muted);max-width:420px;line-height:1.5;margin:0 0 7px}
 @media(max-width:600px){.model-controls label{flex:1;min-width:140px}.model-controls p{flex-basis:100%;margin:0}}
+
+  .live-controls { margin-top:18px; padding:18px; border:1px solid var(--line,#414a3c); }
+  .live-heading,.live-actions { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .live-heading strong { font:22px Georgia,serif; }
+  .live-controls p { font-size:12px; line-height:1.65; margin:12px 0; }
+  .live-controls label { display:flex; align-items:center; gap:12px; flex-wrap:wrap; font-size:12px; margin:14px 0; }
+  .live-controls select { min-height:42px; background:#252b23; color:#eee9dc; border:1px solid #56604d; padding:8px; }
+  .live-controls[data-active=true] { border-color:#d8b579; }
+  #live-count { font-size:11px; color:#d8b579; }
+  .sent-evidence { margin-top:16px; font-size:12px; }
+  .sent-evidence summary { padding:12px 0; cursor:pointer; }
+  .sent-evidence img { width:100%; max-height:240px; object-fit:contain; background:#121710; }
+  .build-overlay { position:relative; inset:auto; display:grid; grid-template-columns:30px 1fr auto; gap:6px 16px; text-align:left; align-items:center; padding:18px; margin-bottom:14px; border:1px solid #6b775b; background:#252d22; color:#f0e8d9; }
+  .build-overlay .build-orbit { grid-column:1; grid-row:1 / 5; width:24px; height:24px; margin:0; border-color:#6e795e; border-top-color:#e7bd7c; }
+  .build-overlay .eyebrow,.build-overlay h2,.build-overlay p { grid-column:2; margin:0; }
+  .build-overlay h2 { font-size:24px; color:#e7bd7c; }
+  .build-overlay p,.build-overlay .eyebrow { color:#d0d5c6; line-height:1.6; }
+  .build-overlay #cancel { grid-column:3; grid-row:1 / 5; min-height:40px; }
+  .build-overlay[data-model=fable] .build-orbit { border-radius:5px; animation:grind 2.4s ease-in-out infinite; }
+  @keyframes grind { 50% {transform:rotate(90deg) scale(.8);opacity:.55;} 100% {transform:rotate(180deg);} }
+  @media(max-width:600px) { .build-overlay { grid-template-columns:24px 1fr; } .build-overlay #cancel {grid-column:2;grid-row:auto;justify-self:start;} .source-controls {flex-wrap:wrap;} }

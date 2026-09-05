@@ -10,7 +10,7 @@ export const PREVIEW_CSP = "sandbox allow-scripts allow-forms; default-src 'none
 const APP_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
 const assets = new Map([
   ['/', ['index.html','text/html']], ['/style.css',['style.css','text/css']],
-  ['/app.js',['app.js','text/javascript']], ['/storage.js',['storage.js','text/javascript']],
+  ['/live.js',['live.js','text/javascript']], ['/app.js',['app.js','text/javascript']], ['/storage.js',['storage.js','text/javascript']],
   ['/mark.svg',['mark.svg','image/svg+xml']], ['/reference.svg',['reference.svg','image/svg+xml']],
   ['/demo.html',['demo.html','text/html']]
 ]);
@@ -46,7 +46,7 @@ export function createApp({ vision = new Vision(), maxCalls = 60, login = subscr
     res.setHeader('Referrer-Policy','no-referrer');
     res.setHeader('Cache-Control','no-store');
     res.setHeader('Content-Security-Policy',APP_CSP);
-    res.setHeader('Permissions-Policy','camera=(self), microphone=(self), geolocation=()');
+    res.setHeader('Permissions-Policy','camera=(self), microphone=(self), geolocation=(), display-capture=(self)');
     const send = (status,value) => {
       if (res.destroyed) return;
       res.writeHead(status, {'Content-Type':'application/json; charset=utf-8'});

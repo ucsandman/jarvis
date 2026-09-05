@@ -117,3 +117,19 @@ Retro: the provider mechanism and rendered output worked. Initial preview QA use
 DEVIATIONS: Claude Code installs directly from Anthropic through Setup instead of redistribution inside the executable. The no-terminal flow is preserved. The user explicitly allowed Claude subscription usage credits; no direct model API was introduced.
 
 Packaging evidence: the final 0.4.0 executable is 171,300,352 bytes. All 18 packaged-app assertions and six actual Windows lifecycle checks passed. Payload inventory checked 37 files, including 27 text files, with seven current-source matches and zero credential filenames or secret/private-path matches. A clean staged-source checkout passed npm ci, 28 tests, lint and build. The production dry-run contains 12 public files and excludes generated environment data.
+
+## 0.5.0 screen sharing and Live build
+
+Added a browser screen/window picker alongside camera and upload. Live build requires separate consent, compares 160 by 90 thumbnails locally, waits for three quiet seconds, and sends only changed snapshots. Minimum intervals are 30 seconds, 60 seconds, or two minutes. It serializes generation, keeps only the newest settled candidate, pauses after ten requests, and cancels unfinished inference on Pause or capture loss. Stop sharing releases the track. Reload does not resume. The exact last sent frame is inspectable.
+
+A compact animated status panel keeps the existing prototype usable. Astra and Fable get distinct waiting copy and motion; elapsed time is visible without fabricated completion percentages. Reduced motion disables animations. The screen capture API is initiated directly by the user's click and excludes audio. Provider and effort remain fixed during Live build.
+
+Verification: 31 unit tests, 22 synthetic live-loop browser checks, 13 model-selection checks, nine recovery checks, and 24 local site checks passed. A real Chrome getDisplayMedia session captured a dedicated public drawing tab, and one real Fable/low automatic build completed in 60 seconds with 4,769 HTML characters and zero page errors. This is a single measurement, not an instant-update guarantee. No private desktop or webcam content was used for verification.
+
+Retro: real capture and the automatic build worked. The first synthetic fixture produced no video frames until it repainted the canvas, and the first request assertion inspected the inference prompt instead of the HTTP body. Correcting the QA fixtures exposed the intended behavior without weakening assertions. Existing camera-status copy was preserved after its regression check failed. Keep native capture proof separate from deterministic scheduling tests, and inspect request bodies at the actual API boundary.
+
+DEVIATIONS: Live build uses consented snapshots and bounded automatic requests; it does not stream video or guarantee instant output. No new dependencies or provider transport were introduced.
+
+Final UI review caught a stale-reference edge case after pausing Live build. Clearing the selected-image pointer when returning to the shared video ensures the next manual capture is fresh; the exact previous frame remains in sent-frame evidence and saved revisions. All 22 live browser checks passed again after that fix. The real generated output also passed task creation, search and movement checks. Its submit button uses HTML's default submit type; the QA locator was corrected to its visible accessible name.
+
+The final 0.5.0 executable passed 18 packaged-app assertions and six Windows lifecycle checks. Its payload scan covered 38 files, including 28 text files, with six current-source matches and no credential filenames or secret/private-path hits. Clean staged-source installation, all 31 tests, lint and build passed. Public deployment dry-run contains 12 files and excludes generated environment data.
