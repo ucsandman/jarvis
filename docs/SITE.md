@@ -72,3 +72,5 @@ Published evidence: v0.4.0 targets commit `a48222f`. GitHub CI run `33977961959`
 ## 0.5.0 live input
 
 The download now offers screen/window sharing as the primary input, with camera and upload retained. The public page explains Live build's separate consent, minimum intervals, ten-build cap, animated waiting states, and subscription usage. The static site does not capture screens or run inference. Hosting, search ownership, and analytics settings are unchanged.
+
+Release evidence: v0.5.0 targets `b6cc8cc`; Windows/Linux CI run `33979088942` passed. The anonymous Windows download returned HTTP 200 and 171,304,448 bytes, matching SHA-256 `a21ce3d494ff62f95e98af0ba134fde1bf6827d543735f17a0f9d902895f9cc8`. Production deployment `dpl_HG6SPFoC9YJzyWU3AVrawACVABss` is READY and all 24 public-site checks passed against the live alias. The restarted local desktop server serves the new capture, Live build, and animated-wait controls.
