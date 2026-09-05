@@ -32,7 +32,7 @@ export function initComputer({api,getSelection,openSetup}) {
   const status=text=>$('status').textContent=text;
   function controls(){
     for(const id of ['refresh','inspect','launch','next','approve','reject','window','model','effort','task','app']) $(id).disabled=busy || !owner;
-    $('enable').disabled=busy || !!owner;$('stop').disabled=!owner && !busy;
+    $('enable').disabled=busy || !!owner;$('stop').disabled=false;
     $('approve').disabled=busy || !owner || !proposal || Date.now()>proposal.expires;
   }
   const call=(op,body={},signal)=>api('/api/computer',{op,owner,...body},signal);

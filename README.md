@@ -46,7 +46,7 @@ Windows 10/11 x64 is required. Desktop Chrome or Edge is recommended for screen 
 2. Open an app or select an existing window. **Inspect selected window** shows its accessible controls locally.
 3. Choose Astra or Fable and effort, enter the task, and allow sharing the selected window’s current accessible text. Each **Plan next action** takes a fresh reading.
 4. Review the exact target, text or shortcut. **Approve this action** performs one operation; **Reject** performs nothing. Plan the next step to inspect the result and continue.
-5. **Stop computer control**, uncheck permission, or press **Ctrl+Shift+F12** from any app. Closing the page stops control; it does not undo completed actions.
+5. **Stop computer control**, uncheck permission, or press **Ctrl+Shift+F12** from any app. Closing the page requests Stop; it does not undo completed actions. The Stop button remains available after a reconnect.
 
 Every UI action can have consequences in the target app, including sending or deleting. Review each approval. The controller does not guarantee that arbitrary applications are trustworthy. Up to 20 model steps per enabled session; each consumes subscription allowance or eligible Claude credits. [Capabilities, limits and protocol](docs/COMPUTER.md).
 
