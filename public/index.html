@@ -42,7 +42,7 @@
     <section class="model-controls" aria-label="Model and effort">
       <label for="model-choice">Model<select id="model-choice"><option value="astra">Astra · ChatGPT</option><option value="fable">Fable 5.1 · Claude</option></select></label>
       <label for="effort-choice">Effort<select id="effort-choice"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="xhigh">Extra high</option><option value="max">Maximum</option></select></label>
-      <p id="billing-note">Astra uses your ChatGPT subscription.</p><p id="effort-note" role="status">Medium balances speed and depth. Applies to your next build.</p>
+      <button class="quiet" id="faster-effort">Use low effort for faster builds</button><p id="billing-note">Astra uses your ChatGPT subscription.</p><p id="effort-note" role="status">Medium balances speed and depth. Applies to your next build.</p>
     </section>
 
     <section class="composer-wrap">
@@ -100,6 +100,7 @@
       <section class="output-column" aria-label="Running prototype">
         <div class="section-bar"><span><b>02</b> THE WORK TAKES SHAPE</span><div class="preview-actions"><button id="desktop-view" class="viewport-button active" aria-label="Desktop preview" aria-pressed="true">Desktop</button><button id="mobile-view" class="viewport-button" aria-label="Mobile preview" aria-pressed="false">Mobile</button><button class="icon-button small" id="expand" aria-label="Expand preview"><svg><use href="#i-expand"/></svg></button></div></div>
             <div class="build-overlay" id="build-overlay" hidden><div class="build-orbit" aria-hidden="true"></div><span class="eyebrow" id="build-phase" role="status">READING YOUR REFERENCE</span><h2 id="build-message" aria-live="polite">Connecting the dots.</h2><p id="build-detail">Looking at the frame you chose.</p><p id="build-elapsed">0s elapsed</p><button class="small-button" id="cancel">Cancel</button></div>
+        <div id="draft-controls" class="draft-controls" hidden><strong id="draft-status" role="status">Live draft · unfinished</strong><div><button class="small-button" id="show-draft" aria-pressed="true">Live draft</button><button class="small-button" id="show-working" aria-pressed="false">Last working version</button></div><p>Layout updates as code arrives. Draft scripts stay off until the finished version is ready.</p><details><summary>Code arriving</summary><pre id="draft-code"></pre></details></div>
         <div class="prototype" id="prototype">
           <div class="browser-bar"><div class="browser-dots" aria-hidden="true"><i></i><i></i><i></i></div><span id="prototype-title">Your next idea, running.</span><span class="version-label" id="version-label">READY WHEN YOU ARE</span></div>
           <div class="preview-stage" id="preview-stage">
@@ -110,6 +111,7 @@
               <p>Your reference becomes a working web prototype.<br>Then we keep building on it, together.</p>
               <div class="empty-steps"><span><b>1</b> Show a reference</span><span><b>2</b> Give me direction</span><span><b>3</b> Try the result</span></div>
             </div>
+            <iframe id="draft-preview" title="Unfinished live draft, scripts disabled" sandbox="" referrerpolicy="no-referrer" hidden></iframe>
             <iframe id="preview" title="Generated interactive prototype" sandbox="allow-scripts allow-forms" referrerpolicy="no-referrer" hidden></iframe>
 
           </div>

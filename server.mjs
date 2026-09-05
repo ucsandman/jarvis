@@ -7,6 +7,7 @@ import { runProcess, subscriptionLogin, installCodex, SubscriptionError } from '
 import { MODELS, selection, SelectionError } from './lib/models.mjs';
 
 export const PREVIEW_CSP = "sandbox allow-scripts allow-forms; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'";
+export const DRAFT_CSP = "sandbox; default-src 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'";
 const APP_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
 const assets = new Map([
   ['/', ['index.html','text/html']], ['/style.css',['style.css','text/css']],
@@ -36,7 +37,7 @@ export function createApp({ vision = new Vision(), maxCalls = 60, login = subscr
   const matchesKey = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value) && timingSafeEqual(Buffer.from(value),Buffer.from(desktopKey));
   const token = randomBytes(32).toString('hex');
   const previews = new Map();
-  let busy = false; let calls = 0; let dictating = false;
+  let busy = false; let calls = 0; let draftSession=null; let dictating = false;
   const server = http.createServer(async (req,res) => {
     const port = server.address().port;
     const hosts = [`127.0.0.1:${port}`,`localhost:${port}`];
@@ -49,6 +50,7 @@ export function createApp({ vision = new Vision(), maxCalls = 60, login = subscr
     res.setHeader('Permissions-Policy','camera=(self), microphone=(self), geolocation=(), display-capture=(self)');
     const send = (status,value) => {
       if (res.destroyed) return;
+      if(res.headersSent) {res.end(JSON.stringify({type:status>=400?'error':'result',...value})+'\n');return;}
       res.writeHead(status, {'Content-Type':'application/json; charset=utf-8'});
       res.end(JSON.stringify(value));
     };
@@ -65,9 +67,10 @@ export function createApp({ vision = new Vision(), maxCalls = 60, login = subscr
         return send(200,{ token, ...status, remaining:maxCalls-calls,dictation:process.platform === 'win32' });
       }
       if (req.method === 'GET' && url.pathname.startsWith('/preview/')) {
-        const html = previews.get(url.pathname.slice('/preview/'.length));
+        const entry = previews.get(url.pathname.slice('/preview/'.length));
+        const html=typeof entry==='string'?entry:entry?.html;
         if (!html) throw new AppError('This preview expired. Select its version again.',404);
-        res.setHeader('Content-Security-Policy',PREVIEW_CSP);
+        res.setHeader('Content-Security-Policy',entry?.draft?DRAFT_CSP:PREVIEW_CSP);
         res.setHeader('Permissions-Policy','camera=(), microphone=(), geolocation=(), display-capture=()');
         res.writeHead(200,{'Content-Type':'text/html; charset=utf-8'});
         return res.end(html);
@@ -109,9 +112,10 @@ export function createApp({ vision = new Vision(), maxCalls = 60, login = subscr
         } finally { dictating=false; res.removeListener('close',abort); }
       }
       if (url.pathname === '/api/preview') {
+        if(data.draft===true && (!draftSession || data.draftSession!==draftSession)) throw new AppError('This draft build has ended.',409);
         if (typeof data.html !== 'string' || data.html.length > 120000 || !data.html.trim()) throw new AppError('Invalid preview.');
         const id = randomBytes(20).toString('hex');
-        previews.set(id,data.html);
+        previews.set(id,data.draft===true?{html:data.html,draft:true,session:draftSession}:data.html);
         while (previews.size > 24) previews.delete(previews.keys().next().value);
         return send(200,{ url: `/preview/${id}` });
       }
@@ -126,9 +130,24 @@ export function createApp({ vision = new Vision(), maxCalls = 60, login = subscr
       const signal = AbortSignal.any([controller.signal,AbortSignal.timeout(url.pathname === '/api/build' ? 300000 : 120000)]);
       try {
         calls++;
-        const value = url.pathname === '/api/observe' ? await vision.observe(data,signal) : await vision.build(data,signal);
+        const streaming=url.pathname==='/api/build' && req.headers.accept==='application/x-ndjson';
+        let updates=0;
+        if(streaming) draftSession=randomBytes(20).toString('hex');
+        const progress=streaming ? event=>{
+          if(signal.aborted || res.destroyed || updates>=250) return;
+          const value=event.type==='draft' && typeof event.html==='string' && event.html.length<=120000 ? {type:'draft',html:event.html} : event.type==='phase' && ['connecting','waiting'].includes(event.phase) ? {type:'phase',phase:event.phase,streaming:event.streaming===true,draftSession} : null;
+          if(!value) return;
+          if(!res.headersSent) res.writeHead(200,{'Content-Type':'application/x-ndjson; charset=utf-8','X-Accel-Buffering':'no'});
+          if(res.writableLength>1_000_000) return;
+          updates++;res.write(JSON.stringify(value)+'\n');
+        } : undefined;
+        progress?.({type:'phase',phase:'connecting'});
+        const value = url.pathname === '/api/observe' ? await vision.observe(data,signal) : await vision.build(data,signal,progress);
         if (!signal.aborted) send(200,{ ...value,remaining:maxCalls-calls });
-      } finally { busy = false; res.removeListener('close',abort); }
+      } finally {
+        for(const [id,entry] of previews) if(entry?.draft && entry.session===draftSession) previews.delete(id);
+        draftSession=null;busy=false;res.removeListener('close',abort);
+      }
     } catch (error) {
       const interrupted = ['AbortError','TimeoutError'].includes(error.name);
       const safe = error instanceof AppError || error instanceof SubscriptionError || error instanceof SelectionError;

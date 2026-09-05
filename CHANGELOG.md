@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0 · 2026-09-05
+
+- Fable streams real partial HTML into a script-disabled live draft and code view. Switch to the last working version during generation.
+- Completion still validates and saves a full interactive version. Canceled or failed drafts are discarded and their temporary URLs revoked.
+- Direct structured output avoids duplicate JSON narration. Shorter generation prompts and a low-effort shortcut help reduce waiting.
+- Astra remains on the isolated Codex exec path and displays completed messages; it does not simulate incremental tokens.
+- MIT license, refreshed README and contributor guidance, current screenshot, GitHub description, website link, and release documentation.
+
 ## 0.5.0 · 2026-09-05
 
 - Share a screen or window and opt into Live build while drawing or editing. Camera and upload remain available.

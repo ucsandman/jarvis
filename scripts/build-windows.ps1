@@ -6,7 +6,7 @@ $jarvisBuild = Join-Path $jarvisRoot ".artifacts/windows-$jarvisVersion"
 $jarvisPayload = Join-Path $jarvisBuild ('payload-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path $jarvisPayload | Out-Null
 # Fixed public inputs only. No profile, credentials, local artifacts or user revisions.
-foreach ($file in @('server.mjs','package.json')) { Copy-Item -LiteralPath (Join-Path $jarvisRoot $file) -Destination $jarvisPayload }
+foreach ($file in @('server.mjs','package.json','LICENSE')) { Copy-Item -LiteralPath (Join-Path $jarvisRoot $file) -Destination $jarvisPayload }
 # Include launcher source so its changes also select a fresh immutable install directory.
 Copy-Item -LiteralPath (Join-Path $jarvisRoot 'desktop/Launcher.cs') -Destination (Join-Path $jarvisPayload 'Launcher.cs')
 New-Item -ItemType Directory -Force -Path (Join-Path $jarvisPayload 'scripts') | Out-Null

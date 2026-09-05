@@ -1,36 +1,39 @@
 # Contributing
 
-Keep changes small and tied to a specific behavior. For a substantial feature, open an issue describing the user workflow before implementing it.
+Start with a concrete user workflow or reproducible bug. For a substantial change, open an issue describing what a user should be able to do.
 
-## Local development
+## Development
 
-Use Node.js 24 or newer, then run:
+Use Node.js 24 or newer:
 
 ```sh
 npm ci
 npm run dev
 ```
 
-Open `http://127.0.0.1:4317`. Refresh the page after frontend changes. The development server restarts after source changes; choose Reconnect to obtain a fresh session.
+Open `http://127.0.0.1:4317`. Refresh after frontend changes. After a server restart, choose Reconnect to restore the local session.
 
-Unit tests and syntax checks do not need a model account:
+Before submitting:
 
 ```sh
 npm test
 npm run lint
 npm run build
+npm run verify:recovery
+npm run verify:stream
+node scripts/verify-live.mjs
+node scripts/verify-models.mjs
 ```
 
-Run `npm run verify:recovery` with Chrome and Playwright available for isolated onboarding and failure-path checks without model calls. Do not change a failing assertion just to make a fix pass.
+Browser checks require Chrome and Playwright or an existing global `@playwright/cli` installation. These checks use synthetic generation. Real-provider checks consume subscription allowance or Claude usage credits. Use public synthetic references, never private desktop or camera content.
 
-For browser verification, follow the [README](README.md#development-and-verification). Real generation checks consume your ChatGPT subscription allowance. Use the included synthetic sketch, never someone else's private camera image.
+## Boundaries
 
-## Architecture constraints
+- Astra uses official Codex with ChatGPT subscription authentication. Fable uses official Claude Code with a paid Claude subscription; usage credits are allowed.
+- No direct model APIs, API keys, credential extraction, or automatic provider/model fallback, including tests.
+- Screen and camera sharing must remain visible and consented. Preserve exact sent-frame evidence, Live build limits, cancellation, and no automatic restart.
+- Stream only validated output categories. Never show reasoning, auth data, or raw provider errors. Draft HTML cannot execute scripts or enter saved history.
+- Keep generated code inside its existing sandbox. Discuss model or transport changes with the maintainer first.
+- Prefer platform features over new dependencies. Never weaken a test assertion to hide a regression.
 
-- Inference uses Astra through the official Codex CLI with ChatGPT subscription authentication.
-- No metered model APIs, API keys, credential extraction, or API/model fallback, including tests.
-- Keep explicit sharing consent, local-only camera preview, and the generated-code sandbox.
-- Discuss model or transport changes with the maintainer first. See [AGENTS.md](AGENTS.md).
-- Do not add dependencies without establishing why the existing platform cannot handle the task.
-
-Include the behavior changed, verification performed, and screenshots for visual changes in pull requests. Keep credentials, machine paths, session transcripts, and private reference images out of commits and issues.
+Include the behavior changed, verification performed, and screenshots for visual changes. Keep credentials, personal paths, transcripts, and private references out of commits and issues. Contributions are under the [MIT license](LICENSE). See [SECURITY.md](SECURITY.md) for vulnerability reporting.

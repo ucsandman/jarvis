@@ -23,6 +23,7 @@ const selectedLabel = () => state.model==='fable' ? 'Fable 5.1' : 'Astra';
 const selectedAccount = () => state.model==='fable' ? 'Claude' : 'ChatGPT';
 const effortNotes = {low:'Faster, with lighter reasoning.',medium:'Balances speed and depth.',high:'More reasoning for complex changes.',xhigh:'Extra reasoning; expect a longer wait.',max:'Deepest reasoning; may take much longer and use more allowance.'};
 function renderSelection() {
+  $('faster-effort').hidden=state.effort==='low';
   $('model-choice').value=state.model; $('effort-choice').value=state.effort;
   $('effort-note').textContent=`${effortNotes[state.effort]} Applies to your next build.`;
   $('billing-note').textContent=state.model==='fable' ? 'Fable uses your Claude subscription. Usage credits may be charged automatically under your account settings.' : 'Astra uses your ChatGPT subscription. Model access and usage limits apply.';
@@ -39,13 +40,71 @@ const current = () => state.revisions.find(r => r.id === state.selected);
 const showError = message => { $('error-text').textContent = message; $('error').hidden = false; };
 const hideError = () => { $('error').hidden = true; };
 const time = value => new Date(value).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
+let draftHtml='',draftTimer=null,draftSequence=0,draftShown=true,draftLoading=false,draftSession=null;
+function clearDraft() {
+  const visible=!$('draft-controls').hidden;
+  ++draftSequence;clearTimeout(draftTimer);draftTimer=null;draftHtml='';draftLoading=false;draftSession=null;
+  $('draft-controls').hidden=true;$('draft-preview').hidden=true;$('draft-preview').removeAttribute('src');
+  $('draft-code').textContent='';
+  if(visible) {if(current()) $('preview').hidden=false;else $('preview-empty').hidden=false;}
+}
+function chooseDraft(show) {
+  draftShown=show;$('draft-preview').hidden=!show;$('preview').hidden=show || !current();
+  $('preview-empty').hidden=show || !!current();
+  $('show-draft').setAttribute('aria-pressed',String(show));$('show-working').setAttribute('aria-pressed',String(!show));
+}
+async function refreshDraft() {
+  draftTimer=null;
+  if(!state.busy || !draftHtml || draftLoading) return;
+  const sequence=draftSequence,html=draftHtml;draftLoading=true;
+  try {
+    const result=await api('/api/preview',{html,draft:true,draftSession},state.controller?.signal);
+    if(sequence!==draftSequence || !state.busy) return;
+    $('draft-preview').src=result.url;
+    $('draft-controls').hidden=false;$('show-working').disabled=!current();chooseDraft(draftShown);
+  } catch { /* Final source validation and the existing working version are independent. */ }
+  finally {
+    if(sequence===draftSequence) {draftLoading=false;if(html!==draftHtml && state.busy) draftTimer=setTimeout(refreshDraft,700);}
+  }
+}
+function buildProgress(event) {
+  if(!state.busy || state.controller?.signal.aborted) return;
+  if(event.type==='phase') {
+    if(/^[a-f0-9]{40}$/.test(event.draftSession || '')) draftSession=event.draftSession;
+    $('build-phase').textContent=event.phase==='connecting'?'CONNECTING TO YOUR SUBSCRIPTION':'WAITING FOR MODEL OUTPUT';
+    if(event.phase==='waiting') $('build-detail').textContent=event.streaming?'The live draft will appear when HTML starts arriving. Reasoning happens before visible code.':'This Codex CLI returns completed messages. The preview will update as soon as it releases HTML; Fable supports incremental drafts.';
+  }
+  if(event.type!=='draft' || typeof event.html!=='string' || event.html.length>120000) return;
+  draftHtml=event.html;$('draft-code').textContent=draftHtml;
+  $('build-phase').textContent='CODE ARRIVING';$('build-message').textContent=`${selectedLabel()} is writing the page.`;
+  $('draft-status').textContent=`Live draft · ${draftHtml.length.toLocaleString()} characters received · unfinished`;
+  if(!draftTimer && !draftLoading) draftTimer=setTimeout(()=>{draftTimer=null;refreshDraft();},250);
+}
+$('show-draft').addEventListener('click',()=>chooseDraft(true));
+$('show-working').addEventListener('click',()=>chooseDraft(false));
 
 async function api(path, body, signal) {
   if (['/api/build','/api/observe','/api/login','/api/install-codex'].includes(path)) body={...body,model:state.model,effort:state.effort};
-  const response = await fetch(path,{ method:'POST',signal,headers:{ ...launchHeaders(),'Content-Type':'application/json','X-Jarvis-Session':state.token },body:JSON.stringify(body) });
-  const data = await response.json();
+  const response = await fetch(path,{ method:'POST',signal,headers:{ ...launchHeaders(),'Content-Type':'application/json','X-Jarvis-Session':state.token,...(path==='/api/build'?{Accept:'application/x-ndjson'}:{}) },body:JSON.stringify(body) });
+  let data;
+  if(response.headers.get('content-type')?.includes('application/x-ndjson')) {
+    const reader=response.body.getReader(),decoder=new TextDecoder();let pending='',received=0;
+    try {
+      while(true) {
+        const {value,done}=await reader.read();if(done) break;
+        received+=value.length;if(received>32_000_000) throw new Error('The build stream exceeded its size limit.');
+        pending+=decoder.decode(value,{stream:true});let end;
+        while((end=pending.indexOf('\n'))>=0) {
+          const line=pending.slice(0,end);pending=pending.slice(end+1);if(!line.trim()) continue;
+          const event=JSON.parse(line);
+          if(event.type==='result' || event.type==='error') data=event;else buildProgress(event);
+        }
+      }
+    } finally {await reader.cancel().catch(()=>{});reader.releaseLock();}
+    if(!data) throw new Error('The build connection ended before a complete result arrived. Your saved versions are safe.');
+  } else data=await response.json();
   if (Number.isFinite(data.remaining)) { state.remaining = data.remaining; renderBudget(); }
-  if (!response.ok) { const error = new Error(data.error || 'The request could not be completed.'); error.code = data.code; throw error; }
+  if (!response.ok || data.type==='error') { const error = new Error(data.error || 'The request could not be completed.'); error.code = data.code; throw error; }
   return data;
 }
 function textElement(tag, text, className) {
@@ -57,7 +116,7 @@ function updateControls() {
   const controls = ['share-screen-top','share-screen','build','connect','upload','example','file','new-session','camera-select','clear-reference','resume','mic','try-demo','include-frame'];
   controls.forEach(id => { $(id).disabled = state.busy || state.setupBusy || state.inputBusy || (!state.token && id === 'build'); });
   $('build').disabled = state.live || state.busy || state.setupBusy || state.inputBusy || state.checking || !state.configured || !state.token || state.remaining === 0;
-  for (const id of ['model-choice','effort-choice']) $(id).disabled=state.live || state.busy || state.setupBusy || state.inputBusy;
+  for (const id of ['model-choice','effort-choice','faster-effort']) $(id).disabled=state.live || state.busy || state.setupBusy || state.inputBusy;
   $('mic').disabled = state.busy || state.setupBusy || !state.token || !state.dictation;
   $('mic').title = state.dictation ? 'Dictate direction locally' : 'Local dictation is available on Windows after connection';
   for (const id of ['login','install-codex','recheck','reset-budget']) $(id).disabled = state.busy || state.setupBusy || state.checking;
@@ -330,6 +389,7 @@ async function beginBuild(automatic=false) {
     if (automatic || ($('include-frame').checked && !state.image && state.stream)) setImage(imageFromElement($('camera')),`${state.captureKind==='screen' ? 'SCREEN SNAPSHOT' : 'CHOSEN FRAME'} · ${time(Date.now())}`);
   } catch(error) { showError(error.message); return; }
   if (!state.consent) { $('consent-dialog').showModal(); return; }
+  clearDraft();draftShown=true;
   state.busy = true; $('cancel').disabled = false; stopDictation(); window.speechSynthesis?.cancel();
   state.controller = new AbortController(); const controller = state.controller;
   let completed=false;
@@ -347,7 +407,7 @@ async function beginBuild(automatic=false) {
     const elapsed = Math.floor((Date.now()-started)/1000);
     $('activity').textContent = `${selectedLabel().toUpperCase()} · ${state.effort} · ${elapsed}s elapsed`;
     $('build-elapsed').textContent = `${elapsed}s elapsed · ${Math.max(0,300-elapsed)}s until timeout`;
-    if (state.controller===controller) {
+    if (state.controller===controller && !draftHtml) {
       $('build-message').textContent=elapsed<20 ? state.model==='fable' ? 'Fable is grinding.' : 'Astra is thinking.' : elapsed<60 ? 'Your idea is in motion.' : 'Still working on this version.';
       if(elapsed>=20) $('build-detail').textContent=elapsed<60 ? 'Waiting for the model’s result. You can keep trying the current prototype.' : 'No result yet. Complex builds can take several minutes. Cancel anytime; your saved versions stay here.';
     }
@@ -358,6 +418,7 @@ async function beginBuild(automatic=false) {
     if (controller.signal.aborted) return;
     const observation = built.result.observation || (image ? null : parent?.observation) || null;
     const revision = { ...built.result,id:crypto.randomUUID(),image:image || parent?.image || null,referenceUsed:!!image,observation,instruction:direction,created,model:built.model,effort:built.effort || state.effort };
+    clearDraft();
     // Accept and persist completed inference before attempting any preview work.
     state.revisions.push(revision); state.revisions = state.revisions.slice(-12); state.selected = revision.id;
     state.controller = null; $('cancel').disabled = true;
@@ -377,6 +438,7 @@ async function beginBuild(automatic=false) {
       }
     }
   } finally {
+    clearDraft();
     clearInterval(elapsedTimer); state.busy = false; state.controller = null;
     if(automatic && !completed) pauseLive('Live build paused after an interrupted build. Review the message, then start again.');
     if(automatic && state.live && state.liveCount>=10) pauseLive('10 builds complete. Start again when you want more updates.');
@@ -519,6 +581,7 @@ async function refreshSession() {
     showError(error.message);
   } finally { if (sequence===sessionSequence) {state.checking=false;renderBudget(); updateControls(); updateFrameChoice();} }
 }
+$('faster-effort').addEventListener('click',()=>{if(state.busy || state.live) return;$('effort-choice').value='low';$('effort-choice').dispatchEvent(new Event('change'));});
 for (const id of ['model-choice','effort-choice']) $(id).addEventListener('change',async()=>{
   if (state.busy || state.setupBusy) {renderSelection();return;}
   state.model=$('model-choice').value; state.effort=$('effort-choice').value; state.consent=false;

@@ -133,3 +133,21 @@ DEVIATIONS: Live build uses consented snapshots and bounded automatic requests; 
 Final UI review caught a stale-reference edge case after pausing Live build. Clearing the selected-image pointer when returning to the shared video ensures the next manual capture is fresh; the exact previous frame remains in sent-frame evidence and saved revisions. All 22 live browser checks passed again after that fix. The real generated output also passed task creation, search and movement checks. Its submit button uses HTML's default submit type; the QA locator was corrected to its visible accessible name.
 
 The final 0.5.0 executable passed 18 packaged-app assertions and six Windows lifecycle checks. Its payload scan covered 38 files, including 28 text files, with six current-source matches and no credential filenames or secret/private-path hits. Clean staged-source installation, all 31 tests, lint and build passed. Public deployment dry-run contains 12 files and excludes generated environment data.
+
+## 0.6.0 incremental draft release
+
+The CLI process runner now forwards bounded stdout events while retaining final validation. Fable emits HTML only from an active StructuredOutput block. Partial JSON decoding handles split escapes and ignores nested or quoted fake html fields. The local build endpoint offers opt-in NDJSON while retaining its JSON response for existing clients. Drafts use a script-disabled sandbox, stay out of history, and are revoked on build completion, cancellation, or failure. The prior working version remains accessible.
+
+Astra stays on its config-isolated Codex exec path, which currently releases completed messages. Codex app-server has a different configuration surface and no equivalent verified ignore-user-config path in this work. It was not silently substituted. The interface and public docs state this limitation. Fable now calls StructuredOutput directly to avoid duplicate JSON narration; a low-effort shortcut and concise output instruction reduce unnecessary work.
+
+A real Fable/low request produced first HTML at 18,892 ms and finished at 20,519 ms, with two draft updates and 2,949 HTML characters. This is a small independent request, not a controlled comparison with earlier runs. Browser checks verify real progressive rendering, scripts blocked in drafts, working-version interaction, cancellation and final persistence.
+
+Security review caught two issues: inactive null block indices accepted deltas, and draft capability URLs survived cancellation. Active integer-block checks and build-owned capability revocation fixed both. Regression coverage now rejects null-index deltas, checks active draft CSP, verifies post-failure 404 and ended-session 409. Final independent review found no remaining findings. All 35 unit tests and 14 streaming browser checks pass.
+
+Repository cleanup adds the MIT license, refreshes README/contributor/model/site documentation and a screenshot using captured real HTML, and updates GitHub's description, homepage and topics. Historical evidence is retained here rather than presented as current instructions.
+
+Retro: proving the provider stream before changing the UI kept the preview honest. Stream lifetimes need to own both parsing state and temporary URLs; future streamed-output features must test revocation and malformed event order, not only successful rendering. A combined documentation/metadata shell call was rejected by automatic review without a detailed reason; separating local documentation writes from the explicitly authorized GitHub metadata operation succeeded.
+
+DEVIATIONS: Fable provides incremental drafts; Astra remains completed-message-only until an equally isolated streaming transport is verified. Drafts intentionally disable scripts until completion. No provider, account, or billing route changed.
+
+Final local verification: 35 unit tests, 14 streaming, 22 live-build, 13 model-selection, nine recovery, 18 packaged-app and six Windows lifecycle checks passed. Static checks covered 31 JavaScript files. The packaged payload scan covered 40 files, 30 text files and nine current-source matches with zero findings; 16 relative documentation links resolved. The unsigned 0.6.0 executable is 171,309,056 bytes; SHA-256: 42fa597ab52cf6b1bbb79a299f501b047170a0ad6f6d8bebb10c133a41105ce5.
