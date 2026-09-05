@@ -1,5 +1,9 @@
 # Changelog
 
+## Website update · 2026-09-05
+
+- Removed the optional task-board section and its hosted sample file. The public page now focuses on the reference-to-result walkthrough and Windows download.
+
 ## 0.3.0 · 2026-09-05
 
 - Windows executable bundles Node and official Codex: download, open, and use ChatGPT sign-in from Setup without terminal commands.

@@ -17,11 +17,6 @@ tabs.forEach((tab, index) => {
     tabs[next].focus(); selectStep(tabs[next].dataset.step);
   });
 });
-document.getElementById('reset-demo').addEventListener('click', () => {
-  const demo = document.getElementById('demo');
-  demo.replaceWith(demo.cloneNode());
-  document.getElementById('demo-status').textContent = 'Sample reset. The original tasks are back in this isolated preview.';
-});
 if (location.hostname.endsWith('.vercel.app')) {
   const analytics = document.createElement('script');
   analytics.src = '/_vercel/insights/script.js'; analytics.defer = true;

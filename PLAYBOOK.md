@@ -91,6 +91,8 @@ Change: retain npm-layout validation and negative discovery tests; keep input co
 
 ## 0.3.0 Windows and public launch
 
+Website follow-up: retaining the rejected task board behind an optional disclosure did not address the maintainer's feedback. Removed the public section and hosted sample entirely. When a demo does not explain the product, remove it rather than merely demoting it.
+
 The Windows download bundles the official runtime and CLI, opens a graphical browser workbench, and provides desktop/Start menu shortcuts and tray Open/Quit. Its build uses an explicit source allowlist, a fresh staging directory, pinned package integrity and verified upstream publishers. The Jarvis launcher itself is unsigned and this is disclosed beside the public download. Local subscription architecture and camera consent are unchanged.
 
 Verification: 22 unit tests and syntax/build checks pass. Nine recovery browser checks pass. The rebuilt executable passes 18 assertions covering extraction with system-only PATH, bundled discovery, explicitly isolated signed-out CLI status, API bootstrap denial, removed URL fragments, port-isolated browser storage, rendered preview and reload. Six actual Windows lifecycle checks pass, including occupied-port refusal, second-click reuse, Quit and forced launcher termination. No new inference or interactive sign-in was required for this package release; the earlier real subscription build/revision evidence remains above.
