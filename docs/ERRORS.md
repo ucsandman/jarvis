@@ -12,3 +12,4 @@
 
 - Windows 11 had Paint installed as a Store app with no System32 mspaint.exe. Fixed app launches now use a fixed registered Windows app ID when the system executable is absent; no arbitrary launch target is accepted.
 - The Stop button must remain usable in a new tab even when that tab has no owning-session token. A failed page-close request can leave an old lease active; Stop now stays available to revoke it immediately instead of waiting for expiry.
+- The packaged system-only-PATH probe could not find powershell.exe by name. Computer mode now resolves Windows PowerShell through the absolute Windows system path, removing that PATH dependency.
