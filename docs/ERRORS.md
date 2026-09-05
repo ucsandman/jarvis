@@ -4,7 +4,7 @@
 
 - The site verifier passed against a stale `docs/images/companion.png` after the companion copy changed, because it checks the asset exists, not what it shows. Regenerate the companion capture from the packaged app whenever companion copy or the mark changes, then rebuild the social image and the site.
 - The dock's white square came from the form background showing around an elliptical button region. Shaping the form itself (rounded-square Region in dock mode, cleared in the other modes) removes the backdrop; the button only paints the mark.
-- `scripts/verify-browser.mjs` still waits for "Astra · subscription" while the workbench shows "Astra · medium" since the effort selector landed, so it fails before this change. Fix the verifier deliberately rather than in a copy pass.
+- `scripts/verify-browser.mjs` had two stale assumptions: it waited for "Astra · subscription" (the status has read "Astra · medium" since the effort selector landed) and it pointed at port 4317, which the desktop launcher now owns behind the launch key, so a plain browser saw "Setup needed". It is now self-hosted on a free port with a synthetic signed-in status like the other verifiers, and asserts the `#provider-status` label against the model plus effort pattern. It still needs the recorded `.artifacts/generated.json` and `observation.json` from a real verify:vision run.
 
 ## 2026-09-05: Desktop companion release
 

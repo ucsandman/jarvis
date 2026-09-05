@@ -1,6 +1,13 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import assert from 'node:assert/strict';
+import { createApp } from '../server.mjs';
+import { Vision } from '../lib/vision.mjs';
 import { browserTools } from './browser.mjs';
+// Self-hosted on a free port with a synthetic signed-in status, so it never needs the desktop app quit or a real login.
+// Model responses come from the recorded verify:vision fixtures via page.route, never from inference.
+const vision = new Vision({ status:async () => ({ configured:true,cli:true }),inference:async () => { throw new Error('verify-browser must not call inference'); } });
+const app = createApp({ vision }); await new Promise(resolve => app.listen(0,'127.0.0.1',resolve));
+const origin = `http://127.0.0.1:${app.address().port}`;
 const { chromium } = browserTools();
 await mkdir('.artifacts',{ recursive:true });
 const browser = await chromium.launch({ channel:'chrome',headless:true,args:['--use-fake-device-for-media-stream','--use-fake-ui-for-media-stream'] });
@@ -9,8 +16,8 @@ const page = await context.newPage(); const errors = [];
 page.on('pageerror',error => errors.push(error.message));
 const checks = [];
 try {
-  await page.goto('http://127.0.0.1:4317');
-  await page.getByText('Astra · subscription',{ exact:true }).waitFor();
+  await page.goto(origin);
+  await page.locator('#provider-status').filter({ hasText:/^Astra · (low|medium|high|xhigh|max)$/ }).waitFor();
   await page.screenshot({ path:'.artifacts/workbench-desktop.png',fullPage:true });
   checks.push('desktop initial render');
   await page.getByRole('button',{ name:'Connect camera',exact:true }).click();
@@ -68,10 +75,10 @@ try {
   await page.getByRole('button',{ name:'Clear and start fresh',exact:true }).click();
   await page.getByText('Your first version starts with an idea.',{ exact:true }).waitFor();
   await page.reload();
-  await page.getByText('Astra · subscription',{ exact:true }).waitFor();
+  await page.locator('#provider-status').filter({ hasText:/^Astra · (low|medium|high|xhigh|max)$/ }).waitFor();
   assert.equal(await page.locator('.revision').count(),0);
   checks.push('new-project purge survives reload');
   assert.deepEqual(errors,[]);
   await writeFile('.artifacts/browser-report.json',JSON.stringify({ checks,errors },null,2));
   console.log(`PASS: ${checks.length} browser checks, ${errors.length} page errors.\n${checks.map(c=>`- ${c}`).join('\n')}`);
-} finally { await browser.close(); }
+} finally { await browser.close(); await new Promise(resolve => app.close(resolve)); }
