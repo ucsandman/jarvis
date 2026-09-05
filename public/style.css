@@ -212,3 +212,45 @@
     .privacy-button { display:inline-flex; }
   }
 }
+
+@layer components {
+  .quick-start { display:flex; align-items:center; justify-content:space-between; gap:20px; padding:0 0 18px; }
+  .quick-start>div { display:flex; flex-wrap:wrap; align-items:center; gap:14px; }
+  .quick-start span,.quick-start p { font-size:12px; color:#c0c7b7; }
+  .setup-panel { border-top:1px solid var(--line); border-bottom:1px solid var(--line); padding:12px 0; }
+  .setup-panel summary { cursor:pointer; font-size:13px; }
+  #setup-summary { margin-left:12px; color:var(--amber); font-size:11px; }
+  .setup-content { padding:12px 0; font-size:13px; }
+  .setup-content ol { padding-left:20px; line-height:1.9; }
+  .setup-content p { margin-top:12px; max-width:850px; }
+  .setup-content .muted { font-size:11px; color:#b7c1ac; }
+  .setup-actions { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:14px; }
+  .setup-actions a { color:var(--amber); text-underline-offset:3px; }
+  .frame-choice { display:flex; flex-wrap:wrap; align-items:center; gap:8px; font-size:12px; margin-bottom:12px; }
+  .frame-choice input { accent-color:var(--amber); width:17px; height:17px; }
+  .frame-choice span { color:#b7c1ac; font-size:11px; }
+  .composer-wrap { padding:18px 0 22px; }
+  .composer-meta { flex-wrap:wrap; font-size:10px; }
+  .intro { padding-top:25px; padding-bottom:25px; }
+  #build-elapsed { font-variant-numeric:tabular-nums; font-size:14px; margin:0 0 14px; }
+  .source-controls { align-items:center; flex-wrap:wrap; gap:10px; }
+  .source-controls .button { font-size:11px; padding:10px 12px; }
+  .prototype-footer { flex-wrap:wrap; gap:8px; }
+  .error-banner { flex-wrap:wrap; }
+  .error-banner #error-text { flex:1; min-width:180px; }
+}
+@layer responsive {
+  @media(max-width:800px) {
+    .quick-start { align-items:flex-start; flex-direction:column; gap:8px; }
+    .quick-start>div { gap:8px; }
+    .quick-start p { display:none; }
+    .intro { padding:22px 0; }
+    #activity { display:inline; }
+    .composer-meta { font-size:10px; }
+    .frame-choice { font-size:11px; }
+    .setup-actions .button { padding:10px; }
+    .topbar { min-height:100px; height:auto; padding:16px 0 28px; flex-wrap:wrap; }
+    .header-actions { margin-left:auto; }
+    .preview-stage { min-height:380px; }
+  }
+}

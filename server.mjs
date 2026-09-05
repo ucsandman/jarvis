@@ -3,14 +3,15 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { randomBytes } from 'node:crypto';
 import { AppError, Vision } from './lib/vision.mjs';
-import { runProcess } from './lib/subscription.mjs';
+import { runProcess, subscriptionLogin, installCodex, SubscriptionError } from './lib/subscription.mjs';
 
 export const PREVIEW_CSP = "sandbox allow-scripts allow-forms; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'";
 const APP_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
 const assets = new Map([
   ['/', ['index.html','text/html']], ['/style.css',['style.css','text/css']],
   ['/app.js',['app.js','text/javascript']], ['/storage.js',['storage.js','text/javascript']],
-  ['/mark.svg',['mark.svg','image/svg+xml']], ['/reference.svg',['reference.svg','image/svg+xml']]
+  ['/mark.svg',['mark.svg','image/svg+xml']], ['/reference.svg',['reference.svg','image/svg+xml']],
+  ['/demo.html',['demo.html','text/html']]
 ]);
 
 async function readJson(req) {
@@ -29,7 +30,7 @@ async function readJson(req) {
   } catch { throw new AppError('The request is not valid JSON.'); }
 }
 
-export function createApp({ vision = new Vision(), maxCalls = 60 } = {}) {
+export function createApp({ vision = new Vision(), maxCalls = 60, login = subscriptionLogin, install = installCodex } = {}) {
   const token = randomBytes(32).toString('hex');
   const previews = new Map();
   let busy = false; let calls = 0; let dictating = false;
@@ -52,9 +53,11 @@ export function createApp({ vision = new Vision(), maxCalls = 60 } = {}) {
       if (!hosts.includes(host) || (origin && !hosts.some(h => origin === `http://${h}`))
         || req.headers['sec-fetch-site'] === 'cross-site') throw new AppError('Only the local Jarvis page can use this service.',403);
       const url = new URL(req.url,`http://${host}`);
+      if (req.method === 'GET' && url.pathname === '/api/health') return send(200,{ app:'jarvis-workbench',ready:true });
+      if (req.method === 'GET' && url.pathname === '/api/local-session') return send(200,{ token,remaining:maxCalls-calls,dictation:process.platform === 'win32' });
       if (req.method === 'GET' && url.pathname === '/api/session') {
         const status = await vision.status(AbortSignal.timeout(15000));
-        return send(200,{ token, ...status, remaining: maxCalls-calls });
+        return send(200,{ token, ...status, remaining:maxCalls-calls,dictation:process.platform === 'win32' });
       }
       if (req.method === 'GET' && url.pathname.startsWith('/preview/')) {
         const html = previews.get(url.pathname.slice('/preview/'.length));
@@ -69,9 +72,23 @@ export function createApp({ vision = new Vision(), maxCalls = 60 } = {}) {
         const data = await readFile(new URL(`./public/${name}`,import.meta.url));
         res.writeHead(200,{'Content-Type':`${type}; charset=utf-8`}); return res.end(data);
       }
-      if (req.method !== 'POST' || !['/api/observe','/api/build','/api/preview','/api/dictate'].includes(url.pathname)) throw new AppError('Not found.',404);
+      if (req.method !== 'POST' || !['/api/observe','/api/build','/api/preview','/api/dictate','/api/login','/api/install-codex','/api/reset-budget'].includes(url.pathname)) throw new AppError('Not found.',404);
       if (req.headers['x-jarvis-session'] !== token) throw new AppError('Reload Jarvis to reconnect your local session.',403);
       const data = await readJson(req);
+      if (url.pathname === '/api/reset-budget') {
+        if (data.consent !== true) throw new AppError('Confirm a new local request allowance.',403);
+        if (busy) throw new AppError('Wait for the current request to finish.',409,'BUSY');
+        calls = 0; return send(200,{ remaining:maxCalls });
+      }
+      if (url.pathname === '/api/login' || url.pathname === '/api/install-codex') {
+        if (data.consent !== true) throw new AppError('Choose Sign in with ChatGPT to start login.',403);
+        if (busy) throw new AppError('Wait for the current request to finish.',409,'BUSY');
+        busy = true;
+        const controller = new AbortController(); const abort = () => controller.abort();
+        res.once('close',abort);
+        try { return send(200,await (url.pathname === '/api/login' ? login : install)(AbortSignal.any([controller.signal,AbortSignal.timeout(180000)]))); }
+        finally { busy = false; res.removeListener('close',abort); }
+      }
       if (url.pathname === '/api/dictate') {
         if (data.consent !== true) throw new AppError('Allow local microphone use before dictating.',403);
         if (process.platform !== 'win32') throw new AppError('Local Windows dictation is unavailable on this platform. Type your direction.',503);
@@ -93,8 +110,9 @@ export function createApp({ vision = new Vision(), maxCalls = 60 } = {}) {
         return send(200,{ url: `/preview/${id}` });
       }
       if (data.consent !== true) throw new AppError('Allow sharing through your OpenAI subscription before building.',403);
-      if (busy) throw new AppError('Another request is still finishing. Try again in a moment.',409);
-      if (calls >= maxCalls) throw new AppError('The session request limit is reached. Restart Jarvis to begin another session.',429);
+      if (busy) throw new AppError('Another request is still finishing. Try again in a moment.',409,'BUSY');
+      vision.validate?.(data,url.pathname);
+      if (calls >= maxCalls) throw new AppError('Your local Jarvis request allowance is used up. Choose Start new allowance in Setup. Your saved work stays here.',429,'SESSION_LIMIT');
       busy = true;
       const controller = new AbortController();
       const abort = () => controller.abort();
@@ -107,7 +125,8 @@ export function createApp({ vision = new Vision(), maxCalls = 60 } = {}) {
       } finally { busy = false; res.removeListener('close',abort); }
     } catch (error) {
       const interrupted = ['AbortError','TimeoutError'].includes(error.name);
-      send(error.status || (interrupted ? 504 : 500),{ error:error instanceof AppError ? error.message : interrupted ? 'The request timed out or was canceled. Your current version is safe.' : 'Jarvis could not complete that request. Try again.' });
+      const safe = error instanceof AppError || error instanceof SubscriptionError;
+      send(error.status || (interrupted ? 504 : 500),{ code:safe ? error.code : interrupted ? 'TIMEOUT' : 'REQUEST_FAILED',remaining:maxCalls-calls,error:safe ? error.message : interrupted ? 'The request timed out or was canceled. Your saved versions are safe. Try a smaller change.' : 'Jarvis could not complete that request. Try again.' });
     }
   });
   server.requestTimeout = 320000;

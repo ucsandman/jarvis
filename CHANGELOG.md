@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 · 2026-09-05
+
+- Working example before login, setup checklist, explicit CLI installation and ChatGPT sign-in, and reconnect controls.
+- One subscription turn per visual build, returning observations and HTML together; typed revisions do not resend an old frame by default.
+- Completed source persists before preview loading; retry previews without inference and access local source during connection failures.
+- Reliable Windows readiness checks independent of subscription status, serialized launches, and graphical prerequisite errors.
+- Visible frame-inclusion control, build controls near the top, and mobile progress/countdown.
+- Safe error categories, visible local allowance, validation before budget consumption, and explicit allowance renewal.
+- 21 unit tests and nine additional browser recovery checks. No application dependencies added.
+
 ## 0.1.0 · 2026-09-05
 
 Initial public release of the local Jarvis workbench.

@@ -13,9 +13,9 @@
   <p><a href="#quick-start">Quick start</a> · <a href="#the-demo">Demo</a> · <a href="#how-it-works">Architecture</a> · <a href="#privacy-and-control">Privacy</a> · <a href="CONTRIBUTING.md">Contributing</a></p>
 </div>
 
-![Jarvis showing the sample sketch, visual observations, and a working DAYLIGHT task board](docs/images/workbench.png)
+![Jarvis onboarding with a working example and build controls near the top](docs/images/onboarding.png)
 
-*Real workbench screenshot. The reference is the included synthetic sketch. Astra generated the prototype through a ChatGPT subscription.*
+*The included working example runs locally before sign-in. It is labeled sample content, not a new AI generation.*
 
 ## What you can do
 
@@ -26,7 +26,7 @@
 | A change of direction | Type or dictate a revision to the selected version. |
 | A prototype worth keeping | Try its controls, compare versions, inspect the source, and download the HTML. |
 
-The workbench includes desktop and mobile preview sizes, expanded preview, up to 12 saved versions, editable local dictation on Windows, and optional spoken replies using a locally installed English voice.
+The workbench includes a working example before sign-in, setup and reconnect controls, desktop and mobile preview sizes, expanded preview, up to 12 saved versions, editable local dictation on Windows, and optional spoken replies using a locally installed English voice. Completed source is saved before preview loading, so a preview failure can be retried without another model request.
 
 **Inference uses `gpt-6-astra` through the official Codex CLI, authenticated with a ChatGPT subscription. Jarvis never uses a metered model API, accepts API keys, extracts subscription tokens, or falls back to another model.**
 
@@ -47,7 +47,7 @@ Try the same loop with your own sketch, or choose **Try a sample sketch** to sta
 ### Requirements
 
 - **Node.js 24 or newer.**
-- **Official Codex CLI**, signed in using **ChatGPT**, with access to `gpt-6-astra`.
+- **Official Codex CLI installed through npm**, signed in using **ChatGPT**, with access to `gpt-6-astra`. Jarvis can install it from Setup after your confirmation.
 - A modern browser. Chrome on Windows was used for end-to-end verification.
 - A camera is optional. Windows English speech recognition and a default microphone are needed only for local dictation.
 
@@ -55,28 +55,31 @@ Model access and subscription limits depend on your account. This project does n
 
 ### Install and launch
 
+On Windows, clone or download the repository and double-click **Start Jarvis.cmd**. The launcher opens the browser, reuses an existing Jarvis server, and reports missing Node or startup failures in a dialog. It does not wait for subscription login to open the workbench.
+
+In **Setup**, choose **Install official Codex CLI** if needed, then **Sign in with ChatGPT**. Installation downloads the official npm package globally from the npm registry. Sign-in opens the official browser flow and changes the local Codex login only after you choose it. **Check again** refreshes readiness. The working example is available without either step.
+
+For a terminal launch on Windows, macOS, or Linux:
+
 ```sh
 git clone https://github.com/ucsandman/jarvis.git
 cd jarvis
 npm ci
-codex login status
 npm start
 ```
 
-The login status must say **Logged in using ChatGPT**. For Codex installation and sign-in, use the [official documentation](https://developers.openai.com/codex/) and [authentication guide](https://developers.openai.com/codex/auth).
+Open **http://127.0.0.1:4317**. Use the same URL and browser profile to retain access to saved versions.
 
-Open **http://127.0.0.1:4317**. On Windows, subsequent launches can use **Start Jarvis.cmd**, which starts the server when needed and opens your browser.
-
-Jarvis has zero application package dependencies. Codex and optional browser QA tools are separate prerequisites. On Windows, the launcher currently expects the standard global npm installation of Codex under the user's roaming application directory.
+Jarvis has zero application package dependencies. The official Codex npm package and optional browser QA tools are separate prerequisites. Standard and custom npm prefixes on PATH are supported; standalone native CLI installations are not currently discovered. Jarvis checks the installed package name and entry point, not cryptographic integrity of local files. See the [official Codex documentation](https://developers.openai.com/codex/) and [authentication guide](https://developers.openai.com/codex/auth).
 
 ### Your first build
 
-1. Choose **Connect camera**, **Upload reference**, or **Try a sample sketch**.
-2. Type a direction: “Build this task board. Make adding, moving, and filtering tasks work.”
-3. Click **Make it real** and review the sharing consent.
-4. Try the controls inside the preview.
-5. Type a change and build again, or select **Back to live camera** to capture another reference.
-6. Reopen a saved version, inspect **Source**, or **Download** the standalone HTML.
+1. Choose **Try the working example** to add, move, and search sample tasks immediately, without inference or camera access.
+2. Choose **Try a sample sketch**, upload a reference, connect a camera, or type an idea.
+3. Check **Include the selected frame** only when you want that image sent. Describe the behavior you want.
+4. Click **Make it real** and review the sharing consent. A visual build returns observations and the prototype together in one subscription turn.
+5. Try the controls, then type a change. The previous frame remains visible as evidence, but is unchecked for the next request. Check it again or select a new reference to include it.
+6. Reopen versions, inspect **Source**, or **Download** the HTML. If preview loading fails, choose **Retry preview**; completed source remains available.
 
 For readable camera input, fill the frame with the page and use even lighting. The preview is not mirrored. Dictation returns editable text; you still click Build to send it.
 
@@ -96,7 +99,7 @@ flowchart LR
     I -->|Selected source plus next direction| B
 ```
 
-A visual build uses two subscription turns: observation, then generation. A text-only revision uses one generation turn with the selected version's source as context.
+Both visual builds and typed revisions use one subscription turn. A visual response includes observations and generated HTML; unreadable references are rejected. A typed revision uses the selected source without resending the old image. The separate observation endpoint remains available for explicit analysis and diagnostics.
 
 The server validates inputs, enforces consent and request limits, and starts an isolated CLI process. The invocation pins the model, forces ChatGPT login, ignores user provider overrides, strips inherited API credentials and endpoint overrides, disables tools and integrations, and uses ephemeral mode with a read-only sandbox. The CLI manages its own authentication.
 
@@ -128,7 +131,7 @@ docs/images/          Reviewed screenshots from the real demo
 | Generated code | Runs in a restricted preview with network requests, nested frames, form destinations, and camera/microphone permissions blocked. |
 | Cancellation | Stops the owned CLI process. Canceled results are not accepted, although provider-side work may already have occurred. |
 | Storage | Up to 12 source versions and their references persist locally. **New project** clears the browser's project after confirmation. |
-| Limits | One model operation at a time, at most 60 operations per server session, a two-minute observation timeout, and a five-minute generation timeout. |
+| Limits | One build or setup operation at a time, 60 model operations per local allowance, a two-minute standalone observation timeout, and a five-minute generation timeout. Setup can explicitly renew the local allowance; this does not renew subscription limits. |
 
 The workbench runs locally; inference is remote through your subscription. Your provider's terms, data handling, and usage limits apply. See [SECURITY.md](SECURITY.md) for the security boundary and vulnerability reporting.
 
@@ -136,7 +139,7 @@ The workbench runs locally; inference is remote through your subscription. Your 
 
 - **Snapshot-based awareness.** Jarvis reads chosen frames. It does not continuously understand or control a room.
 - **Frontend prototypes.** It does not edit repositories, build backends, deploy services, or execute generated code on the host computer.
-- **Generation takes time.** One verified build took 237.5 seconds at high reasoning effort. The application currently requests medium effort. Results can take minutes and may time out.
+- **Generation takes time.** One verified combined visual build took 209.7 seconds at medium reasoning effort. This is a single measurement, not a latency guarantee or a controlled speedup comparison. Progress and the timeout countdown stay visible; builds may still time out.
 - **Source persists; runtime state resets.** Data entered inside a generated preview resets when it is reopened. Saved source versions remain available.
 - **Windows-first verification.** Real generation and browser checks were performed on Windows. Linux CI covers unit tests and syntax checks, not camera, speech, or live inference.
 - **Voice is platform-specific.** Dictation uses Windows English speech recognition. Other platforms can type. Live microphone dictation and real webcam sharing have not been verified end to end.
@@ -147,21 +150,22 @@ The workbench runs locally; inference is remote through your subscription. Your 
 
 ```sh
 npm run dev       # Restart the server after source changes
-npm test          # 13 tests; no model calls or account required
+npm test          # 21 tests; no model calls or account required
 npm run lint      # JavaScript syntax and required-asset checks
 npm run build     # Same checks; no compilation step required
 ```
 
 There is no third-party lint engine or bundler. CI runs installation, tests, lint, and build on Node.js 24 on Windows and Linux. It never calls a model or uses subscription credentials.
 
-The initial demo was verified with **13 unit tests**, **8 workbench browser checks**, and **5 follow-up checks of the generated revision**, with zero browser page errors in those runs. See [PLAYBOOK.md](PLAYBOOK.md) for the scope of the evidence.
+The onboarding release passes **21 unit tests**, **9 recovery browser checks**, and **8 workbench browser checks**. Browser checks reported zero page errors. A real combined visual build also completed through the subscription CLI. See [PLAYBOOK.md](PLAYBOOK.md) for scope and limitations.
 
 <details>
 <summary><strong>Optional end-to-end browser checks</strong></summary>
 
-Requires Chrome and Playwright, either installed locally or available through an existing global `@playwright/cli` installation. Start Jarvis in a separate terminal first.
+Requires Chrome and Playwright, either installed locally or available through an existing global `@playwright/cli` installation. `npm run verify:recovery` starts its own isolated service and uses synthetic responses; it makes no model, installation, or login calls. The live demo checks below require Jarvis to be running.
 
 ```sh
+npm run verify:recovery
 npm run verify:vision
 npm run verify:browser
 node scripts/verify-revision.mjs
@@ -169,7 +173,7 @@ node scripts/verify-revision.mjs
 
 Run these in order:
 
-1. `verify:vision` sends the included synthetic sketch through your ChatGPT subscription and saves the actual response in ignored `.artifacts/` files.
+1. `verify:vision` sends the included synthetic sketch in one combined build through your ChatGPT subscription and saves the actual response and observations in ignored `.artifacts/` files.
 2. `verify:browser` exercises the workbench with that recorded response, without further inference.
 3. `verify-revision` checks the generated task board and makes one real revision through the UI.
 
@@ -181,14 +185,16 @@ Live checks consume subscription allowance, require Astra access, and can take s
 
 | Symptom | What to check |
 | --- | --- |
-| Codex is missing | Install the official CLI. On Windows, this release expects the standard global npm installation. |
-| Subscription is unavailable | Run `codex login status`. Use ChatGPT sign-in and verify Astra access. API-key login is not supported. |
+| Codex is missing | Open Setup and choose Install official Codex CLI, confirm, then Check again. Installation may require an npm prefix writable by your user. |
+| Subscription is unavailable | Choose Sign in with ChatGPT or Check again in Setup. Model access is checked on a real build. API-key login is not supported. |
 | A build times out or reaches a usage limit | The existing version stays available. Try a smaller revision or wait for your subscription allowance to recover. |
 | Camera cannot start | Check site permission and whether another app is using the camera. Upload a reference or try the sample instead. |
 | Dictation cannot start | Check the default Windows microphone and installed English recognizer. Typed directions remain available. |
 | Saved versions seem missing | Use the same browser profile and URL. `localhost` and `127.0.0.1` have separate browser storage. |
-| Session expired after a restart | Refresh the page. Each server process creates a new session token. |
-| Port 4317 is occupied | Check whether Jarvis is already running and open the existing page. |
+| Session expired after a restart | Choose Reconnect. Saved source remains available while the session reconnects. |
+| Preview did not load | Choose Retry preview or Download. Do not regenerate a completed version just to reopen it. |
+| Local request allowance is used up | Choose Start new allowance in Setup and confirm. This does not change provider subscription limits. |
+| Port 4317 is occupied | The launcher reuses a healthy Jarvis process. If another application owns the port, close it before launching Jarvis. |
 
 ## Contributing
 

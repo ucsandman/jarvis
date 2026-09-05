@@ -11,7 +11,7 @@ npm ci
 npm run dev
 ```
 
-Open `http://127.0.0.1:4317`. Refresh the page after frontend changes. The development server restarts after source changes; reload the page to obtain a fresh session.
+Open `http://127.0.0.1:4317`. Refresh the page after frontend changes. The development server restarts after source changes; choose Reconnect to obtain a fresh session.
 
 Unit tests and syntax checks do not need a model account:
 
@@ -20,6 +20,8 @@ npm test
 npm run lint
 npm run build
 ```
+
+Run `npm run verify:recovery` with Chrome and Playwright available for isolated onboarding and failure-path checks without model calls. Do not change a failing assertion just to make a fix pass.
 
 For browser verification, follow the [README](README.md#development-and-verification). Real generation checks consume your ChatGPT subscription allowance. Use the included synthetic sketch, never someone else's private camera image.
 
