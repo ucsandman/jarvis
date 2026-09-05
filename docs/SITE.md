@@ -83,3 +83,9 @@ Released v0.7.0 from code commit 25e1105. Windows and Linux CI run 33984559654 p
 The anonymous executable download was 171,325,440 bytes and matched SHA-256 bef0b66ee2b0f7d272191fc40dbe9995620ebb2fb48ac1451e8872ad5e3d0404. The final archive has 46 entries; all 23 first-party payload files match the shipped source, and 33 text files were scanned. Verification passed: 40 unit tests, 19 compiled filter cases, 14 native cases, 11 Computer UI checks, 20 packaged checks, 6 launcher lifecycle cases, plus user-app survival after Quit. Real Fable/browser/native execution completed three model steps and two reviewed actions; the final repeat took about 33 seconds.
 
 The installed app was not reopened after release: automatic approval review rejected that separate local launch with only a blocked-by-policy reason. Public download and production site verification completed successfully.
+
+## 0.8 Desktop companion release
+
+The live hero, companion screenshot, social image, download, FAQ and metadata now describe the desktop companion. The prototype walkthrough and Computer guide remain available. The deployment contains 12 public files; existing search-verification tags, sitemap and analytics are preserved.
+
+Release v0.8.0 and production deployment dpl_EPmdoe1LvMPevhjixhCihQpsVKwj are public. Windows/Linux CI run 33987872053 passed. Production browser verification passed desktop/mobile walkthroughs, keyboard controls, assets, blocked routes and the pinned download with no overflow or browser errors. The anonymous Windows download matched its published SHA-256 and 172,186,624-byte size. The new desktop app was reopened locally.

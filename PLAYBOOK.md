@@ -173,3 +173,7 @@ Local verification for 0.8.0: 40 tests; 43 JavaScript syntax checks; 7 API reque
 The unsigned executable is 172,186,624 bytes, SHA-256 `91c8667bdfe2c08ae191a06b41a8d321f68d210adafbe8f8bb05788b5e00d108`. Website checks passed on desktop and mobile; the deployment preview contained 12 public files and excluded local environment and configuration files.
 
 Retro: preserving the workbench made the existing browser suites useful, but only native rendering exposed the retained minimum-width bug. Keep the native round trip and dedicated capture fixture in the release checks. Publishing and live verification are recorded separately after completion.
+
+0.8.0 shipped: implementation commit b348347 and README screenshot follow-up f4a28d2; Windows/Linux CI runs 33987813828 and 33987872053 passed. Release v0.8.0 is public. The anonymous executable download matched the 172,186,624-byte size and SHA-256 above. Production deployment dpl_EPmdoe1LvMPevhjixhCihQpsVKwj is READY at the canonical website; live desktop/mobile walkthrough, keyboard, assets, private-route, download and browser-error checks passed. GitHub About and homepage reflect the desktop companion. The shipped desktop app was reopened locally after verification. No social posts were sent.
+
+Release retro: source checks, native checks and anonymous download verification each cover a different failure boundary. Keep the public checksum comparison and production browser check as required steps after publication, before declaring a release complete.
