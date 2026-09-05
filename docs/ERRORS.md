@@ -1,5 +1,11 @@
 # Implementation lessons
 
+## 2026-09-05: Identity and copy pass
+
+- The site verifier passed against a stale `docs/images/companion.png` after the companion copy changed, because it checks the asset exists, not what it shows. Regenerate the companion capture from the packaged app whenever companion copy or the mark changes, then rebuild the social image and the site.
+- The dock's white square came from the form background showing around an elliptical button region. Shaping the form itself (rounded-square Region in dock mode, cleared in the other modes) removes the backdrop; the button only paints the mark.
+- `scripts/verify-browser.mjs` still waits for "Astra · subscription" while the workbench shows "Astra · medium" since the effort selector landed, so it fails before this change. Fix the verifier deliberately rather than in a copy pass.
+
 ## 2026-09-05: Desktop companion release
 
 - Keeping the companion and workbench in one document preserved existing camera, build, version, and Computer mode behavior across expansion. Separate browser profiles would not preserve old saved work automatically; explicit HTML import now adds a desktop version without overwriting the existing history.

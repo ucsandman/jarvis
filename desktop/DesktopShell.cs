@@ -28,10 +28,10 @@ internal sealed class DesktopShell : Form {
     readonly Timer foregroundTimer = new Timer { Interval = 250 };
     readonly WebView2 web = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(17, 16, 14) };
     readonly Button dockButton = new Button {
-        Dock = DockStyle.Fill, Text = "J", Font = new Font("Segoe UI Semibold", 22, FontStyle.Bold),
-        ForeColor = Color.FromArgb(18, 17, 14), BackColor = Color.FromArgb(239, 173, 51),
-        FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, TabStop = false
+        Dock = DockStyle.Fill, Text = String.Empty, BackColor = JarvisMark.Charcoal,
+        FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, TabStop = false, AccessibleName = "Open Jarvis"
     };
+    bool dockHover;
     string mode = "dock";
     bool ready;
     bool allowClose;
@@ -48,10 +48,19 @@ internal sealed class DesktopShell : Form {
         url = appUrl;
         launchKey = key;
         Text = "Jarvis";
+        Icon = JarvisMark.AppIcon();
+        BackColor = JarvisMark.Charcoal;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.Manual;
         Controls.Add(web);
         dockButton.FlatAppearance.BorderSize = 0;
+        dockButton.FlatAppearance.MouseOverBackColor = JarvisMark.Charcoal;
+        dockButton.FlatAppearance.MouseDownBackColor = JarvisMark.Charcoal;
+        dockButton.Paint += delegate(object sender, PaintEventArgs args) {
+            JarvisMark.Draw(args.Graphics, dockButton.ClientRectangle, dockHover ? JarvisMark.AmberHover : JarvisMark.Amber, false);
+        };
+        dockButton.MouseEnter += delegate { dockHover = true; dockButton.Invalidate(); };
+        dockButton.MouseLeave += delegate { dockHover = false; dockButton.Invalidate(); };
         dockButton.Click += delegate { SummonPanel(); };
         Controls.Add(dockButton);
         foregroundTimer.Tick += delegate { capture.RememberForeground(); };
@@ -131,12 +140,10 @@ internal sealed class DesktopShell : Form {
 
     protected override void OnResize(EventArgs e) {
         base.OnResize(e);
+        // The dock is a rounded square with nothing behind it; the panel and workbench keep their normal window shape.
         if (dockButton != null && mode == "dock" && Width > 0 && Height > 0) {
-            using (var path = new System.Drawing.Drawing2D.GraphicsPath()) {
-                path.AddEllipse(2, 2, Math.Max(1, dockButton.Width - 4), Math.Max(1, dockButton.Height - 4));
-                dockButton.Region = new Region(path);
-            }
-        }
+            using (var path = JarvisMark.RoundedSquare(new Rectangle(0, 0, Width, Height), Math.Min(Width, Height) * 14f / 64f)) Region = new Region(path);
+        } else if (Region != null) Region = null;
     }
 
     void OnShellClosing(object sender, FormClosingEventArgs args) {

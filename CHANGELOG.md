@@ -1,13 +1,19 @@
 # Changelog
 
-## 0.8.0 — Desktop companion
+## 0.8.1: The Jarvis mark
+
+- Replaced the letter-in-a-circle dock and stock tray icon with the Jarvis mark: an amber lens on a rounded charcoal square, drawn natively on a shaped dock window (no white square behind it), embedded in the exe as `desktop/jarvis.ico`, and used for the tray, taskbar and title bar. `scripts/build-icon.ps1` regenerates the icon from the shared geometry.
+- Rewrote the README, public site, docs and llms.txt in plain first-person voice. Removed per-section eyebrow labels, decorative section numbering, arrow glyphs and side-stripe accents from the site and the workbench. Added PRODUCT.md and DESIGN.md as the design context.
+- Companion welcome copy now opens with a question instead of a tagline. Workbench text sizes have a 9px floor.
+
+## 0.8.0: Desktop companion
 
 - Added a compact native Windows companion that can be summoned with Ctrl+Shift+Space and expands into the existing workbench when the user chooses a build or Computer mode workflow.
 - Added optional local dictation and spoken replies, a bounded in-session conversation, and an explicit current-window screenshot that shows the exact frame used.
-- Added a persistent WebView2 profile for the companion. Existing browser-stored revisions are not imported automatically; export HTML and use Settings → Import a saved HTML prototype. Imports are limited to 120,000 bytes and append a revision when the 12-version history has room.
+- Added a persistent WebView2 profile for the companion. Existing browser-stored revisions are not imported automatically; export HTML and use Settings, then Import a saved HTML prototype. Imports are limited to 120,000 bytes and append a revision when the 12-version history has room.
 - Kept camera sharing, consented Live build, source versions, downloads, Astra/Fable subscription transports, and reviewed Computer mode actions unchanged.
 
-## 0.7.0 — Reviewed computer actions
+## 0.7.0: Reviewed computer actions
 
 - Added Windows Computer mode with explicit local and subscription sharing consent.
 - Added accessible-control inspection, click, text replacement, scroll, supported shortcuts, window focus, and fixed app launches.
@@ -83,4 +89,4 @@ Initial public release of the local Jarvis workbench.
 - Explicit sharing consent, cancellation, and bounded inference requests.
 - Windows/Linux CI for unit tests, syntax, and required assets.
 
-See the [README](README.md#current-limits) for current limits and the [playbook](PLAYBOOK.md) for verification evidence.
+See the [README](README.md#privacy-and-boundaries) for current limits and the [playbook](PLAYBOOK.md) for verification evidence.

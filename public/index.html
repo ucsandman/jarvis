@@ -6,7 +6,7 @@
   <meta name="robots" content="noindex,nofollow">
   <meta name="description" content="Jarvis turns what you show and tell it at your desk into working software. A private local workbench for sketches, voice, and live prototypes.">
   <meta name="theme-color" content="#191c1b">
-  <title>Jarvis — From your desk to something real</title>
+  <title>Jarvis: a desktop companion for building and working</title>
   <link rel="icon" href="/mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/companion.css">
@@ -27,13 +27,13 @@
   </defs></svg>
   <div class="app-shell">
     <header class="topbar">
-      <a class="brand" href="/" aria-label="Jarvis home"><span class="jarvis-mark"><i></i></span><span>JARVIS<span class="brand-caption">A SECOND PAIR OF EYES.</span></span></a>
+      <a class="brand" href="/" aria-label="Jarvis home"><img class="jarvis-mark" src="/mark.svg" width="42" height="42" alt=""><span>JARVIS<span class="brand-caption">LOCAL WORKBENCH</span></span></a>
       <div class="header-middle"><span class="status-dot" id="provider-dot"></span><span id="provider-status">Checking connection</span><span class="divider">/</span><span>LOCAL WORKBENCH</span></div>
       <div class="header-actions"><button class="quiet" id="new-session">New project</button><button class="icon-button" id="sound" aria-label="Enable spoken replies" aria-pressed="false" title="Enable spoken replies"><svg><use href="#i-sound"/></svg></button><button class="quiet privacy-button" id="privacy">Privacy</button><button class="quiet" id="setup-toggle">Setup</button></div>
     </header>
 
     <section class="intro" aria-labelledby="headline">
-      <div><p class="eyebrow"><span class="tiny-star">✳</span> YOUR IDEAS HAVE A NEW WAY IN.</p><h1 id="headline">Share your screen. <em>Build as you draw.</em></h1></div>
+      <div><h1 id="headline">Share your screen. <em>Build as you draw.</em></h1></div>
       <p class="intro-note">Turn your drawing or design window into a working prototype.<br>Or open Computer mode to work in Windows apps with reviewed actions.</p>
     </section>
 
@@ -76,7 +76,7 @@
           <button class="button amber" id="share-screen">Share screen or window</button>
           <button class="button secondary" id="connect"><svg><use href="#i-camera"/></svg> Connect camera</button>
           <button class="quiet" id="upload"><svg><use href="#i-upload"/></svg> Upload reference</button>
-          <button class="button amber" id="example">Try a sample sketch <span>↗</span></button>
+          <button class="button amber" id="example">Try a sample sketch</button>
           <input type="file" id="file" accept="image/jpeg,image/png,image/webp" hidden>
         </div>
         <div class="camera-controls" id="camera-controls" hidden><label for="camera-select">Camera</label><select id="camera-select" aria-label="Choose camera"></select><button class="quiet" id="camera-off">Turn off</button></div>
@@ -106,8 +106,8 @@
           <div class="browser-bar"><div class="browser-dots" aria-hidden="true"><i></i><i></i><i></i></div><span id="prototype-title">Your next idea, running.</span><span class="version-label" id="version-label">READY WHEN YOU ARE</span></div>
           <div class="preview-stage" id="preview-stage">
             <div class="preview-empty" id="preview-empty">
-              <span class="paper-index">THOUGHT → THING</span>
-              <div class="paper-composition" aria-hidden="true"><div class="sketch-paper"><span>the idea</span><div class="sketch-window"><i></i><div><b></b><b></b><b></b></div></div><em>make this real ↗</em></div><div class="result-paper"><span>the possibility</span><div class="mini-window"><i></i><div><b></b><b></b><b></b></div></div><small>● &nbsp; Running in your browser</small></div></div>
+              <span class="paper-index">FROM SKETCH TO PROTOTYPE</span>
+              <div class="paper-composition" aria-hidden="true"><div class="sketch-paper"><span>the idea</span><div class="sketch-window"><i></i><div><b></b><b></b><b></b></div></div><em>make this real</em></div><div class="result-paper"><span>the possibility</span><div class="mini-window"><i></i><div><b></b><b></b><b></b></div></div><small>● &nbsp; Running in your browser</small></div></div>
               <h2>Less translating.<br><em>More making.</em></h2>
               <p>Your reference becomes a working web prototype.<br>Then we keep building on it, together.</p>
               <div class="empty-steps"><span><b>1</b> Show a reference</span><span><b>2</b> Give me direction</span><span><b>3</b> Try the result</span></div>
@@ -118,7 +118,7 @@
           </div>
           <div class="prototype-footer"><span id="preview-note">A real preview will appear here.</span><button class="quiet" id="retry-preview" hidden>Retry preview</button><div><button class="quiet" id="source" disabled><svg><use href="#i-code"/></svg> Source</button><button class="quiet" id="download" disabled><svg><use href="#i-download"/></svg> Download</button></div></div>
         </div>
-        <section class="reply" aria-label="Jarvis reply"><span class="reply-mark" aria-hidden="true">J</span><div><div class="reply-byline">JARVIS <span id="reply-status">Standing by</span></div><p id="reply-text" aria-live="polite">Show me a sketch and tell me what should work. I’ll take it from there.</p><ul id="changes"></ul></div></section>
+        <section class="reply" aria-label="Jarvis reply"><img class="reply-mark" src="/mark.svg" width="27" height="27" alt="" aria-hidden="true"><div><div class="reply-byline">JARVIS <span id="reply-status">Standing by</span></div><p id="reply-text" aria-live="polite">Show me a sketch and tell me what should work. I’ll take it from there.</p><ul id="changes"></ul></div></section>
         <div class="revision-heading"><span class="eyebrow">THE EVOLUTION</span><span id="revision-count">Every build keeps the previous version.</span></div>
         <nav class="revisions" id="revisions" aria-label="Revision history"><p class="revision-empty">Your first version starts with an idea.</p></nav>
       </section>

@@ -62,7 +62,9 @@ $jarvisCompiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/cs
 $jarvisWebViewCore = Join-Path $jarvisWebView 'lib/net462/Microsoft.Web.WebView2.Core.dll'
 $jarvisWebViewForms = Join-Path $jarvisWebView 'lib/net462/Microsoft.Web.WebView2.WinForms.dll'
 $jarvisSources = @(Get-ChildItem -LiteralPath (Join-Path $jarvisRoot 'desktop') -Filter '*.cs' -File | ForEach-Object FullName)
-& $jarvisCompiler /nologo /target:winexe /platform:x64 /optimize+ /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.IO.Compression.dll /reference:System.IO.Compression.FileSystem.dll /reference:System.Web.Extensions.dll /reference:Microsoft.CSharp.dll "/reference:$jarvisWebViewCore" "/reference:$jarvisWebViewForms" "/resource:$jarvisZip,payload.zip" "/resource:$jarvisWebViewCore,Microsoft.Web.WebView2.Core.dll" "/resource:$jarvisWebViewForms,Microsoft.Web.WebView2.WinForms.dll" "/out:$jarvisExe" $jarvisSources $jarvisInfo
+$jarvisIcon = Join-Path $jarvisRoot 'desktop/jarvis.ico'
+if (-not (Test-Path -LiteralPath $jarvisIcon)) { throw 'desktop/jarvis.ico is missing. Run scripts/build-icon.ps1 first.' }
+& $jarvisCompiler /nologo /target:winexe /platform:x64 /optimize+ "/win32icon:$jarvisIcon" /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.IO.Compression.dll /reference:System.IO.Compression.FileSystem.dll /reference:System.Web.Extensions.dll /reference:Microsoft.CSharp.dll "/reference:$jarvisWebViewCore" "/reference:$jarvisWebViewForms" "/resource:$jarvisZip,payload.zip" "/resource:$jarvisWebViewCore,Microsoft.Web.WebView2.Core.dll" "/resource:$jarvisWebViewForms,Microsoft.Web.WebView2.WinForms.dll" "/out:$jarvisExe" $jarvisSources $jarvisInfo
 if ($LASTEXITCODE -ne 0) { throw 'Windows launcher compilation failed.' }
 $jarvisExeHash = (Get-FileHash -LiteralPath $jarvisExe -Algorithm SHA256).Hash.ToLowerInvariant()
 Set-Content -LiteralPath (Join-Path $jarvisBuild 'SHA256SUMS.txt') -Value "$jarvisExeHash  Jarvis-$jarvisVersion-Windows-x64.exe"

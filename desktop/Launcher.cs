@@ -61,7 +61,7 @@ internal static class Launcher {
             Instance.Dispose(); return 0;
         }
         try {
-            var loading = new Form { Text="Starting Jarvis", Width=440, Height=180, StartPosition=FormStartPosition.CenterScreen, FormBorderStyle=FormBorderStyle.FixedDialog, MaximizeBox=false, MinimizeBox=false, ControlBox=false };
+            var loading = new Form { Text="Starting Jarvis", Icon=JarvisMark.AppIcon(), Width=440, Height=180, StartPosition=FormStartPosition.CenterScreen, FormBorderStyle=FormBorderStyle.FixedDialog, MaximizeBox=false, MinimizeBox=false, ControlBox=false };
             var label = new Label { Text="Getting Jarvis ready on your computer...", Dock=DockStyle.Top, Height=70, Padding=new Padding(22), Font=new Font("Segoe UI",11) };
             loading.Controls.Add(new ProgressBar { Dock=DockStyle.Bottom, Height=18, Style=ProgressBarStyle.Marquee });
             loading.Controls.Add(label);
@@ -103,7 +103,7 @@ internal static class Launcher {
                     var menu=new ContextMenuStrip();
                     menu.Items.Add("Open Jarvis",null,delegate { Open(); });
                     menu.Items.Add("Quit Jarvis",null,delegate { Application.Exit(); });
-                    Tray=new NotifyIcon { Icon=SystemIcons.Application, Text="Jarvis", ContextMenuStrip=menu, Visible=true };
+                    Tray=new NotifyIcon { Icon=JarvisMark.AppIcon(), Text="Jarvis", ContextMenuStrip=menu, Visible=true };
                     Tray.DoubleClick += delegate { Open(); };
                     Window=new DesktopShell(Root,Url,LaunchKey);
                     Window.ShowDock();

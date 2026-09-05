@@ -3,34 +3,36 @@
 Production: https://jarvis-workbench.vercel.app/
 Repository: https://github.com/ucsandman/jarvis
 
-The public site is a static walkthrough and Windows download page. It does not run inference, accept subscription login, capture a camera/screen, or host the local API. Real builds happen in the downloadable workbench.
+The public site is a static walkthrough and Windows download page. It doesn't run inference, take a subscription login, capture a camera or screen, or host the local API. Real builds happen in the downloaded app.
 
 ## Release procedure
 
-1. Verify tests, browser behavior, and the final Windows executable. Publish the versioned GitHub release and checksum.
-2. Update the pinned download and release links in the README and site. Keep desktop-runtime, model, streaming, credit, and signing disclosures accurate.
-3. Run `node scripts/build-site.mjs` and `node scripts/verify-site.mjs`.
-4. Inspect `vercel deploy --dry --json --cwd .artifacts/site --scope ucsandmans-projects`. It must contain only allowlisted public files, including the verified `companion.png` capture, and exclude environment/configuration data.
+1. Verify tests, browser behavior and the final Windows executable. Publish the versioned GitHub release and checksum.
+2. Update the pinned download and release links in the README and site. Keep the desktop-runtime, model, streaming, credit and signing disclosures accurate.
+3. Run `node scripts/build-site.mjs` and `node scripts/verify-site.mjs`. If the companion UI or the mark changed, regenerate `docs/images/companion.png` from the packaged app and `docs/images/social.png` with `node scripts/build-social.mjs` first.
+4. Inspect `vercel deploy --dry --json --cwd .artifacts/site --scope ucsandmans-projects`. It must contain only allowlisted public files, including the verified `companion.png` capture, and no environment or configuration data.
 5. Deploy the approved release with `vercel deploy --prod --yes --cwd .artifacts/site --scope ucsandmans-projects`.
-6. Run `node scripts/verify-site.mjs https://jarvis-workbench.vercel.app`. Confirm the anonymous executable download hash, metadata, website link, and GitHub About text.
+6. Run `node scripts/verify-site.mjs https://jarvis-workbench.vercel.app`. Confirm the anonymous executable download hash, metadata, website link and GitHub About text.
 
-Never deploy the repository root. The build output is `.artifacts/site`; generated environment files are excluded and must never be read, staged, or uploaded. Roll back with Vercel's deployment promotion controls. Public-site rollback does not alter local applications.
+Never deploy the repository root. The build output is `.artifacts/site`. Generated environment files are excluded and must never be read, staged or uploaded. Roll back with Vercel's deployment promotion controls. A public-site rollback doesn't touch local apps.
 
 ## Public surface
 
-- One indexable page, with title, description, canonical URL, Open Graph image, robots.txt, sitemap.xml and llms.txt.
-- Preserve Google and Bing ownership tags. Ownership and sitemap submission were completed at initial launch. Indexing is controlled by the search providers; manual Google indexing was previously quota-limited.
-- Standard Vercel Web Analytics uses the existing hosting plan. No Plus add-on or new billing configuration is required for ordinary releases.
-- No hosted task-board sample. Its former route returns 404; the website explains the actual reference, prompt, result and revision workflow.
-- No DNS changes, social posts or outreach are part of a code release.
+- One indexable page with title, description, canonical URL, Open Graph image, robots.txt, sitemap.xml and llms.txt.
+- Keep the Google and Bing ownership tags. Ownership and sitemap submission were done at launch. Indexing is up to the search providers. Manual Google indexing was quota-limited last time.
+- Standard Vercel Web Analytics on the existing hosting plan. No Plus add-on or new billing for ordinary releases.
+- No hosted task-board sample. Its old route returns 404. The site explains the real reference, prompt, result and revision workflow instead.
+- No DNS changes, social posts or outreach as part of a code release.
 
 ## Current product copy
 
-The native desktop companion is the primary entry point. It uses a separate persistent WebView2 profile, has bounded in-session conversation, and opens the builder or Computer mode only through explicit user controls. Revisions from a source-development browser profile or older browser-based install are not imported automatically; **Settings → Import a saved HTML prototype** imports exported HTML up to 120,000 bytes and appends a revision only when the 12-version history has room. Screen/window sharing, camera and upload remain available in the workbench. A requested companion screenshot shows the exact frame used; it does not monitor the screen or listen continuously. Live build sends consented snapshots after a pause, with minimum intervals and a ten-request cap. Fable can show incremental HTML drafts and may consume paid Claude usage credits. Astra's isolated Codex exec path releases completed messages. Draft scripts are disabled until final validation. Source is MIT licensed; upstream runtimes retain their own terms. The outer Windows executable is unsigned.
+The native desktop companion is the entry point. It uses its own persistent WebView2 profile, keeps a bounded in-session conversation, and opens the builder or Computer mode only through explicit user controls. Revisions from a source-development browser profile or an older browser-based install aren't imported automatically. Settings, then Import a saved HTML prototype, brings in exported HTML up to 120,000 bytes and adds a version only when the 12-slot history has room. Screen and window sharing, camera and upload stay available in the workbench. A requested companion screenshot shows the exact frame used. It doesn't monitor the screen or listen continuously. Live build sends consented snapshots after a pause, with minimum intervals and a ten-request cap. Fable can show incremental HTML drafts and can spend paid Claude usage credits. Astra's isolated Codex exec path releases finished messages. Draft scripts stay off until final validation. Source is MIT licensed. Upstream runtimes keep their own terms. The outer Windows executable is unsigned.
+
+The page has no per-section eyebrow labels, no numbered section scaffolding outside real step sequences, no side-stripe accents and no arrow glyphs in copy. The mark is the lens from `public/mark.svg`. Keep it that way; see DESIGN.md.
 
 ## Verification
 
-The site suite checks the companion and all four current walkthrough steps on desktop and mobile, arrow/Home/End navigation, the draft replay disclosure, public assets, removed/private routes, download link, overflow and page errors. It must also verify the companion's capture, subscription, profile-migration and Computer-mode boundary disclosures. Public release evidence is appended below. Detailed historical investigations remain in [PLAYBOOK.md](../PLAYBOOK.md).
+The site suite checks the companion and all four walkthrough steps on desktop and mobile, arrow, Home and End navigation, the draft replay disclosure, public assets, removed and private routes, the download link, overflow and page errors. It also has to verify the companion's capture, subscription, profile-migration and Computer-mode boundary disclosures. Public release evidence is appended below. Detailed historical investigations live in [PLAYBOOK.md](../PLAYBOOK.md).
 
 ## 0.8 Desktop companion surface audit
 

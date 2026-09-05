@@ -1,99 +1,96 @@
 <div align="center">
   <img src="public/mark.svg" width="72" height="72" alt="Jarvis">
   <h1>Jarvis</h1>
-  <p><strong>A desktop companion for building and working in Windows.</strong></p>
-  <p>Talk through a task in a compact desktop window, move into the workbench when you are ready to build, and review every Computer mode action.</p>
+  <p><strong>A desktop companion for Windows that runs on the ChatGPT or Claude subscription you already pay for.</strong></p>
   <p><a href="https://github.com/ucsandman/jarvis/actions/workflows/ci.yml"><img src="https://github.com/ucsandman/jarvis/actions/workflows/ci.yml/badge.svg" alt="Windows and Linux checks"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-e5b977" alt="MIT license"></a> <a href="https://github.com/ucsandman/jarvis/releases/latest"><img src="https://img.shields.io/github/v/release/ucsandman/jarvis" alt="Latest release"></a></p>
-  <p><a href="https://jarvis-workbench.vercel.app/">Website</a> · <a href="https://github.com/ucsandman/jarvis/releases/download/v0.8.0/Jarvis-0.8.0-Windows-x64.exe">Download for Windows</a> · <a href="#getting-started">Get started</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
+  <p><a href="https://jarvis-workbench.vercel.app/">Website</a> · <a href="https://github.com/ucsandman/jarvis/releases/download/v0.8.1/Jarvis-0.8.1-Windows-x64.exe">Download for Windows</a> · <a href="#getting-started">Get started</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
 </div>
 
-Jarvis runs on your computer and uses your eligible **ChatGPT or Claude subscription** for generation. Choose **Astra** or **Fable 5.1**, set the effort, and talk through a task, build from a shared screen, uploaded image, camera frame, or typed direction. No model API key is needed.
+Jarvis sits in the corner of your screen. Hit **Ctrl+Shift+Space**, ask about the window you're in, show it a frame, and either talk it through or hand it something bigger: turn a sketch into a working prototype, or let it drive a Windows app one approved click at a time. Pick **Astra** (ChatGPT) or **Fable 5.1** (Claude), set the effort, go. No API key, nothing metered.
 
-**Experimental.** Fable can consume paid Claude usage credits. Model access and limits depend on your account. The website is a prepared walkthrough; generation and sign-in happen in the downloaded app.
+It's experimental and built around how I work. Fable can burn paid Claude usage credits. What your account can reach is up to your plan. The website is a walkthrough, the app is where the sign-in and generation actually happen.
 
 <img src="docs/images/companion.png" width="360" alt="Jarvis desktop companion with a message field, window capture, microphone control, and explicit sharing permission">
 
-*A compact companion beside your work. Open the workbench for previews, source, camera, Live build, and reviewed computer actions.*
+*The companion. Screen and mic are off until you turn something on.*
 
 ![Jarvis displaying a draft as HTML arrives](docs/images/streaming.png)
 
-*The streaming interface replaying captured HTML from a real Fable build. Drafts are unfinished and have scripts disabled. Complete versions run in the interactive preview.*
+*Fable's HTML rendering as it arrives. Drafts run with scripts off; the finished version runs in the interactive preview.*
 
 ## What it does
 
-- **Build as you draw.** Share a design window and opt into Live build. Jarvis sends changed snapshots after you pause, then updates the prototype.
-- **See code arrive.** Fable's incremental HTML appears in a live draft and code view. Switch to the last working version anytime. Astra's current CLI path releases completed messages rather than incremental code.
-- **Keep control.** Choose low through max effort, inspect the exact frame sent, pause builds, cancel generation, or stop sharing.
-- **Keep your work.** Up to 12 versions stay in Jarvis's desktop profile. Restore a version, inspect source, download HTML, or import a saved prototype.
-- **Choose your input.** Screen sharing, image upload, camera, typed directions, and optional local Windows dictation.
-- **Keep Jarvis at hand.** Press **Ctrl+Shift+Space** to summon a compact desktop companion. A short in-session conversation can help shape a task, then an explicit button opens the existing workbench or Computer mode workflow.
-
-- **Work in Windows apps.** Computer mode reads accessible controls, proposes one action, and waits for your approval. Click, replace text, scroll, use supported shortcuts, or open Notepad, Calculator and Paint. [Computer mode guide](docs/COMPUTER.md).
+- **Build as you draw.** Share your design window, turn on Live build, and Jarvis sends a snapshot after you pause and updates the prototype.
+- **Watch the code land.** Fable streams HTML into a live draft and a code view. Flip back to the last working version any time. Astra's CLI hands over finished messages instead of a stream.
+- **Stay in control.** Low through max effort, see the exact frame that was sent, pause, cancel, stop sharing.
+- **Keep your versions.** Up to 12 stay in Jarvis's desktop profile. Restore one, read the source, download the HTML, import an old one.
+- **Use whatever input you have.** Screen share, image upload, camera, typed direction, or local Windows dictation.
+- **Work inside Windows apps.** Computer mode reads the accessible controls, proposes one action, and waits for your yes. Click, replace text, scroll, a handful of shortcuts, or open Notepad, Calculator and Paint. [Computer mode guide](docs/COMPUTER.md).
 
 ## Getting started
 
-1. [Download Jarvis 0.8.0 for Windows](https://github.com/ucsandman/jarvis/releases/download/v0.8.0/Jarvis-0.8.0-Windows-x64.exe) and open it. No terminal, Node.js installation, or administrator access is required.
-2. Choose **Astra** or **Fable 5.1**. In **Setup**, use the selected provider's sign-in button. Codex is included. For Fable, **Install official Claude Code** downloads and verifies Anthropic's runtime if needed.
-3. Choose **Share screen or window**, select your drawing or design window, and describe the product. For one build, check the frame-sharing control and click **Make it real**.
-4. For automatic updates, click **Start Live build** and review the separate sharing and usage notice.
+1. [Download Jarvis 0.8.1](https://github.com/ucsandman/jarvis/releases/download/v0.8.1/Jarvis-0.8.1-Windows-x64.exe) and open it. No terminal, no Node, no admin.
+2. Pick **Astra** or **Fable 5.1**, then sign in from **Setup**. Codex ships inside. For Fable, **Install official Claude Code** downloads and verifies Anthropic's runtime.
+3. **Share screen or window**, pick your design window, describe the product. For a one-off build, tick the frame checkbox and hit **Make it real**.
+4. For hands-off updates, **Start Live build** and read the separate snapshot notice first.
 
-Use **Ctrl+Shift+Space** to bring back the desktop companion, or use the desktop or Start menu shortcut. **Quit Jarvis** in the tray menu stops its server. Closing the companion leaves Jarvis in the tray until you quit it.
+**Ctrl+Shift+Space** brings the companion back. So does the desktop or Start menu shortcut. Closing the panel leaves Jarvis in the tray; **Quit Jarvis** from the tray menu stops the server.
 
-Windows 10/11 x64 is required. Desktop Chrome or Edge is recommended for screen sharing. The download is about 164 MiB. **The Jarvis executable is unsigned**, so Windows may show an unknown-publisher warning. The [release includes a SHA-256 checksum](https://github.com/ucsandman/jarvis/releases/tag/v0.8.0), and upstream runtime publishers are verified. [Installation, updates, and removal](docs/WINDOWS.md).
+Windows 10/11 x64 only. Chrome or Edge for screen sharing. The download is about 164 MiB. **The exe is unsigned**, so expect the unknown-publisher prompt. The [release has a SHA-256 checksum](https://github.com/ucsandman/jarvis/releases/tag/v0.8.1) and the bundled Node and Codex are publisher-verified. [Install, update, remove](docs/WINDOWS.md).
 
-The desktop companion needs the Microsoft Edge WebView2 Runtime. Jarvis checks that dependency on launch and explains how to install it if it is missing. Its persistent WebView profile is separate from a browser profile used for source development or an older install, so those prototype revisions do not automatically appear in the companion. Export HTML from the old profile, then use **Settings → Import a saved HTML prototype** in the companion. Imports are limited to 120,000 bytes and add a revision when there is room in the 12-version history.
+The companion needs the Microsoft Edge WebView2 Runtime. Jarvis checks on launch and tells you where to get it if it's missing. Its WebView profile is separate from any browser profile you used with an older install, so old revisions don't show up on their own. Export the HTML from the old profile, then **Settings, then Import a saved HTML prototype** in the companion. Imports cap at 120,000 bytes and add a version when the 12-slot history has room.
 
 ## Computer mode
 
 ![Computer mode waiting for approval](docs/images/computer.png)
 
-*Actual Fable proposal against an isolated Windows test app. The desktop action waits for approval.*
+*A real Fable proposal against a test app I own. Nothing happens until Approve.*
 
 1. Open **Computer mode** and allow local inspection for ten minutes.
-2. Open an app or select an existing window. **Inspect selected window** shows its accessible controls locally.
-3. Choose Astra or Fable and effort, enter the task, and allow sharing the selected window’s current accessible text. Each **Plan next action** takes a fresh reading.
-4. Review the exact target, text or shortcut. **Approve this action** performs one operation; **Reject** performs nothing. Plan the next step to inspect the result and continue.
-5. **Stop computer control**, uncheck permission, or press **Ctrl+Shift+F12** from any app. Closing the page requests Stop; it does not undo completed actions. The Stop button remains available after a reconnect.
+2. Open an app or pick an open window. **Inspect selected window** reads its controls locally.
+3. Choose the model and effort, type the task, allow sharing the window's current accessible text. Each **Plan next action** takes a fresh reading.
+4. Check the target, text or shortcut. **Approve this action** does one thing. **Reject** does nothing. Plan again to see the result.
+5. **Stop computer control**, untick the permission, or hit **Ctrl+Shift+F12** from anywhere. Closing the page asks for Stop too. Stop doesn't undo what already ran.
 
-Every UI action can have consequences in the target app, including sending or deleting. Review each approval. The controller does not guarantee that arbitrary applications are trustworthy. Up to 20 model steps per enabled session; each consumes subscription allowance or eligible Claude credits. [Capabilities, limits and protocol](docs/COMPUTER.md).
+A click or a key in the target app can send, delete, or buy something. Read every approval. Filters on names and commands are a safety net, not a promise that the app is trustworthy. Up to 20 model steps per session, each on your subscription or credits. [Capabilities, limits and protocol](docs/COMPUTER.md).
 
 ## Models and speed
 
 | Model | Account | Preview while generating |
 | --- | --- | --- |
-| Astra | Eligible ChatGPT subscription through Codex | Updates when the CLI releases a completed message |
-| Fable 5.1 | Paid Claude subscription through Claude Code | Incremental HTML drafts as chunks arrive |
+| Astra | ChatGPT subscription through Codex | Updates when the CLI finishes a message |
+| Fable 5.1 | Paid Claude subscription through Claude Code | HTML drafts as chunks arrive |
 
-Start with **low effort** for smaller changes. **Use low effort for faster builds** changes the next request without switching models. Higher effort can take much longer.
+Start on **low effort** for small changes. **Use low effort for faster builds** applies to the next request only. High effort can take a while.
 
-Streaming does not remove initial thinking time. A small Fable/low probe produced its first HTML at 18.9 seconds and finished at 20.5 seconds. A previous screen-based build took 60 seconds. These are different requests, not a controlled speed comparison or latency guarantee. [Model and billing details](docs/MODELS.md).
+Streaming doesn't skip the thinking time. One small Fable/low probe showed first HTML at 18.9s and finished at 20.5s. An earlier screen-based build took 60s. Different requests, not a benchmark. [Model and billing details](docs/MODELS.md).
 
-## Live build controls
+## Live build
 
-Live build compares small thumbnails locally. It waits for three quiet seconds and a meaningful change, with one request at a time. Choose a minimum interval of **30 seconds**, **60 seconds**, or **two minutes**. It pauses after **ten requests per start**, on capture loss, or after an interrupted build.
+Live build compares small thumbnails locally. It waits for three quiet seconds and a real change, one request at a time. Minimum gap is **30 seconds**, **60 seconds**, or **two minutes**. It pauses after **ten builds per start**, when capture drops, or after an interrupted build.
 
-**Pause** stops new snapshots and cancels unfinished inference. **Stop sharing** also releases capture. Reload never restarts sharing or Live build. Provider work already received may still consume allowance or credits.
+**Pause** stops snapshots and cancels the in-flight request. **Stop sharing** also releases capture. Reload never restarts sharing or Live build. Work the provider already received may still count against you.
 
-Share the design window rather than Jarvis itself to avoid capture feedback. Animated surfaces may never settle; tiny edits can be ignored. Drafts are visual only until a finished result passes validation. A new completed version resets prototype runtime data, while saved source versions remain available.
+Share the design window, not Jarvis, or you'll capture yourself. Animated windows may never settle. Drafts are visual only until a finished result validates. A new finished version resets the prototype's runtime data; saved source stays.
 
 ## Privacy and boundaries
 
 | What | What happens |
 | --- | --- |
-| Camera and screen | Preview stays local. Manual builds send one selected frame. Live build sends changed snapshots after separate consent. No full video stream or desktop audio is uploaded. |
-| Model input | The chosen image, direction, and selected source go to the selected provider through its official CLI. |
-| Accounts | The CLI manages sign-in. Jarvis does not read credential files or accept API-key login. No automatic model or API fallback. |
-| Drafts | Partial HTML is not saved in history. Scripts are disabled; temporary draft URLs expire when the build ends. Reasoning and raw CLI logs are not shown. |
-| Completed prototypes | Run in a restricted iframe with network requests, nested frames, and camera/microphone access blocked. Downloaded HTML runs outside that preview boundary. |
-| Computer mode | Window selection is local. Planning sends a fresh bounded accessibility tree, editable values, task and recent action descriptions after consent. No desktop image or audio is captured by this mode. Action history is session-only. |
-| Saved work | Source versions and references stay in Jarvis's desktop profile on this device. Use the same installed Jarvis profile. A source-development browser profile remains separate. |
-| Desktop companion | Its short conversation and persistent WebView profile stay local to that companion. It is not always listening, does not monitor your screen, and only captures a current window after you explicitly request a screenshot. |
+| Camera and screen | Preview stays local. A manual build sends one frame you picked. Live build sends changed snapshots after its own consent. No video stream, no desktop audio. |
+| Model input | Your frame, direction and selected source go to the provider through its official CLI. |
+| Accounts | The CLI owns sign-in. Jarvis never reads credential files, never takes an API key, never falls back to another model. |
+| Drafts | Partial HTML isn't saved. Scripts are off. Draft URLs expire when the build ends. Reasoning and raw CLI logs aren't shown. |
+| Finished prototypes | Run in a locked-down iframe: no network, no nested frames, no camera or mic. Downloaded HTML runs outside that box. |
+| Computer mode | Window choice is local. Planning sends a fresh bounded accessibility tree, editable values, the task and recent actions, after consent. No screenshot, no audio. History is session-only. |
+| Saved work | Versions and reference images live in Jarvis's desktop profile on this machine. |
+| Desktop companion | Conversation and profile stay local. It isn't listening, isn't watching your screen, and only grabs a window when you ask for a screenshot. |
 
-The prototype builder creates frontend pages. Separately enabled Computer mode controls accessible Windows UI with per-action approval. It is not unrestricted desktop automation: canvas interaction, Explorer, address bars, terminals and administrator prompts are excluded. There is no generic shell or repository-editing tool, backend builder, or deployment integration. Review generated output before using it elsewhere. [Security details and reporting](SECURITY.md).
+The builder makes frontend pages. Computer mode, enabled separately, drives accessible Windows controls with per-action approval. It is not general desktop automation: no canvas, no Explorer, no address bars, no terminals, no admin prompts. No shell tool, no repo editing, no backend, no deploy. Read generated output before you use it somewhere else. [Security details and reporting](SECURITY.md).
 
 ## Run from source
 
-Requires **Node.js 24+** and an eligible subscription for generation. Setup can install the selected CLI on Windows. On other platforms, install the supported official CLI separately. [Provider setup](docs/MODELS.md).
+Needs **Node.js 24+** and a subscription for generation. Setup can install the CLI on Windows. Elsewhere, install the official CLI yourself. [Provider setup](docs/MODELS.md).
 
 ```sh
 git clone https://github.com/ucsandman/jarvis.git
@@ -102,7 +99,7 @@ npm ci
 npm start
 ```
 
-Open **http://127.0.0.1:4317**. There are zero application runtime package dependencies. **Start Jarvis.cmd** also works after installing Node.
+Open **http://127.0.0.1:4317**. Zero runtime dependencies. **Start Jarvis.cmd** works too once Node is installed.
 
 ## Development and verification
 
@@ -118,22 +115,24 @@ node scripts/verify-live.mjs
 node scripts/verify-models.mjs
 ```
 
-Browser checks require Chrome and Playwright or an existing global `@playwright/cli` installation. They use synthetic generation and do not consume subscription allowance. Live-provider checks are separate and consume allowance or credits. Windows/Linux CI checks installation, tests, lint, and build.
+Browser checks need Chrome plus Playwright or a global `@playwright/cli`. They use synthetic generation and don't touch your allowance. Live-provider checks are separate and do. CI runs install, tests, lint and build on Windows and Linux.
+
+Changed the mark? Run `powershell -NoProfile -File scripts/build-icon.ps1` to regenerate `desktop/jarvis.ico`.
 
 [Contributing](CONTRIBUTING.md) · [Changelog](CHANGELOG.md) · [Windows packaging](docs/WINDOWS.md) · [Site runbook](docs/SITE.md) · [Verification history](PLAYBOOK.md)
 
 ## Troubleshooting
 
-| Problem | Action |
+| Problem | Try |
 | --- | --- |
-| Generation is slow | Choose low effort, ask for a smaller change, or cancel. Fable supports incremental drafts; Astra's current CLI may remain quiet until completion. |
-| Model or login unavailable | Open Setup, use the selected sign-in or install button, then Check again. |
-| Screen sharing unavailable | Use desktop Chrome or Edge, upload an image, or use the camera. |
-| Live build paused | Review the message, check the shared window and allowance, then explicitly start again. |
-| Preview failed | Retry preview or download completed source. Do not regenerate just to reopen it. |
-| Saved work missing | Use the same installed Jarvis profile. A source-development browser profile and an older browser-based install have separate storage; export HTML there and use **Settings → Import a saved HTML prototype**. |
-| Port occupied | Quit the application using port 4317, then reopen Jarvis. |
+| Slow generation | Drop to low effort, ask for less, or cancel. Fable streams drafts; Astra stays quiet until it's done. |
+| Model or login unavailable | Open Setup, use the sign-in or install button, then Check again. |
+| Can't share the screen | Use Chrome or Edge, upload an image, or use the camera. |
+| Live build paused | Read the message, check the shared window and your allowance, start it again yourself. |
+| Preview failed | Retry preview or download the source. Don't regenerate just to reopen it. |
+| Saved work missing | Same installed Jarvis profile? Older browser installs are separate. Export there, then **Settings, then Import a saved HTML prototype**. |
+| Port taken | Quit whatever is on 4317, reopen Jarvis. |
 
 ## License
 
-Jarvis source is [MIT licensed](LICENSE). Node.js, Codex, and Claude Code retain their own licenses and terms. Upstream notices accompany bundled runtimes; Claude Code is downloaded separately through Setup.
+Jarvis is [MIT](LICENSE). Node.js, Codex and Claude Code keep their own licenses. Upstream notices ship with the bundled runtimes; Claude Code is downloaded separately through Setup.
