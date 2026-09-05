@@ -33,7 +33,12 @@ try{
     await route.fulfill({json:{...connection,configured:true,cli:true,model:'gpt-6-astra',remaining:60,dictation:true}});
   });
   await page.waitForFunction(()=>!document.getElementById('recheck').disabled);
-  await page.locator('#companion-expand').click();await page.locator('.app-shell').waitFor();if(!await page.locator('#setup-panel').evaluate(e=>e.open))await page.locator('#setup-toggle').click();await page.locator('#recheck').click();await page.waitForFunction(()=>!document.getElementById('build').disabled);checks.push('native expansion retains canonical workbench');
+  assert.match(await page.locator('#companion-status').innerText(),/screen & mic off$/);
+  const edge=await page.evaluate(()=>screenX+outerWidth);
+  await page.locator('#companion-expand').click();await page.locator('.app-shell').waitFor();await page.waitForFunction(()=>innerWidth>=1180);
+  assert.ok(Math.abs(await page.evaluate(()=>screenX+outerWidth)-edge)<=2,'the right edge stays pinned when the studio opens');
+  assert.ok(await page.locator('#companion').isVisible(),'the column stays beside the studio');
+  if(!await page.locator('#settings').evaluate(d=>d.open))await page.locator('#settings-open').click();await page.locator('#recheck').click();await page.waitForFunction(()=>!document.getElementById('build').disabled);await page.locator('#settings-close').click();checks.push('native expansion opens the studio beside the pinned column');
   await page.locator('#try-demo').click();await page.locator('#version-label').filter({hasText:'VERSION 01'}).waitFor();
   const preview=page.frameLocator('#preview');await preview.getByRole('textbox',{name:'Task title',exact:true}).fill('Verified in desktop');await preview.getByRole('button',{name:'Add task',exact:true}).click();await preview.getByText('Verified in desktop',{exact:true}).waitFor();checks.push('interactive sandbox prototype works in embedded runtime');
   const downloadEvent=page.waitForEvent('download');await page.locator('#download').click();const download=await downloadEvent;assert.ok(download.suggestedFilename().endsWith('.html'));await download.saveAs(join(profile,'downloaded.html'));assert.ok((await readFile(join(profile,'downloaded.html'),'utf8')).includes('<html'));checks.push('native HTML download succeeds');

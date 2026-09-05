@@ -10,13 +10,13 @@ const app=createApp({vision:{status:async()=>({configured:true,cli:true})}});awa
 const {chromium}=browserTools();const browser=await chromium.launch({channel:'chrome',headless:true});const page=await browser.newPage({viewport:{width:1440,height:1100}});page.setDefaultTimeout(200000);
 let steps=0;const started=Date.now();
 try{
-  await page.goto(`http://127.0.0.1:${app.address().port}`);await page.locator('#computer-mode > summary').click();
-  await page.locator('#computer-permission').check();await page.locator('#computer-enable').click();await page.locator('#computer-work').waitFor();
+  await page.goto(`http://127.0.0.1:${app.address().port}/?companion`);await page.waitForFunction(()=>!document.getElementById('companion-send').disabled);
+  await page.locator('#companion-settings').click();await page.locator('#model-choice').selectOption('fable');await page.locator('#advanced').evaluate(el=>{el.open=true;});await page.locator('#effort-choice').selectOption('low');await page.locator('#settings-close').click();
+  await page.locator('#computer-open').click();await page.locator('#computer-permission').check();await page.locator('#computer-enable').click();await page.locator('#computer-work').waitFor();
   await page.locator('#computer-window').selectOption({label:'Computer verification fixture'});
-  await page.locator('#computer-model').selectOption('fable');await page.locator('#computer-effort').selectOption('low');
   await page.locator('#computer-task').fill('Set Fixture input to exactly Verified desktop input, then click Apply fixture. Do not interact with Stop fixture control. When the window title is Computer verification complete, report done.');
-  await page.locator('#computer-cloud').check();
   for(let i=0;i<4;i++){
+    await page.locator('#computer-cloud').check();
     await page.locator('#computer-next').click();await page.locator('#computer-review').waitFor();steps++;
     const title=await page.locator('#computer-action-title').textContent();
     if(title==='Model report'){

@@ -2,22 +2,22 @@
 
 Computer mode lets Jarvis work in Windows apps through their accessible controls. It's separate from the prototype builder. Every action waits for your approval, so this is not unattended or unrestricted desktop access.
 
-The companion can talk through a task and suggest Computer mode might help. It can't enable control, pick a target, or change a permission. Its workflow button opens the existing Computer mode surface, and the same consent and review steps below apply.
+It lives in the companion panel as one line, "Computer mode · Jarvis works in one Windows app, one approved action at a time", with a **Set it up** button. The companion can talk through a task and suggest Computer mode might help; its **Let Jarvis do this** button fills the task and focuses **Set it up**. It can't enable control, pick a target, or change a permission. The same consent and review steps below apply.
 
 ## Use it
 
-1. Open **Computer mode** in the downloaded workbench. Allow local inspection and start the ten-minute session.
-2. Open Notepad, Calculator or Paint from the app selector, or pick a supported window that's already open. **Refresh windows** when apps change.
-3. **Inspect selected window** reads accessible text locally. That includes editable values. Password controls and protected windows are excluded. Some controls are unnamed or unavailable.
-4. Pick Astra or Fable and an effort level. Describe the task and approve sharing the window's current accessible text. **Plan next action** reads the window again, so the text it sends can differ from your earlier inspection. The exact sent text comes back with the model result.
-5. Check the action, target name, type, parent, identifiers, text replacement and shortcut. **Approve this action** delivers one operation. **Reject** delivers nothing. Plan the next action to see the result and continue. A completion report is the model's read of things. Check the app yourself.
-6. **Stop computer control**, untick the permission, or press **Ctrl+Shift+F12** from any app. Closing the page also requests Stop. The native lease expires after ten minutes even if the browser drops the connection. Stop can't undo a delivered operation or refund a model request.
+1. Press **Set it up** in the panel. The lease dialog explains the ten minutes; allow local inspection and press **Start 10 minutes**.
+2. Open Notepad, Calculator or Paint from the app selector, or pick a supported window that's already open. **Refresh** when apps change.
+3. **Read this window** reads accessible text locally. That includes editable values. Password controls and protected windows are excluded. Some controls are unnamed or unavailable.
+4. Model and effort come from **Settings**. Describe the task and tick the sharing line, which names the window whose reading goes with the task. **Plan next action** reads the window again, so the text it sends can differ from your earlier reading. The exact sent text comes back with the model result, and the tick clears after every plan.
+5. Check the action, target name, type, parent, identifiers, text replacement and shortcut. **Approve** delivers one operation. **Reject** delivers nothing. Plan the next action to see the result and continue. A completion report is the model's read of things. Check the app yourself.
+6. **Stop computer control**, or press **Ctrl+Shift+F12** from any app. The panel's Stop button stops it too. Closing the page also requests Stop. The native lease expires after ten minutes even if the browser drops the connection. Stop can't undo a delivered operation or refund a model request.
 
 ## What works
 
 | Operation | Boundary |
 | --- | --- |
-| Inspect | Selected-window accessibility tree, up to 350 visible elements, depth seven, bounded names and values. No screenshot or desktop audio. |
+| Read | Selected-window accessibility tree, up to 350 visible elements, depth seven, bounded names and values. No screenshot or desktop audio. |
 | Click | Invoke, toggle, select or expand an accessible control. No coordinate fallback. |
 | Type | Replaces the entire editable ValuePattern value, up to 2,000 characters. Command-like and multiline text is refused. |
 | Scroll | Accessible scroll containers, one large up/down increment. |
@@ -35,6 +35,7 @@ Everything is reviewed because a UI click or key can send, purchase, delete or r
 
 | Operation | Required fields | Response |
 | --- | --- | --- |
+| `read` | `title`, `consent: true` | The accessible text of the one open window with that exact title, as `type: name = value` lines, with control and character counts and a `truncated` flag. Read-only: it never arms, grants no owner and cannot act. Two windows with the same title are refused. |
 | `enable` | `consent: true` | Random owning-tab `owner`, expiry and fixed apps |
 | `windows` | `owner` | Current window identities and titles |
 | `inspect` | `owner`, `window` | Local bounded accessibility snapshot |
@@ -49,15 +50,17 @@ Approvals expire after one minute. Twenty model steps per enabled session, on to
 
 Before executing, the native controller re-resolves the control and checks window and process identity, title, runtime ID, AutomationId, type, name, parent context, visibility, enabled and password state, and a fingerprint of accessible value, toggle, selection and expansion state. A changed control needs a new proposal. Focus-sensitive keys are checked again after focus. None of this makes arbitrary external apps transactional. An action Windows has already accepted may finish after Stop.
 
-The helper is a per-session child process with no elevation. It registers the global stop shortcut before arming. A hotkey event aborts inference and kills the owned helper through the broker. Action history and proposals live in memory and clear on a new session. They are never saved as prototype versions. Malicious local processes under the same user are outside the security boundary.
+The panel's **Read text** button and the text-first chips (errors, terminals, spreadsheets, settings) use `read`. It reads `ValuePattern` values only, so dialogs, forms, tables, settings pages, terminals with accessible buffers and Excel's formula bar read well; Word and browser page bodies come back as ribbons and chrome until a `TextPattern` branch exists. Every character is shown with a count and the truncation flag before the Include box can send it, capped at 20,000 characters.
+
+The helper is a per-session child process with no elevation. It registers the global stop shortcut before arming, and starting it for a read registers that shortcut too; a read still cannot act. A hotkey event aborts inference and kills the owned helper through the broker. Action history and proposals live in memory and clear on a new session. They are never saved as prototype versions. Malicious local processes under the same user are outside the security boundary.
 
 In the packaged app, fixed app-open requests go to the desktop launcher through instance-specific events. The apps you open start outside the server's shutdown process group, so quitting Jarvis leaves them and their unsaved work open. Inference and controller processes stay inside the shutdown group.
 
 ## Verification
 
 - Unit tests cover owning-tab authorization, consent, single-use approvals, expiry, unsupported actions, emergency-stop state and cancellation during inference.
-- Browser verification covers local and cloud consent, inspection, approve and reject, Stop and mobile rendering with a synthetic planner.
+- Browser verification covers the lease dialog, local and cloud consent, the per-plan clearing of the tick, model and effort from Settings, reading, approve and reject, Stop and mobile rendering with a synthetic planner.
 - Native verification opens its own compiled WinForms fixture, replaces text, clicks a button, checks the title, rejects stale context, value and targets, and fires the real global shortcut.
-- A real Fable/low browser-to-native test completed three model steps and two reviewed actions in about 29 seconds. That was a synthetic fixture, not a promise about speed or compatibility in every app.
+- A real Fable/low browser-to-native test completed three model steps and two reviewed actions in about 25 seconds. That was a synthetic fixture, not a promise about speed or compatibility in every app.
 
 DeskClaw informed the guarded accessibility approach. Jarvis's controller lives in this repo and doesn't depend on a user's private harness, a DeskClaw install, or global state files.

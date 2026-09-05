@@ -12,9 +12,10 @@ import { Computer } from './lib/computer.mjs';
 export const PREVIEW_CSP = "sandbox allow-scripts allow-forms; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'";
 export const DRAFT_CSP = "sandbox; default-src 'none'; script-src 'none'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'";
 const APP_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
-const assets = new Map([
+export const assets = new Map([
   ['/', ['index.html','text/html']], ['/style.css',['style.css','text/css']],
   ['/companion.js',['companion.js','text/javascript']], ['/companion.css',['companion.css','text/css']],
+  ['/chips.js',['chips.js','text/javascript']], ['/harness.js',['harness.js','text/javascript']],
   ['/computer.js',['computer.js','text/javascript']], ['/live.js',['live.js','text/javascript']], ['/app.js',['app.js','text/javascript']], ['/storage.js',['storage.js','text/javascript']],
   ['/mark.svg',['mark.svg','image/svg+xml']], ['/reference.svg',['reference.svg','image/svg+xml']],
   ['/demo.html',['demo.html','text/html']]
@@ -90,7 +91,7 @@ export function createApp({ vision = new Vision(), assistant = new Assistant({vi
       const data = await readJson(req);
       if(url.pathname==='/api/computer') {
         if(data.op==='propose' && (busy || calls>=maxCalls)) throw new AppError(busy?'Another model request is running.':'Your local request allowance is used up. Reset it in Setup.',409);
-        const controller=new AbortController();const abort=()=>{controller.abort();if(data.op!=='status')computer.stop();};
+        const controller=new AbortController();const abort=()=>{controller.abort();if(data.op!=='status' && data.op!=='read')computer.stop();};
         res.once('close',abort);
         if(data.op==='propose'){busy=true;calls++;}
         try {return send(200,{...await computer.handle(data,controller.signal),remaining:maxCalls-calls});}

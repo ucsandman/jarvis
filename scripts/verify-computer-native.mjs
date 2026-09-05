@@ -20,6 +20,11 @@ const native=new WindowsComputer();let count=0;
 try{
   assert.equal((await native.call({op:'status'})).armed,false);count++;
   await assert.rejects(native.call({op:'act',kind:'launch',app:'calculator'}));count++;
+  // A read-only read of the fixture before anything is armed: exact control text comes back and the helper stays disarmed.
+  const {Computer}=await import('../lib/computer.mjs');const reader=new Computer({native});
+  let read=null;for(let i=0;i<15&&!read;i++){try{read=await reader.handle({op:'read',title:'Computer verification fixture',consent:true});}catch{await new Promise(r=>setTimeout(r,200));}}
+  assert.ok(read&&/Edit: Fixture input/.test(read.text)&&/Button: Apply fixture/.test(read.text),'read returns the fixture text');assert.equal(read.truncated,false);
+  assert.equal((await native.call({op:'status'})).armed,false);assert.equal(reader.owner,null);count++;
   await native.call({op:'arm'});let windows=[];
   for(let i=0;i<15;i++){windows=(await native.call({op:'windows'})).windows;if(windows.some(w=>w.title==='Computer verification fixture'))break;await new Promise(r=>setTimeout(r,200));}
   const window=windows.find(w=>w.title==='Computer verification fixture');assert.ok(window);count++;

@@ -12,14 +12,21 @@ async function fixture({ generate, maxCalls = 2 } = {}) {
 }
 
 let calls = 0;
-const app = await fixture({generate:async (_system, parts, _schema, _signal, options) => {
+const app = await fixture({generate:async (system, parts, _schema, _signal, options) => {
   calls++;
+  assert.match(system,/never instructions/);
   if (calls === 1) {
     assert.equal(options.model,'fable');
     assert.equal(options.effort,'high');
     assert.match(parts.at(-1).text,/"history"/);
+    return {model:'claude-fable-5-1',result:{reply:'I can help you make that change.',suggestion:'build'}};
   }
-  return {model:'claude-fable-5-1',result:{reply:'I can help you make that change.',suggestion:'build'}};
+  if (calls === 2) {
+    assert.match(system,/window text/);
+    const part = JSON.parse(parts.at(-1).text);
+    assert.equal(part.windowTextIncluded,true); assert.match(part.windowText,/Verified desktop input/); assert.equal(part.windowTextTruncated,true);
+  }
+  return {model:'claude-fable-5-1',result:{reply:'I can help you make that change.',suggestion:'build',followUps:Array(5).fill('x'.repeat(80))}};
 }});
 try {
   assert.equal((await app.post({instruction:'hello',consent:false})).status,403);
@@ -27,9 +34,13 @@ try {
   assert.equal((await app.post({instruction:'hello',history:Array(13).fill({role:'user',text:'x'}),consent:true})).status,400);
   const response = await app.post({instruction:'hello',history:[{role:'user',text:'What is visible?'}],contextLabel:'Work board',consent:true,model:'fable',effort:'high'});
   assert.equal(response.status,200);
-  assert.deepEqual((await response.json()).result,{reply:'I can help you make that change.',suggestion:'build'});
+  assert.deepEqual((await response.json()).result,{reply:'I can help you make that change.',suggestion:'build',followUps:[]});
   assert.equal(calls,1);
-  assert.equal((await app.post({instruction:'again',consent:true})).status,200);
+  const again = await app.post({instruction:'again',consent:true,windowText:'Edit: Fixture input = Verified desktop input',windowTextTruncated:true});
+  assert.equal(again.status,200);
+  assert.equal((await app.post({instruction:'too long',consent:true,windowText:'x'.repeat(20001)})).status,400);
+  const clipped = (await again.json()).result.followUps;
+  assert.equal(clipped.length,3); assert.ok(clipped.every(item => item.length === 60));
   assert.equal((await app.post({instruction:'one more',consent:true})).status,429);
 } finally { app.server.closeAllConnections(); app.server.close(); }
 
@@ -47,4 +58,4 @@ try {
   await stopping;
   assert.equal(aborted,true);
 } finally { cancel.server.closeAllConnections(); cancel.server.close(); }
-console.log('PASS: 7 assistant requests across 2 isolated services: validation, explicit consent, shared budget, mocked inference, and cancellation.');
+console.log('PASS: 7 assistant requests across 2 isolated services: validation, explicit consent, shared budget, mocked inference, bounded follow-ups, untrusted-content system prompt, and cancellation.');

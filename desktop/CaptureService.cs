@@ -22,6 +22,7 @@ internal sealed class CaptureService {
     IntPtr target;
     int targetProcessId;
     string targetTitle;
+    string targetProcessName;
     DateTime targetSeenAt;
 
     internal sealed class CaptureTarget {
@@ -50,11 +51,26 @@ internal sealed class CaptureService {
         string title = WindowTitle(window);
         if (String.IsNullOrWhiteSpace(title) || !IsWindowVisible(window) || IsIconic(window)) return;
         lock (sync) {
+            // The timer fires every 250 ms; resolve the process name only when the process changes.
+            if (processId != targetProcessId) targetProcessName = ProcessName(processId);
             target = window;
             targetProcessId = processId;
             targetTitle = title;
             targetSeenAt = DateTime.UtcNow;
         }
+    }
+
+    // Title and process name of the window that was in front, for choosing chip labels. Never a pixel, never sent anywhere by the shell.
+    public string[] DescribeForeground() {
+        lock (sync) {
+            if (target == IntPtr.Zero || DateTime.UtcNow - targetSeenAt > MaxTargetAge) return new[] { String.Empty, String.Empty };
+            return new[] { targetTitle ?? String.Empty, targetProcessName ?? String.Empty };
+        }
+    }
+
+    static string ProcessName(int processId) {
+        try { using (Process process = Process.GetProcessById(processId)) return process.ProcessName; }
+        catch { return String.Empty; }
     }
 
     public CaptureTarget PrepareCapture() { return ValidateTarget(); }

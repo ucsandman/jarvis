@@ -2,6 +2,8 @@ import { loadProject, saveProject } from './storage.js';
 import { LiveFrames } from './live.js';
 import { initComputer } from './computer.js';
 import { initCompanion } from './companion.js';
+import { gate, spend, record, ledger, renderGate, renderPreview, MODEL_LABEL, ACCOUNT, CLI } from './harness.js';
+import { DESIGN_CHIPS } from './chips.js';
 
 let launchKey = new URLSearchParams(location.hash.slice(1)).get('launch');
 if (launchKey) history.replaceState(null,'',location.pathname+location.search);
@@ -13,7 +15,8 @@ const launchHeaders = () => launchKey ? {'X-Jarvis-Launch':launchKey} : {};
 
 const $ = id => document.getElementById(id);
 const state = { token:'', configured:false, stream:null, image:null, imageLabel:'', observation:null,
-  revisions:[], selected:null, busy:false, consent:false, voiceConsent:false, speaking:false, recognition:null, controller:null, previewSequence:0, remaining:null, setupBusy:false, setupController:null, dictation:false, inputBusy:false };
+  revisions:[], selected:null, busy:false, consent:false, recognition:null, controller:null, previewSequence:0, remaining:null, setupBusy:false, setupController:null, dictation:false, inputBusy:false,
+  elapsed:0, computerOn:false, planning:false };
 state.live=false; state.liveCount=0; state.captureKind=null; state.liveFrames=new LiveFrames(); state.liveTimer=null;
 state.model='astra'; state.effort='medium'; state.checking=false;
 try {
@@ -21,15 +24,16 @@ try {
   if (['astra','fable'].includes(saved.model)) state.model=saved.model;
   if (['low','medium','high','xhigh','max'].includes(saved.effort)) state.effort=saved.effort;
 } catch { /* Preferences are optional when browser storage is unavailable. */ }
-const selectedLabel = () => state.model==='fable' ? 'Fable 5.1' : 'Astra';
-const selectedAccount = () => state.model==='fable' ? 'Claude' : 'ChatGPT';
+const selectedLabel = () => MODEL_LABEL[state.model];
+const selectedAccount = () => ACCOUNT[state.model];
 const effortNotes = {low:'Faster, with lighter reasoning.',medium:'Balances speed and depth.',high:'More reasoning for complex changes.',xhigh:'Extra reasoning; expect a longer wait.',max:'Deepest reasoning; may take much longer and use more allowance.'};
+const openSettings = () => { if (!$('settings').open) $('settings').showModal(); };
+const notifyState = () => document.dispatchEvent(new Event('jarvis-state'));
 function renderSelection() {
   $('faster-effort').hidden=state.effort==='low';
   $('model-choice').value=state.model; $('effort-choice').value=state.effort;
-  $('effort-note').textContent=`${effortNotes[state.effort]} Applies to your next build.`;
-  $('billing-note').textContent=state.model==='fable' ? 'Fable uses your Claude subscription. Usage credits may be charged automatically under your account settings.' : 'Astra uses your ChatGPT subscription. Model access and usage limits apply.';
-  $('consent-detail').textContent=state.model==='fable' ? 'Your direction, selected prototype source, and included reference frame will be sent to Anthropic through Claude Code. Fable can automatically consume paid usage credits under your Claude account settings. Camera preview stays local until you choose a frame and build.' : 'Your direction, selected prototype source, and included reference frame will be sent to OpenAI through Codex using your ChatGPT subscription. Camera preview stays local until you choose a frame and build.';
+  $('effort-note').textContent=`${effortNotes[state.effort]} Applies to your next request.`;
+  $('billing-note').textContent=state.model==='fable' ? 'Fable can use paid usage credits on your Claude account.' : 'Astra uses your ChatGPT subscription.';
   const claude=state.model==='fable';
   $('install-title').textContent=claude?'Install official Claude Code?':'Install the official Codex CLI?';
   $('install-detail').textContent=claude?'Downloads the verified Claude Code runtime directly from Anthropic’s official npm package into Jarvis’s per-user tools folder. No terminal or administrator access is needed. Claude Code is subject to Anthropic’s terms. No model request is made during installation.':'Downloads the official @openai/codex package through npm and installs it globally on this device. No account or model request is made during installation.';
@@ -42,6 +46,7 @@ const current = () => state.revisions.find(r => r.id === state.selected);
 const showError = message => { $('error-text').textContent = message; $('error').hidden = false; };
 const hideError = () => { $('error').hidden = true; };
 const time = value => new Date(value).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
+const versionName = revision => `VERSION ${String(state.revisions.indexOf(revision)+1).padStart(2,'0')}`;
 let draftHtml='',draftTimer=null,draftSequence=0,draftShown=true,draftLoading=false,draftSession=null;
 function clearDraft() {
   const visible=!$('draft-controls').hidden;
@@ -73,12 +78,12 @@ function buildProgress(event) {
   if(!state.busy || state.controller?.signal.aborted) return;
   if(event.type==='phase') {
     if(/^[a-f0-9]{40}$/.test(event.draftSession || '')) draftSession=event.draftSession;
-    $('build-phase').textContent=event.phase==='connecting'?'CONNECTING TO YOUR SUBSCRIPTION':'WAITING FOR MODEL OUTPUT';
+    $('build-phase').textContent=event.phase==='connecting'?'Connecting to your subscription':'Waiting for model output';
     if(event.phase==='waiting') $('build-detail').textContent=event.streaming?'The live draft will appear when HTML starts arriving. Reasoning happens before visible code.':'This Codex CLI returns completed messages. The preview will update as soon as it releases HTML; Fable supports incremental drafts.';
   }
   if(event.type!=='draft' || typeof event.html!=='string' || event.html.length>120000) return;
   draftHtml=event.html;$('draft-code').textContent=draftHtml;
-  $('build-phase').textContent='CODE ARRIVING';$('build-message').textContent=`${selectedLabel()} is writing the page.`;
+  $('build-phase').textContent='Code arriving';$('build-message').textContent=`${selectedLabel()} is writing the page.`;
   $('draft-status').textContent=`Live draft · ${draftHtml.length.toLocaleString()} characters received · unfinished`;
   if(!draftTimer && !draftLoading) draftTimer=setTimeout(()=>{draftTimer=null;refreshDraft();},250);
 }
@@ -114,8 +119,9 @@ function textElement(tag, text, className) {
   if (className) node.className = className;
   return node;
 }
+const buildGateView = () => ({ surface:'build', model:state.model, frame:$('include-frame').checked && !!(state.image || state.stream), hasSource:!!current(), live:state.live });
 function updateControls() {
-  const controls = ['share-screen-top','share-screen','build','connect','upload','example','file','new-session','camera-select','clear-reference','resume','mic','try-demo','include-frame'];
+  const controls = ['share-screen','build','connect','upload','example','file','new-session','camera-select','clear-reference','resume','mic','try-demo','include-frame'];
   controls.forEach(id => { $(id).disabled = state.busy || state.setupBusy || state.inputBusy || (!state.token && id === 'build'); });
   $('build').disabled = state.live || state.busy || state.setupBusy || state.inputBusy || state.checking || !state.configured || !state.token || state.remaining === 0;
   for (const id of ['model-choice','effort-choice','faster-effort']) $(id).disabled=state.live || state.busy || state.setupBusy || state.inputBusy;
@@ -123,8 +129,9 @@ function updateControls() {
   $('mic').title = state.dictation ? 'Dictate direction locally' : 'Local dictation is available on Windows after connection';
   for (const id of ['login','install-codex','recheck','reset-budget']) $(id).disabled = state.busy || state.setupBusy || state.checking;
   $('direction').disabled = state.busy || state.setupBusy;
-  for (const id of ['connect','share-screen-top','share-screen','upload','example','file','try-demo','new-session','resume','clear-reference']) $(id).disabled ||= state.live;
-  $('live-start').disabled=state.busy || state.setupBusy || state.inputBusy || state.checking || !state.configured || !state.token || state.remaining===0;
+  document.querySelectorAll('#rail-chips .chip').forEach(button => { button.disabled = state.busy || state.setupBusy; });
+  for (const id of ['connect','share-screen','upload','example','file','try-demo','new-session','resume','clear-reference']) $(id).disabled ||= state.live;
+  $('live-start').disabled=state.busy || state.setupBusy || state.inputBusy || state.checking || !state.configured || !state.token || state.remaining===0 || state.captureKind!=='screen' || !state.stream;
   $('live-start').hidden=state.live; $('live-pause').hidden=!state.live;
   $('live-interval').disabled=state.live || state.busy;
   $('live-controls').dataset.active=String(state.live);
@@ -132,14 +139,14 @@ function updateControls() {
   document.querySelectorAll('.revision').forEach(b => { b.disabled = state.busy || state.inputBusy; });
   $('build-overlay').hidden = !state.busy;
   $('source').disabled = !current(); $('download').disabled = !current();
-  $('activity').textContent = state.busy ? 'WORKING ON YOUR IDEA' : current() ? 'READY FOR THE NEXT CHANGE' : 'IDEAS WELCOME';
+  if (!state.busy) $('activity').textContent = current() ? `${versionName(current()).replace('VERSION','Version')} ready` : 'Ready';
   $('reply-status').textContent = state.busy ? 'Working' : current() ? 'Version ready' : 'Standing by';
   updateFrameChoice();
-  document.dispatchEvent(new Event('jarvis-state'));
+  notifyState();
 }
 function clearObservations() {
   state.observation = null; $('annotations').replaceChildren(); $('observations').replaceChildren();
-  $('observation-time').textContent = 'NO FRAME SENT';
+  $('observation-time').textContent = 'No frame sent yet';
   $('observation-summary').textContent = 'I’ll read the details, connect them to your direction, and build from there.';
 }
 function setImage(image,label) {
@@ -147,14 +154,14 @@ function setImage(image,label) {
   $('reference').src = image; $('reference').hidden = false; $('camera').hidden = true;
   $('camera-empty').hidden = true; $('frame-label').hidden = false; $('frame-label').textContent = label;
   $('frame-tools').hidden = false; $('resume').hidden = !state.stream;
-  $('source-status').textContent = 'SELECTED FRAME';
+  $('source-status').textContent = 'Selected frame';
   $('include-frame').checked = true; updateFrameChoice();
 }
 function liveView() {
   state.image = null; state.imageLabel = ''; clearObservations();
   $('reference').hidden = true; $('reference').removeAttribute('src'); $('frame-label').hidden = true; $('frame-tools').hidden = true;
   $('camera').hidden = !state.stream; $('camera-empty').hidden = !!state.stream;
-  $('source-status').textContent = state.stream ? state.captureKind==='screen' ? 'SCREEN SHARED · LOCAL PREVIEW' : 'LIVE · LOCAL ONLY' : 'CAMERA OFF';
+  $('source-status').textContent = state.stream ? state.captureKind==='screen' ? 'Screen shared · local preview' : 'Camera on · local only' : 'Camera off';
   $('include-frame').checked = !!state.stream; updateFrameChoice();
 }
 function stopCamera() {
@@ -163,7 +170,8 @@ function stopCamera() {
   state.stream?.getTracks().forEach(track => track.stop()); state.stream = null;
   $('camera').srcObject = null; $('camera-controls').hidden = true; $('resume').hidden = true;
   if (!state.image) liveView();
-  else $('source-status').textContent='SAVED FRAME · NOT SHARING';
+  else $('source-status').textContent='Saved frame · not sharing';
+  updateControls();
 }
 async function startCamera(deviceId) {
   if (state.inputBusy) return;
@@ -190,14 +198,14 @@ function showSharedScreen() {
   state.image=null;state.imageLabel='';
   $('camera').hidden=false; $('reference').hidden=true; $('annotations').replaceChildren();
   $('frame-tools').hidden=true; $('frame-label').hidden=true; $('camera-empty').hidden=true;
-  $('source-status').textContent=state.live?'LIVE BUILD ON · SCREEN SHARED':'SCREEN SHARED · LOCAL PREVIEW';
+  $('source-status').textContent=state.live?'Live build on · screen shared':'Screen shared · local preview';
 }
 function pauseLive(message='Paused. No new snapshots will be sent.') {
   const wasLive=state.live;
   state.live=false; clearInterval(state.liveTimer); state.liveTimer=null;
   if(wasLive) state.controller?.abort();
   $('live-status').textContent=message; updateControls();
-  if(state.captureKind==='screen') $('source-status').textContent='SCREEN SHARED · LOCAL PREVIEW';
+  if(state.captureKind==='screen') $('source-status').textContent='Screen shared · local preview';
 }
 async function startScreen() {
   let adopted=false;
@@ -234,7 +242,7 @@ async function inspectScreen() {
   const now=Date.now(),interval=Number($('live-interval').value);
   const verdict=state.liveFrames.inspect(pixels,now,interval);
   if(state.busy) { $('live-status').textContent='Build in progress. Watching locally; only the newest settled frame can go next.';return; }
-  if(state.liveCount>=10 || !state.configured || state.remaining===0) {pauseLive('Live build paused. Check your allowance and Setup before starting again.');return;}
+  if(state.liveCount>=10 || !state.configured || state.remaining===0) {pauseLive('Live build paused. Check your allowance and Settings before starting again.');return;}
   if(!$('direction').value.trim()) {pauseLive('Add a direction before starting Live build again.');return;}
   $('live-status').textContent={unchanged:'Watching locally. No meaningful change to send.',drawing:'Changes detected. Waiting for you to pause drawing…',cooldown:`Waiting between builds. Next eligible in ${Math.ceil((interval-(now-state.liveFrames.lastSent))/1000)}s.`,ready:'Sending one changed screen snapshot.'}[verdict];
   if(verdict!=='ready' || state.inputBusy || state.setupBusy || state.checking || state.recognition) return;
@@ -242,7 +250,6 @@ async function inspectScreen() {
   await beginBuild(true);
 }
 $('share-screen').addEventListener('click',startScreen);
-$('share-screen-top').addEventListener('click',startScreen);
 $('screen-stop').addEventListener('click',stopCamera);
 $('live-pause').addEventListener('click',()=>pauseLive());
 $('live-start').addEventListener('click',()=>{
@@ -276,7 +283,7 @@ async function loadImageUrl(url,label) {
 function renderObservations(observation,stamp) {
   state.observation = observation;
   $('observation-summary').textContent = observation.summary;
-  $('observation-time').textContent = `FRAME · ${time(stamp)}`;
+  $('observation-time').textContent = `From the frame sent at ${time(stamp)}`;
   $('observations').replaceChildren(...observation.observations.map((item,i) => {
     const li = document.createElement('li'), copy = document.createElement('div');
     copy.append(textElement('strong',item.label),textElement('p',item.detail));
@@ -318,12 +325,12 @@ async function selectRevision(id,restoreEvidence = false) {
   const sequence = ++state.previewSequence;
   state.selected = id;
   $('preview').hidden = true; $('preview-empty').hidden = true;
-  $('version-label').textContent = 'SOURCE AVAILABLE';
+  $('version-label').textContent = 'Source available';
   renderRevision(revision); renderHistory(); updateControls();
   $('preview-note').textContent = 'Source available. Loading preview…';
   $('retry-preview').hidden = false;
   if (restoreEvidence) {
-    if (revision.image) { setImage(revision.image,`SAVED REFERENCE · ${time(revision.created)}`); }
+    if (revision.image) { setImage(revision.image,`Saved reference · ${time(revision.created)}`); }
     else { liveView(); }
     if (revision.observation) renderObservations(revision.observation,revision.created);
     $('include-frame').checked = false; updateFrameChoice();
@@ -368,15 +375,16 @@ function renderRevision(revision) {
 }
 async function markReady(revision) {
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  if (state.selected === revision.id) $('version-label').textContent = `VERSION ${String(state.revisions.indexOf(revision)+1).padStart(2,'0')}`;
+  if (state.selected === revision.id) { $('version-label').textContent = versionName(revision); updateControls(); }
 }
 function stopSpeech() {
   window.chrome?.webview?.postMessage({type:'stop-speaking'});
   window.speechSynthesis?.cancel();
 }
 function say(text) {
-  if (state.speaking && window.chrome?.webview) { window.chrome.webview.postMessage({type:'speak',text}); return; }
-  if (!state.speaking || !('speechSynthesis' in window)) return;
+  if (!$('companion-spoken').checked) return;
+  if (window.chrome?.webview) { window.chrome.webview.postMessage({type:'speak',text}); return; }
+  if (!('speechSynthesis' in window)) return;
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   const voices = speechSynthesis.getVoices();
@@ -385,18 +393,32 @@ function say(text) {
   if (!utterance.voice) { showError('No local English voice is available. Replies remain visible as text.'); return; }
   utterance.rate = 1.02; utterance.pitch = .92; speechSynthesis.speak(utterance);
 }
+// Exactly what beginBuild() posts, minus the frame's bytes, for the preview dialog.
+function buildManifest() {
+  const image = $('include-frame').checked && (state.image || state.stream) ? (state.imageLabel || `One ${state.captureKind==='screen'?'screen':'camera'} frame, chosen when you build`) : null;
+  const parent = current();
+  return { title:'What goes with Make it real', fields:[
+    ['Direction',$('direction').value.trim() || '(nothing typed yet)'],['Frame',image || 'none'],
+    ['Prototype source',parent ? `${versionName(parent)} · ${parent.html.length.toLocaleString()} characters` : 'none'],
+    ['Model',`${selectedLabel()} · ${state.effort}`],['Goes to',`your ${selectedAccount()} subscription through ${CLI[state.model]}`]],
+    body:{ image:image ? `<frame: ${image}>` : null, instruction:$('direction').value.trim(), previous:parent ? `<${versionName(parent)} source>` : '', consent:true, model:state.model, effort:state.effort } };
+}
 async function beginBuild(automatic=false) {
   if (state.live && !automatic) return;
   if (state.busy || state.setupBusy || state.inputBusy || state.checking) return;
   hideError();
   const direction = $('direction').value.trim();
-  if (!direction) { showError('Tell Jarvis what should work, such as “Build a task board.”'); $('direction').focus(); return; }
-  if (!state.configured || !state.token) { $('setup-panel').open = true; showError('Check the selected model in Setup, then try again.'); return; }
-  if (state.remaining === 0) { $('setup-panel').open = true; showError('Choose Start new allowance in Setup. This does not renew your provider subscription allowance.'); return; }
+  if (!direction) { showError('Tell Jarvis what should work first, such as “Build a task board.”'); $('direction').focus(); return; }
+  if (!state.configured || !state.token) { openSettings(); showError('Check the selected model in Settings, then try again.'); return; }
+  if (state.remaining === 0) { openSettings(); showError('Choose Start new allowance in Settings. This does not renew your provider subscription allowance.'); return; }
+  if (!automatic) {
+    const refusal = gate({ surface:'build', direction, ticked:$('build-consent').checked, configured:state.configured, token:state.token, remaining:state.remaining });
+    if (refusal) { showError(refusal); $('build-consent').focus(); return; }
+    state.consent = true;
+  } else if (!state.consent) return;
   try {
-    if (automatic || ($('include-frame').checked && !state.image && state.stream)) setImage(imageFromElement($('camera')),`${state.captureKind==='screen' ? 'SCREEN SNAPSHOT' : 'CHOSEN FRAME'} · ${time(Date.now())}`);
+    if (automatic || ($('include-frame').checked && !state.image && state.stream)) setImage(imageFromElement($('camera')),`${state.captureKind==='screen' ? 'Screen snapshot' : 'Chosen frame'} · ${time(Date.now())}`);
   } catch(error) { showError(error.message); return; }
-  if (!state.consent) { $('consent-dialog').showModal(); return; }
   clearDraft();draftShown=true;
   state.busy = true; $('cancel').disabled = false; stopDictation(); stopSpeech();
   state.controller = new AbortController(); const controller = state.controller;
@@ -404,26 +426,32 @@ async function beginBuild(automatic=false) {
   const parent = current();
   const image = $('include-frame').checked ? state.image : null;
   const previous = parent?.html || '', created = new Date().toISOString(), started = Date.now();
-  $('build-phase').textContent = image ? 'READING AND BUILDING' : previous ? 'REVISING YOUR APPLICATION' : 'BUILDING YOUR APPLICATION';
+  $('build-phase').textContent = image ? 'Reading and building' : previous ? 'Revising your application' : 'Building your application';
   $('build-overlay').dataset.model=state.model;
   $('build-message').textContent = state.model==='fable' ? 'Fable is grinding.' : 'Astra is thinking.';
-  if (image) { $('sent-image').src=image; $('sent-label').textContent=`Frame sent · ${time(created)} · ${selectedLabel()}`; $('sent-evidence').hidden=false; }
+  if (image) { $('sent-image').src=image; $('sent-label').textContent=`Last frame sent · ${time(created)} · ${selectedLabel()}`; $('sent-evidence').hidden=false; }
   if (automatic) showSharedScreen();
   $('build-detail').textContent = image ? 'One selected frame, one subscription turn. Observations and the prototype arrive together. This can take several minutes.' : 'Using your direction and selected source. No image is sent. This can take several minutes.';
   $('build-elapsed').textContent = '0s elapsed · up to 5 minutes';
+  state.elapsed = 0;
   const elapsedTimer = setInterval(() => {
-    const elapsed = Math.floor((Date.now()-started)/1000);
-    $('activity').textContent = `${selectedLabel().toUpperCase()} · ${state.effort} · ${elapsed}s elapsed`;
+    const elapsed = Math.floor((Date.now()-started)/1000); state.elapsed = elapsed;
+    $('activity').textContent = `${selectedLabel()} · ${state.effort} · ${elapsed}s`;
     $('build-elapsed').textContent = `${elapsed}s elapsed · ${Math.max(0,300-elapsed)}s until timeout`;
     if (state.controller===controller && !draftHtml) {
       $('build-message').textContent=elapsed<20 ? state.model==='fable' ? 'Fable is grinding.' : 'Astra is thinking.' : elapsed<60 ? 'Your idea is in motion.' : 'Still working on this version.';
       if(elapsed>=20) $('build-detail').textContent=elapsed<60 ? 'Waiting for the model’s result. You can keep trying the current prototype.' : 'No result yet. Complex builds can take several minutes. Cancel anytime; your saved versions stay here.';
     }
+    notifyState();
   },1000);
-  updateControls();
+  updateControls(); $('activity').textContent = `${selectedLabel()} · ${state.effort} · 0s`;
+  spend($('build-consent'));
+  let sent = false;
   try {
     const built = await api('/api/build',{ image,instruction:direction,previous,consent:true },controller.signal);
     if (controller.signal.aborted) return;
+    sent = true; record({ surface:'build', ok:true, frame:!!image, model:state.model, effort:state.effort, remaining:built.remaining });
+    if (image) $('include-frame').checked = false;
     const observation = built.result.observation || (image ? null : parent?.observation) || null;
     const revision = { ...built.result,id:crypto.randomUUID(),image:image || parent?.image || null,referenceUsed:!!image,observation,instruction:direction,created,model:built.model,effort:built.effort || state.effort };
     clearDraft();
@@ -431,9 +459,9 @@ async function beginBuild(automatic=false) {
     state.revisions.push(revision); state.revisions = state.revisions.slice(-12); state.selected = revision.id;
     state.controller = null; $('cancel').disabled = true;
     renderRevision(revision); renderHistory(); await persist();
-    if (!automatic) $('direction').value = ''; $('include-frame').checked = false; updateFrameChoice();
+    if (!automatic) $('direction').value = '';
     if (observation && image) renderObservations(observation,created);
-    $('build-phase').textContent = 'SOURCE READY'; $('build-detail').textContent = 'Opening the preview. You can retry it without generating again.';
+    $('build-phase').textContent = 'Source ready'; $('build-detail').textContent = 'Opening the preview. You can retry it without generating again.';
     await selectRevision(revision.id,!automatic);
     completed=true;
     $('provider-status').textContent = `${selectedLabel()} · ${state.effort}`;
@@ -442,12 +470,13 @@ async function beginBuild(automatic=false) {
     if (error.name !== 'AbortError') {
       showError(error.message);
       if (['LOGIN_REQUIRED','CLI_MISSING','MODEL_UNAVAILABLE','SUBSCRIPTION_LIMIT','SESSION_LIMIT'].includes(error.code)) {
-        $('setup-panel').open = true; $('setup-message').textContent = error.message;
+        openSettings(); $('setup-message').textContent = error.message;
       }
     }
   } finally {
+    if (!sent) record({ surface:'build', ok:false, outcome:controller.signal.aborted ? 'stopped' : 'refused', frame:!!image, model:state.model, effort:state.effort, remaining:state.remaining });
     clearDraft();
-    clearInterval(elapsedTimer); state.busy = false; state.controller = null;
+    clearInterval(elapsedTimer); state.busy = false; state.controller = null; state.elapsed = 0;
     if(automatic && !completed) pauseLive('Live build paused after an interrupted build. Review the message, then start again.');
     if(automatic && state.live && state.liveCount>=10) pauseLive('10 builds complete. Start again when you want more updates.');
     if(automatic && state.live) { showSharedScreen(); $('live-status').textContent='Version ready. Watching locally for your next change.'; }
@@ -456,15 +485,15 @@ async function beginBuild(automatic=false) {
 }
 function stopDictation() {
   state.recognition?.abort(); state.recognition = null;
-  $('mic').setAttribute('aria-pressed','false'); updateFrameChoice();
+  $('mic').setAttribute('aria-pressed','false'); updateFrameChoice(); notifyState();
 }
 async function startDictation() {
   if (state.recognition) { stopDictation(); return; }
-  if (!state.voiceConsent) { $('voice-dialog').showModal(); return; }
+  if (!$('companion-voice').checked) { openSettings(); $('advanced').open = true; $('companion-voice').focus(); showError('Allow local Windows dictation in Settings, then click the microphone.'); return; }
   stopSpeech();
   const recognition = new AbortController(); state.recognition = recognition;
   const base = $('direction').value.trim();
-  $('mic').setAttribute('aria-pressed','true'); $('input-note').textContent = 'Listening locally through Windows. Pause to finish, or click the microphone to cancel.';
+  $('mic').setAttribute('aria-pressed','true'); notifyState();
   try {
     const result = await api('/api/dictate',{ consent:true },recognition.signal);
     if (!recognition.signal.aborted) {
@@ -486,34 +515,31 @@ $('file').addEventListener('change',async event => {
   hideError();
   if (!['image/jpeg','image/png','image/webp'].includes(file.type) || file.size > 20000000) { showError('Choose a JPEG, PNG, or WebP under 20 MB.'); return; }
   const url = URL.createObjectURL(file);
-  try { await loadImageUrl(url,'UPLOADED REFERENCE · LOCAL'); }
+  try { await loadImageUrl(url,'Uploaded · local'); }
   catch { showError('That image could not be opened. Try another file.'); }
   finally { URL.revokeObjectURL(url); event.target.value = ''; }
 });
 $('example').addEventListener('click',async () => {
-  try { await loadImageUrl('/reference.svg','SAMPLE SKETCH · NOT YOUR CAMERA'); $('direction').value = 'Build the app in this sketch. Make the task board work: add, move, complete, and search tasks. Use warm ivory, ink, and terracotta.'; }
+  try { await loadImageUrl('/reference.svg','Sample sketch · not your camera'); $('direction').value = 'Build the app in this sketch. Make the task board work: add, move, complete, and search tasks. Use warm ivory, ink, and terracotta.'; }
   catch { showError('The sample sketch could not be opened.'); }
 });
 $('composer').addEventListener('submit',event => { event.preventDefault(); beginBuild(); });
 $('direction').addEventListener('keydown',event => { if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); beginBuild(); } });
-$('accept-consent').addEventListener('click',() => { state.consent = true; $('consent-dialog').close(); beginBuild(); });
-$('decline-consent').addEventListener('click',() => $('consent-dialog').close());
+$('build-consent').addEventListener('keydown',event => { if (event.key === 'Enter') { event.preventDefault(); beginBuild(); } });
+$('build-preview').addEventListener('click',() => { renderPreview($('send-preview'),buildManifest(),ledger); $('send-preview').showModal(); });
 $('cancel').addEventListener('click',() => { pauseLive('Paused. Your previous version is still here.'); state.controller?.abort(); $('reply-text').textContent = 'Canceled. Your previous version is still here.'; });
 $('mic').addEventListener('click',startDictation);
-$('accept-voice').addEventListener('click',() => { state.voiceConsent = true; $('voice-dialog').close(); startDictation(); });
-$('sound').addEventListener('click',() => { state.speaking = !state.speaking; $('sound').setAttribute('aria-pressed',String(state.speaking)); $('sound').setAttribute('aria-label',state.speaking ? 'Mute spoken replies' : 'Enable spoken replies'); if (state.speaking) say('I’m here. Show me what you’re thinking.'); else stopSpeech(); });
-$('privacy').addEventListener('click',() => $('privacy-dialog').showModal());
 $('dismiss-error').addEventListener('click',hideError);
 document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click',() => $(button.dataset.close).close()));
-document.querySelectorAll('[data-prompt]').forEach(button => button.addEventListener('click',() => { if (!state.busy) { $('direction').value = button.dataset.prompt; $('direction').focus(); } }));
+$('rail-chips').replaceChildren(...DESIGN_CHIPS.map(chip => { const button = textElement('button',chip.label,'chip'); button.type = 'button'; button.addEventListener('click',() => { if (!state.busy) { $('direction').value = chip.prompt; $('direction').focus(); } }); return button; }));
 $('mobile-view').addEventListener('click',() => setViewport(true));
 $('desktop-view').addEventListener('click',() => setViewport(false));
 function setViewport(mobile) {
   $('preview').classList.toggle('mobile',mobile);
   for (const [id,active] of [['mobile-view',mobile],['desktop-view',!mobile]]) { $(id).classList.toggle('active',active); $(id).setAttribute('aria-pressed',String(active)); }
 }
-$('expand').addEventListener('click',() => { const expanded = document.querySelector('.output-column').classList.toggle('expanded'); $('expand').setAttribute('aria-label',expanded ? 'Collapse preview' : 'Expand preview'); });
-document.addEventListener('keydown',event => { if (event.key === 'Escape') { document.querySelector('.output-column').classList.remove('expanded'); $('expand').setAttribute('aria-label','Expand preview'); } });
+$('expand').addEventListener('click',() => { const expanded = document.querySelector('.stage').classList.toggle('expanded'); $('expand').setAttribute('aria-label',expanded ? 'Collapse preview' : 'Expand preview'); });
+document.addEventListener('keydown',event => { if (event.key === 'Escape') { document.querySelector('.stage').classList.remove('expanded'); $('expand').setAttribute('aria-label','Expand preview'); } });
 $('source').addEventListener('click',() => { if (!current()) return; $('source-code').textContent = current().html; $('source-dialog').showModal(); });
 $('download').addEventListener('click',() => {
   const revision = current(); if (!revision) return;
@@ -528,7 +554,7 @@ $('confirm-reset').addEventListener('click',async () => {
     await saveProject({ revisions:[],selected:null });
     ++state.previewSequence; state.revisions = []; state.selected = null; stopDictation(); stopCamera(); liveView(); $('sent-evidence').hidden=true; $('sent-image').removeAttribute('src');
     $('preview').hidden = true; $('preview').removeAttribute('src'); $('preview-empty').hidden = false;
-    $('prototype-title').textContent = 'Your next idea, running.'; $('version-label').textContent = 'READY WHEN YOU ARE';
+    $('prototype-title').textContent = 'Your next idea, running.'; $('version-label').textContent = 'No version yet';
     $('preview-note').textContent = 'A real preview will appear here.'; $('reply-text').textContent = 'A fresh page. Show me what’s next.';
     $('changes').replaceChildren(); $('direction').value = ''; $('source-code').textContent = '';
     $('retry-preview').hidden = true; $('reset-dialog').close(); renderHistory(); updateControls(); hideError();
@@ -543,11 +569,11 @@ function updateFrameChoice() {
   const available = !!(state.image || state.stream);
   $('include-frame').disabled = state.live || state.busy || state.setupBusy || state.inputBusy || !available;
   if (!available) $('include-frame').checked = false;
-  $('frame-choice-note').textContent = $('include-frame').checked ? (state.image ? 'Selected image will be sent' : `One ${state.captureKind==='screen'?'screen':'camera'} frame will be chosen`) : available ? 'Reference kept here; not sent' : 'No frame selected';
-  $('input-note').textContent = state.live ? 'Live build on: changed screen snapshots are sent automatically under your consent.' : $('include-frame').checked ? 'Your direction + one chosen frame. Shared only when you build.' : 'Your direction + selected source. No image will be sent.';
+  $('frame-choice-note').textContent = $('include-frame').checked ? (state.image ? state.imageLabel : `One ${state.captureKind==='screen'?'screen':'camera'} frame will be chosen`) : available ? 'Kept here, not sent' : 'No frame yet';
+  renderGate($('build-gate'),buildGateView());
 }
 function renderBudget() {
-  $('budget').textContent = Number.isFinite(state.remaining) ? `${state.remaining} local requests left · subscription limits also apply` : 'Local allowance unavailable';
+  $('budget').textContent = Number.isFinite(state.remaining) ? `${state.remaining} local requests left · your subscription limits still apply` : 'Local allowance unavailable';
 }
 let sessionSequence=0;
 async function refreshSession() {
@@ -569,7 +595,7 @@ async function refreshSession() {
     if (sequence!==sessionSequence) return;
     state.token = session.token; state.configured = session.configured; state.remaining = session.remaining; state.dictation = session.dictation;
     $('provider-status').textContent = session.configured ? `${selectedLabel()} · ${state.effort}` : 'Setup needed';
-    $('provider-dot').classList.toggle('ready',session.configured);
+    $('provider-dot').classList.toggle('ready',session.configured); $('setup-dot').classList.toggle('ready',session.configured);
     $('setup-summary').textContent = session.configured ? `${selectedAccount()} connected` : 'Action needed';
     const cliName=state.model==='fable'?'Claude Code':'Codex CLI';
     $('cli-check').textContent = session.cli === false ? `Official ${cliName} needs installation.` : session.code==='CLI_UPDATE_REQUIRED' ? `Official ${cliName} needs updating.` : `Official ${cliName} is available.`;
@@ -578,13 +604,13 @@ async function refreshSession() {
     $('install-codex').textContent=`Install official ${cliName}`;
     $('login').hidden = session.configured || session.cli === false || session.code==='CLI_UPDATE_REQUIRED';
     $('login').textContent=`Sign in with ${selectedAccount()}`;
-    $('setup-message').textContent = session.reason || 'Ready to build. Selected model access and subscription allowance are checked on each request.';
-    $('setup-panel').open = !session.configured;
+    $('setup-message').textContent = session.reason || 'Ready. Selected model access and subscription allowance are checked on each request.';
+    if (!session.configured) openSettings();
   } catch(error) {
     if (sequence!==sessionSequence) return;
     state.configured = false;
     $('provider-status').textContent = 'Local connection unavailable';
-    $('provider-dot').classList.remove('ready'); $('setup-panel').open = true;
+    $('provider-dot').classList.remove('ready'); $('setup-dot').classList.remove('ready');
     $('setup-summary').textContent = 'Reconnect needed'; $('setup-message').textContent = error.message;
     showError(error.message);
   } finally { if (sequence===sessionSequence) {state.checking=false;renderBudget(); updateControls(); updateFrameChoice();} }
@@ -592,7 +618,7 @@ async function refreshSession() {
 $('faster-effort').addEventListener('click',()=>{if(state.busy || state.live) return;$('effort-choice').value='low';$('effort-choice').dispatchEvent(new Event('change'));});
 for (const id of ['model-choice','effort-choice']) $(id).addEventListener('change',async()=>{
   if (state.busy || state.setupBusy) {renderSelection();return;}
-  state.model=$('model-choice').value; state.effort=$('effort-choice').value; state.consent=false;
+  state.model=$('model-choice').value; state.effort=$('effort-choice').value; state.consent=false; $('build-consent').checked=false;
   try {localStorage.setItem('jarvisModelPreferences',JSON.stringify({model:state.model,effort:state.effort}));} catch { }
   renderSelection(); hideError(); await refreshSession();
 });
@@ -606,21 +632,28 @@ async function setupAction(path) {
   catch(error) { $('setup-message').textContent = error.name === 'AbortError' ? 'Setup action canceled. Choose Check again to inspect the current state.' : error.message; }
   finally { state.setupBusy = false; state.setupController = null; $('cancel-setup').hidden = true; updateControls(); }
 }
-$('setup-toggle').addEventListener('click',() => { $('setup-panel').open = !$('setup-panel').open; if ($('setup-panel').open) $('setup-panel').scrollIntoView({ block:'nearest' }); });
+$('settings-open').addEventListener('click',openSettings);
+$('model-menu').addEventListener('click',openSettings);
 $('recheck').addEventListener('click',refreshSession);
 $('reconnect').addEventListener('click',async () => { hideError(); await refreshSession(); });
 $('login').addEventListener('click',() => setupAction('/api/login'));
 $('install-codex').addEventListener('click',() => $('install-dialog').showModal());
 $('confirm-install').addEventListener('click',() => { $('install-dialog').close(); setupAction('/api/install-codex'); });
 $('cancel-setup').addEventListener('click',() => state.setupController?.abort());
-$('reset-budget').addEventListener('click',() => $('budget-dialog').showModal());
-$('confirm-budget').addEventListener('click',async () => {
-  $('budget-dialog').close();
+// Start new allowance is a two-step press: the first relabels, the second posts. Any other click puts the label back.
+let budgetArmed = false;
+const disarmBudget = () => { budgetArmed = false; $('reset-budget').textContent = 'Start new allowance'; };
+$('reset-budget').addEventListener('click',async event => {
+  event.stopPropagation();
+  if (!budgetArmed) { budgetArmed = true; $('reset-budget').textContent = 'Confirm: reset the local counter'; return; }
+  disarmBudget();
   try { await api('/api/reset-budget',{ consent:true }); updateControls(); $('setup-message').textContent = 'Local allowance renewed. Your subscription allowance is unchanged.'; }
   catch(error) { showError(error.message); }
 });
+document.addEventListener('click',event => { if (budgetArmed && event.target !== $('reset-budget')) disarmBudget(); });
+$('settings').addEventListener('close',disarmBudget);
 $('retry-preview').addEventListener('click',() => selectRevision(state.selected));
-$('include-frame').addEventListener('change',updateFrameChoice);
+$('include-frame').addEventListener('change',() => { $('build-consent').checked = false; updateFrameChoice(); });
 $('direction').addEventListener('input',()=>{if(state.live) {state.liveFrames.sent=null;state.liveFrames.stableSince=Date.now();}});
 $('try-demo').addEventListener('click',async () => {
   if (state.busy || state.inputBusy) return;
@@ -647,17 +680,13 @@ async function init() {
   } catch(error) { showError(error.message); }
   await refreshSession();
 }
-initComputer({api,getSelection:()=>({model:state.model,effort:state.effort}),openSetup:selected=>{
-  if(state.busy || state.live || state.setupBusy)throw new Error('Finish the current request or pause Live build before changing Setup.');
-  $('model-choice').value=selected.model;$('effort-choice').value=selected.effort;
-  $('model-choice').dispatchEvent(new Event('change'));
-  $('setup-panel').open=true;$('setup-panel').scrollIntoView({block:'start',behavior:'smooth'});
-}});
+// The Computer mode card lives inside #companion in index.html; both init calls query static markup.
+initComputer({api,getSelection:()=>({model:state.model,effort:state.effort,configured:state.configured,token:state.token,remaining:state.remaining}),onState:s=>{state.computerOn=s.on;state.planning=s.planning;notifyState();}});
 initCompanion({api,getState:()=>state,updateControls,
   stopWork:()=>{pauseLive('Paused from the companion.');state.controller?.abort();state.setupController?.abort();stopDictation();stopCamera();$('computer-stop')?.click();},
   openWorkflow:(kind,instruction='',evidence)=>{
-    if(kind==='setup'){$('setup-panel').open=true;$('setup-panel').scrollIntoView({block:'start'});return;}
-    if(kind==='computer'){$('computer-mode').open=true;$('computer-task').value=instruction.slice(0,2000);$('computer-model').value=state.model;$('computer-effort').value=state.effort;$('computer-mode').scrollIntoView({block:'start'});return;}
+    if(kind==='setup'){openSettings();return;}
+    if(kind==='computer'){$('computer-task').value=instruction.slice(0,2000);$('computer-mode').scrollIntoView({block:'start'});$('computer-open').focus();return;}
     $('direction').value=instruction;if(evidence)setImage(evidence.image,evidence.label);else{$('include-frame').checked=false;updateFrameChoice();}$('direction').focus();
   },
   importSource:async(html,name)=>{

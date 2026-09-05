@@ -16,10 +16,12 @@ internal sealed class DesktopRuntimeMissingException : Exception {
 
 internal sealed class DesktopShell : Form {
     const int HotkeyId = 0x4A41;
+    const int QuickAskHotkeyId = 0x4A43;
     const int WmHotkey = 0x0312;
     const uint ModShift = 0x0004;
     const uint ModControl = 0x0002;
     const uint VkSpace = 0x20;
+    const uint VkE = 0x45;
     readonly string url;
     readonly string launchKey;
     readonly JavaScriptSerializer json = new JavaScriptSerializer { MaxJsonLength = 5 * 1024 * 1024 };
@@ -36,6 +38,7 @@ internal sealed class DesktopShell : Form {
     bool ready;
     bool allowClose;
     bool hotkeyRegistered;
+    bool quickAskRegistered;
     int captureGeneration;
     string pendingCaptureId;
 
@@ -96,7 +99,7 @@ internal sealed class DesktopShell : Form {
         core.NavigationCompleted += delegate(object sender, CoreWebView2NavigationCompletedEventArgs args) {
             if (!args.IsSuccess) return;
             ready = true;
-            Post(new Dictionary<string, object> { {"type", "host-ready"}, {"mode", mode} });
+            PostHostReady();
         };
         core.Navigate(url + "/#launch=" + launchKey);
     }
@@ -122,11 +125,14 @@ internal sealed class DesktopShell : Form {
     protected override void OnHandleCreated(EventArgs e) {
         base.OnHandleCreated(e);
         hotkeyRegistered = RegisterHotKey(Handle, HotkeyId, ModControl | ModShift, VkSpace);
+        quickAskRegistered = RegisterHotKey(Handle, QuickAskHotkeyId, ModControl | ModShift, VkE);
     }
 
     protected override void OnHandleDestroyed(EventArgs e) {
         if (hotkeyRegistered) UnregisterHotKey(Handle, HotkeyId);
+        if (quickAskRegistered) UnregisterHotKey(Handle, QuickAskHotkeyId);
         hotkeyRegistered = false;
+        quickAskRegistered = false;
         base.OnHandleDestroyed(e);
     }
 
@@ -135,7 +141,22 @@ internal sealed class DesktopShell : Form {
             SummonPanel();
             return;
         }
+        if (message.Msg == WmHotkey && message.WParam.ToInt32() == QuickAskHotkeyId) {
+            // Ctrl+Shift+E: summon, capture the window that was in front, fill the first chip. The page stops at the frame; it never sends.
+            SummonPanel();
+            Post(new Dictionary<string, object> { {"type", "quick-ask"} });
+            return;
+        }
         base.WndProc(ref message);
+    }
+
+    void PostHostReady() {
+        string[] front = capture.DescribeForeground();
+        Post(new Dictionary<string, object> {
+            {"type", "host-ready"}, {"mode", mode},
+            {"front", new Dictionary<string, object> { {"title", front[0]}, {"process", front[1]} }},
+            {"hotkeys", new Dictionary<string, object> { {"summon", hotkeyRegistered}, {"quickAsk", quickAskRegistered} }}
+        });
     }
 
     protected override void OnResize(EventArgs e) {
@@ -188,6 +209,13 @@ internal sealed class DesktopShell : Form {
             else TrySpeak(text);
         } else if (type == "stop-speaking") {
             StopSpeaking();
+        } else if (type == "copy") {
+            // Write only. The shell never reads the clipboard, so "screen & mic off" stays true.
+            object rawText;
+            string text = message.TryGetValue("text", out rawText) ? rawText as string : null;
+            if (String.IsNullOrEmpty(text) || text.Length > 8000) { PostCopied(false, "Copy needs 1 to 8000 characters."); return; }
+            try { Clipboard.SetText(text); PostCopied(true, null); }
+            catch (Exception error) { PostCopied(false, "Windows refused the clipboard: " + error.Message); }
         } else if (type == "drag") {
             ReleaseCapture();
             SendMessage(Handle, 0x00A1, new IntPtr(2), IntPtr.Zero);
@@ -205,6 +233,12 @@ internal sealed class DesktopShell : Form {
     }
 
     void PostSpeechError(string error) { Post(new Dictionary<string, object> { {"type", "speech-error"}, {"error", error} }); }
+
+    void PostCopied(bool ok, string error) {
+        var message = new Dictionary<string, object> { {"type", "copied"}, {"ok", ok} };
+        if (error != null) message["error"] = error;
+        Post(message);
+    }
 
     async void BeginCapture(string requestId) {
         int generation = ++captureGeneration;
@@ -253,15 +287,16 @@ internal sealed class DesktopShell : Form {
             FormBorderStyle = FormBorderStyle.Sizable;
             TopMost = false;
             ShowInTaskbar = true;
-            ClientSize = new Size(1200, 850);
-            MinimumSize = new Size(900, 650);
+            // The studio: the 440px column keeps its pixels on the right and the canvas opens to its left.
+            ClientSize = new Size(1480, 900);
+            MinimumSize = new Size(1180, 680);
             dockButton.Visible = false;
             web.Visible = true;
         }
         PositionForMode();
         ResumeLayout();
         if (!Visible) Show();
-        if (ready) Post(new Dictionary<string, object> { {"type", "host-ready"}, {"mode", mode} });
+        if (ready) PostHostReady();
     }
 
     void PositionForMode() {
@@ -271,9 +306,9 @@ internal sealed class DesktopShell : Form {
             MinimumSize = new Size(Math.Min(MinimumSize.Width, available.Width), Math.Min(MinimumSize.Height, available.Height));
             Size = new Size(Math.Min(Width, available.Width), Math.Min(Height, available.Height));
         }
+        // The panel and the studio share a pinned right edge, so opening the studio widens to the left and the column does not move.
         if (mode == "dock") Location = new Point(area.Right - Width - 22, area.Bottom - Height - 22);
-        else if (mode == "panel") Location = new Point(area.Right - Width - 22, Math.Max(area.Top + 22, area.Bottom - Height - 22));
-        else Location = new Point(area.Left + Math.Max(0, (area.Width - Width) / 2), area.Top + Math.Max(0, (area.Height - Height) / 2));
+        else Location = new Point(Math.Max(area.Left, area.Right - Width - 22), Math.Max(area.Top + 22, area.Bottom - Height - 22));
     }
 
     void Post(Dictionary<string, object> message) {

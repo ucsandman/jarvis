@@ -51,11 +51,13 @@ try {
     Wait-JarvisCondition { $bounds = Get-JarvisBounds $jarvisProbe; $bounds -and $bounds.Width -eq 76 -and $bounds.Height -eq 76 } 'Closing the companion did not return Jarvis to its dock.'
     $secondHotkey = [JarvisWindowProbe]::RegisterHotKey([IntPtr]::Zero,0x4A42,0x0002 -bor 0x0004,0x20)
     if ($secondHotkey) { [JarvisWindowProbe]::UnregisterHotKey([IntPtr]::Zero,0x4A42) | Out-Null; throw 'Ctrl+Shift+Space was not registered by Jarvis.' }
+    $quickAskProbe = [JarvisWindowProbe]::RegisterHotKey([IntPtr]::Zero,0x4A44,0x0002 -bor 0x0004,0x45)
+    if ($quickAskProbe) { [JarvisWindowProbe]::UnregisterHotKey([IntPtr]::Zero,0x4A44) | Out-Null; throw 'Ctrl+Shift+E was not registered by Jarvis.' }
     $open = [Threading.EventWaitHandle]::OpenExisting('Local\JarvisDesktopOpen')
     $open.Set() | Out-Null
     $open.Dispose()
     Wait-JarvisCondition { $bounds = Get-JarvisBounds $jarvisProbe; $bounds -and $bounds.Width -ge 440 -and $bounds.Height -ge 700 } 'Open signal did not summon the companion panel.'
-    Write-Output 'PASS: embedded WebView2 host rendered the first-launch companion panel, collapsed to a 76x76 dock, registered Ctrl+Shift+Space, and reopened from its named signal.'
+    Write-Output 'PASS: embedded WebView2 host rendered the first-launch companion panel, collapsed to a 76x76 dock, registered Ctrl+Shift+Space and Ctrl+Shift+E, and reopened from its named signal.'
 } finally {
     try { $quit = [Threading.EventWaitHandle]::OpenExisting('Local\JarvisDesktopQuit'); $quit.Set() | Out-Null; $quit.Dispose() } catch { }
     if (-not $jarvisProbe.WaitForExit(15000)) { Stop-Process -Id $jarvisProbe.Id }

@@ -24,15 +24,18 @@ await page.addInitScript(()=>{
 });
 page.on('request',request=>{if(new URL(request.url()).pathname==='/api/build') requests.push(request.postDataJSON());});
 const idle=()=>page.waitForFunction(()=>!document.querySelector('#build').disabled);
+const chooseModel=async value=>{await page.locator('#settings-open').click();await page.locator('#model-choice').selectOption(value);await page.locator('#settings-close').click();};
 try {
   await mkdir('.artifacts',{recursive:true});await page.goto(base);await idle();
   await page.locator('#try-demo').click();await page.frameLocator('#preview').locator('#todo').waitFor();
-  await page.locator('#model-choice').selectOption('fable');await idle();
+  await chooseModel('fable');await idle();
+  assert.equal(await page.locator('#live-start').isDisabled(),true,'Live build waits for a shared screen');
   await page.locator('#share-screen').click();await page.locator('#live-controls').waitFor({state:'visible'});
   assert.equal(requests.length,0);assert.equal(await page.evaluate(()=>captureOptions.audio),false);
   await page.locator('#live-start').click();assert.match(await page.locator('#live-consent-detail').innerText(),/paid Claude usage credits/);
   await page.getByRole('button',{name:'Keep it local',exact:true}).click();assert.equal(requests.length,0);
   await page.locator('#live-start').click();await page.locator('#live-confirm').click();
+  assert.match(await page.locator('#build-consent-line').innerText(),/^Live build on/);assert.equal(await page.locator('#build-consent').isHidden(),true,'the tick gives way to the lease sentence');
   await page.waitForFunction(()=>document.querySelector('#live-count').textContent==='1 / 10 builds');
   await page.waitForFunction(()=>!document.querySelector('#build-overlay').hidden);
   assert.equal(requests.length,1);assert.ok(requests[0].image);assert.equal(requests[0].model,'fable');
@@ -80,5 +83,5 @@ try {
   assert.equal(requests.length,12,'Ten-build cap must prevent another automatic request');
   await page.locator('#screen-stop').click();
   assert.equal(errors.length,0);
-  console.log('PASS: 22 live browser checks: consent, credit notice, audio excluded, selected model, exact frame evidence, animated wait, usable preview, locked selection, reduced motion, mobile fit, unchanged-frame suppression, changed-frame revision, pause cancellation, no canceled version, no paused calls, track release, capture-ended stop, no restart on reload, ten-build cap, no calls after cap, zero page errors. Synthetic inference only.');
+  console.log('PASS: 24 live browser checks: consent, credit notice, audio excluded, selected model, lease sentence replaces the tick, Live build waits for a shared screen, exact frame evidence, animated wait, usable preview, locked selection, reduced motion, mobile fit, unchanged-frame suppression, changed-frame revision, pause cancellation, no canceled version, no paused calls, track release, capture-ended stop, no restart on reload, ten-build cap, no calls after cap, zero page errors. Synthetic inference only.');
 } finally {release?.();await browser.close();await new Promise(r=>app.close(r));}

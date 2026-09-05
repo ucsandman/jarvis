@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.9.0: One column, one tick
+
+- The companion column is the product. It keeps the same 440 pixels when the studio opens beside it; the native window widens to the left with its right edge pinned. Below 1180px the column steps aside and ← Panel brings it back.
+- The deck: at summon the panel reads the title and process of the window that was in front and offers three prewritten questions for it, from `public/chips.js` (errors, terminals, code, browsers, mail and chat, spreadsheets, documents, design tools, settings and installers). No pixels and no model call until a chip is pressed. "not this one" falls back to the three generic questions.
+- Ctrl+Shift+E summons, captures the window that was in front, fills the first chip and stops at the sharing tick. Settings says when another app owns the shortcut.
+- One consent pattern everywhere: a generated sentence next to one tick ("Send this message, the 4 earlier messages and the attached frame to Fable 5.1 (your Claude subscription)"), "See exactly what goes" with the request body, a per-session ledger in the footer. The tick and the frame's Include box clear after every send. The studio's session-sticky permission dialog is gone.
+- Read text: the panel reads the accessible text of the window you came from through a new read-only `read` operation on the Computer broker (never arms, grants no owner, cannot act). Every character is shown with a control and character count and a truncation flag; it goes only while its Include box is ticked, and the sharing sentence, the preview, the ledger and the provenance line under the reply all name it. Error, terminal, spreadsheet and settings chips read text first and fall back to a frame.
+- Copy on every reply, write-only: the shell handles a `copy` message with `Clipboard.SetText`, the browser falls back to `writeText`, and lint fails on any clipboard read in `public/` or `desktop/`. "Say it plainly" takes its tone (plainer, shorter, warmer, firmer) from Settings, Advanced.
+- Follow-up chips under each reply from the model's structured response; numbered and bulleted replies render as lists.
+- One Settings dialog from either surface: model and connection, Advanced (effort, dictation, spoken replies, import, allowance, clear), what leaves this device. The workbench top bar, hero, quick-start row, "Try saying" row, section numbers, eyebrows, the privacy, consent, voice and budget dialogs are removed.
+- The studio replaces the workbench page: a toolbar (← Panel, Share window, Live build, model, Settings), an input rail and an output stage that scroll themselves. Copy in sentence case; nothing in the app under 12px, checked by lint.
+- Computer mode moved into the column as one resting line, a lease dialog and a card; model and effort come from Settings; the sharing tick clears after every plan; Approve and Reject.
+- Harness: `public/harness.js` holds the status line, consent sentence, gate, spend and ledger, unit-tested in `tests/harness.test.mjs`; `scripts/check.mjs` verifies the asset map against disk and references and the 12px floor. Companion, computer and app markup live in `index.html`.
+- Shell: `host-ready` carries the foreground title and process plus hotkey registration state; the studio window is 1480x900, minimum 1180x680, pinned to the panel's right edge.
+
+
 ## 0.8.1: The Jarvis mark
 
 - Replaced the letter-in-a-circle dock and stock tray icon with the Jarvis mark: an amber lens on a rounded charcoal square, drawn natively on a shaped dock window (no white square behind it), embedded in the exe as `desktop/jarvis.ico`, and used for the tray, taskbar and title bar. `scripts/build-icon.ps1` regenerates the icon from the shared geometry.

@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <meta name="description" content="Jarvis turns what you show and tell it at your desk into working software. A private local workbench for sketches, voice, and live prototypes.">
+  <meta name="description" content="Jarvis is a local desktop companion. Ask about the window you are in, build a prototype from a sketch, or let it work in a Windows app one approved action at a time.">
   <meta name="theme-color" content="#191c1b">
-  <title>Jarvis: a desktop companion for building and working</title>
+  <title>Jarvis</title>
   <link rel="icon" href="/mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/companion.css">
@@ -20,43 +20,34 @@
     <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></symbol>
     <symbol id="i-code" viewBox="0 0 24 24"><path d="m7 7-5 5 5 5m10-10 5 5-5 5m-4-13-2 20"/></symbol>
     <symbol id="i-expand" viewBox="0 0 24 24"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></symbol>
-    <symbol id="i-sound" viewBox="0 0 24 24"><path d="m11 4-5 5H2v6h4l5 5zM15 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14"/></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
     <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v13m-5-5 5 5 5-5M4 17v4h16v-4"/></symbol>
-    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></symbol>
   </defs></svg>
+
   <div class="app-shell">
-    <header class="topbar">
-      <a class="brand" href="/" aria-label="Jarvis home"><img class="jarvis-mark" src="/mark.svg" width="42" height="42" alt=""><span>JARVIS<span class="brand-caption">LOCAL WORKBENCH</span></span></a>
-      <div class="header-middle"><span class="status-dot" id="provider-dot"></span><span id="provider-status">Checking connection</span><span class="divider">/</span><span>LOCAL WORKBENCH</span></div>
-      <div class="header-actions"><button class="quiet" id="new-session">New project</button><button class="icon-button" id="sound" aria-label="Enable spoken replies" aria-pressed="false" title="Enable spoken replies"><svg><use href="#i-sound"/></svg></button><button class="quiet privacy-button" id="privacy">Privacy</button><button class="quiet" id="setup-toggle">Setup</button></div>
+    <header class="toolbar">
+      <button class="quiet" id="companion-back">← Panel</button>
+      <span class="toolbar-title">Studio</span>
+      <div class="toolbar-actions">
+        <button class="button amber" id="share-screen">Share window</button>
+        <button class="button secondary" id="live-start">Live build</button>
+        <button class="button secondary" id="live-pause" hidden>Live <span id="live-count">0 / 10 builds</span> · Pause</button>
+        <button class="quiet model-menu" id="model-menu" aria-label="Model and effort, opens Settings"><span class="status-dot" id="provider-dot"></span><span id="provider-status">Checking connection</span><span aria-hidden="true">▾</span></button>
+        <button class="icon-button" id="settings-open" aria-label="Settings" title="Settings">⚙</button>
+      </div>
     </header>
 
-    <section class="intro" aria-labelledby="headline">
-      <div><h1 id="headline">Share your screen. <em>Build as you draw.</em></h1></div>
-      <p class="intro-note">Turn your drawing or design window into a working prototype.<br>Or open Computer mode to work in Windows apps with reviewed actions.</p>
-    </section>
+    <main class="studio">
+      <section class="rail" aria-label="Direction and reference">
+        <div class="chip-row" id="rail-chips" aria-label="Prewritten directions"></div>
+        <div class="frame-strip frame-strip-plain"><label><input type="checkbox" id="include-frame"> Include this frame</label><span id="frame-choice-note">No frame yet</span></div>
+        <form id="composer" class="composer">
+          <div class="composer-row"><button type="button" class="mic-button" id="mic" aria-label="Dictate direction" aria-pressed="false"><svg><use href="#i-mic"/></svg></button><label class="sr-only" for="direction">Tell Jarvis what to build or change</label><textarea id="direction" rows="2" maxlength="4000" placeholder="Tell me what to build, or what to change…"></textarea></div>
+          <div class="send-gate" id="build-gate"><label><input id="build-consent" type="checkbox"> <span class="consent-line" id="build-consent-line">Send this direction to Astra (your ChatGPT subscription).</span></label><button type="button" class="quiet" id="build-preview">See exactly what goes</button><p class="billing" id="build-billing" hidden></p></div>
+          <div class="composer-actions"><span id="activity">Ready</span><button class="button amber build-button" id="build" type="submit">Make it real <svg><use href="#i-arrow"/></svg></button></div>
+        </form>
+        <div class="error-banner" id="error" role="alert" hidden><span id="error-text"></span><button class="quiet" id="reconnect">Reconnect</button><button id="dismiss-error" aria-label="Dismiss error">×</button></div>
 
-    <section class="quick-start" aria-label="Get started"><div><button class="button amber" id="share-screen-top">Share screen or window</button><button class="button secondary" id="try-demo">Try the working example</button><span>No login or camera needed. Sample data only.</span></div><p>Choose a window, describe the product, then turn on Live build.</p></section>
-    <details id="setup-panel" class="setup-panel"><summary>Setup and connection <span id="setup-summary">Checking</span></summary><div class="setup-content"><ol id="setup-checks"><li>Local workbench is running.</li><li id="cli-check">Checking the official Codex CLI…</li><li id="login-check">Checking ChatGPT subscription login…</li><li id="model-check">Selected model access is checked when you build. Jarvis never switches models automatically.</li></ol><p id="setup-message" role="status">The working example and saved source are available while setup finishes.</p><div class="setup-actions"><button class="button secondary" id="install-codex" hidden>Install official Codex CLI</button><button class="button amber" id="login" hidden>Sign in with ChatGPT</button><button class="button secondary" id="recheck">Check again</button><button class="quiet" id="cancel-setup" hidden>Cancel setup action</button><button class="quiet" id="reset-budget">Start new allowance</button><a id="setup-help" href="https://developers.openai.com/codex/auth" target="_blank" rel="noreferrer">Official setup help</a></div><p class="muted" id="setup-detail">Sign-in opens the official browser flow and updates Codex login on this device. Installing Codex adds its official npm package globally. Each action starts only when you choose it.</p></div></details>
-
-    <section class="model-controls" aria-label="Model and effort">
-      <label for="model-choice">Model<select id="model-choice"><option value="astra">Astra · ChatGPT</option><option value="fable">Fable 5.1 · Claude</option></select></label>
-      <label for="effort-choice">Effort<select id="effort-choice"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="xhigh">Extra high</option><option value="max">Maximum</option></select></label>
-      <button class="quiet" id="faster-effort">Use low effort for faster builds</button><p id="billing-note">Astra uses your ChatGPT subscription.</p><p id="effort-note" role="status">Medium balances speed and depth. Applies to your next build.</p>
-    </section>
-
-    <section class="composer-wrap">
-      <div class="suggestions" id="suggestions"><span>TRY SAYING</span><button data-prompt="Build the app in this sketch. Make the controls work.">“Build this.”</button><button data-prompt="Apply the changes in this new reference to the current app. Preserve everything else.">“Change it to this.”</button><button data-prompt="Make the current app work beautifully on a phone. Keep all its functionality.">“Make it work on mobile.”</button></div>
-      <label class="frame-choice"><input type="checkbox" id="include-frame"> Include the selected frame in this build <span id="frame-choice-note">No frame selected</span></label>
-      <form id="composer" class="composer"><button type="button" class="mic-button" id="mic" aria-label="Dictate direction" aria-pressed="false"><svg><use href="#i-mic"/></svg></button><label class="sr-only" for="direction">Tell Jarvis what to build or change</label><textarea id="direction" rows="1" maxlength="4000" placeholder="Tell me what to build, or what to change…"></textarea><button class="button amber build-button" id="build" type="submit">Make it real <svg><use href="#i-arrow"/></svg></button></form>
-      <div class="composer-meta"><span id="input-note">One chosen frame + your direction. Sent only when you build.</span><span id="activity">IDEAS WELCOME</span><span id="budget">Checking local allowance</span></div>
-      <div class="error-banner" id="error" role="alert" hidden><span id="error-text"></span><button class="quiet" id="reconnect">Reconnect</button><button id="dismiss-error" aria-label="Dismiss error">×</button></div>
-    </section>
-
-    <main class="workbench">
-      <section class="input-column" aria-label="Shared visual workspace">
-        <div class="section-bar"><span><b>01</b> YOUR DESK</span><span class="source-status" id="source-status"><span class="status-dot"></span> CAMERA OFF</span></div>
         <div class="viewfinder" id="viewfinder">
           <video id="camera" autoplay muted playsinline hidden></video>
           <img id="reference" alt="The reference frame being used by Jarvis" hidden>
@@ -64,76 +55,164 @@
           <div class="viewfinder-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
           <div class="camera-empty" id="camera-empty">
             <div class="aperture" aria-hidden="true"><div></div><span></span></div>
-            <h2>Let me see your idea.</h2>
-            <p>Share your drawing or design window.<br>Camera and image upload work too.</p>
+            <h2>Share the window you're designing in.</h2>
+            <p>Camera and image upload work too.</p>
             <span class="local-note">Preview stays on this device.</span>
           </div>
           <span class="frame-label" id="frame-label" hidden></span>
           <div class="frame-tools" id="frame-tools" hidden><button class="small-button" id="resume">Back to live view</button><button class="small-button" id="clear-reference">Clear image</button></div>
           <div class="scan-line" aria-hidden="true"></div>
         </div>
+        <p class="source-status" id="source-status">Camera off</p>
         <div class="source-controls">
-          <button class="button amber" id="share-screen">Share screen or window</button>
-          <button class="button secondary" id="connect"><svg><use href="#i-camera"/></svg> Connect camera</button>
-          <button class="quiet" id="upload"><svg><use href="#i-upload"/></svg> Upload reference</button>
-          <button class="button amber" id="example">Try a sample sketch</button>
+          <button class="quiet" id="connect" aria-label="Connect camera"><svg><use href="#i-camera"/></svg> Camera</button>
+          <button class="quiet" id="upload"><svg><use href="#i-upload"/></svg> Upload</button>
+          <button class="quiet" id="example" aria-label="Try a sample sketch">Sample sketch</button>
           <input type="file" id="file" accept="image/jpeg,image/png,image/webp" hidden>
         </div>
         <div class="camera-controls" id="camera-controls" hidden><label for="camera-select">Camera</label><select id="camera-select" aria-label="Choose camera"></select><button class="quiet" id="camera-off">Turn off</button></div>
 
         <section class="live-controls" id="live-controls" aria-label="Live build" hidden>
-          <div class="live-heading"><strong>Live build</strong><span id="live-count">0 / 10 builds</span></div>
-          <p>Keep drawing in your shared window. Jarvis sends a snapshot after 3 quiet seconds, then updates the prototype.</p>
+          <div class="live-heading"><strong>Live build</strong></div>
+          <p>After 3 quiet seconds Jarvis sends one changed snapshot and updates the prototype.</p>
           <label for="live-interval">Minimum time between builds <select id="live-interval"><option value="30000">30 seconds</option><option value="60000">60 seconds</option><option value="120000">2 minutes</option></select></label>
-          <div class="live-actions"><button class="button amber" id="live-start">Start Live build</button><button class="button secondary" id="live-pause" hidden>Pause</button><button class="quiet" id="screen-stop">Stop sharing</button></div>
+          <div class="live-actions"><button class="quiet" id="screen-stop">Stop sharing</button></div>
           <p id="live-status" role="status">Sharing locally. No automatic frames sent.</p>
-          <p class="muted">Up to 10 builds per start. Repeated builds use your subscription; Fable may charge usage credits. Share only the window you intend to send. Avoid sharing Jarvis itself.</p>
         </section>
         <details id="sent-evidence" class="sent-evidence" hidden><summary id="sent-label">Last frame sent</summary><img id="sent-image" alt="Exact screen snapshot sent with the latest build"></details>
         <div class="understanding">
-          <div class="understanding-heading"><span class="eyebrow">WHAT I’M SEEING</span><span id="observation-time">NO FRAME SENT</span></div>
+          <p class="observation-time" id="observation-time">No frame sent yet</p>
           <p id="observation-summary">I’ll read the details, connect them to your direction, and build from there.</p>
           <ol class="observation-list" id="observations"></ol>
         </div>
-        <div class="desk-tip"><span>THE DESK-TO-DEMO LOOP</span><p>Draw an idea. Build it. Cross something out.<br>Say “change it to this.”</p></div>
       </section>
 
-      <section class="output-column" aria-label="Running prototype">
-        <div class="section-bar"><span><b>02</b> THE WORK TAKES SHAPE</span><div class="preview-actions"><button id="desktop-view" class="viewport-button active" aria-label="Desktop preview" aria-pressed="true">Desktop</button><button id="mobile-view" class="viewport-button" aria-label="Mobile preview" aria-pressed="false">Mobile</button><button class="icon-button small" id="expand" aria-label="Expand preview"><svg><use href="#i-expand"/></svg></button></div></div>
-            <div class="build-overlay" id="build-overlay" hidden><div class="build-orbit" aria-hidden="true"></div><span class="eyebrow" id="build-phase" role="status">READING YOUR REFERENCE</span><h2 id="build-message" aria-live="polite">Connecting the dots.</h2><p id="build-detail">Looking at the frame you chose.</p><p id="build-elapsed">0s elapsed</p><button class="small-button" id="cancel">Cancel</button></div>
-        <div id="draft-controls" class="draft-controls" hidden><strong id="draft-status" role="status">Live draft · unfinished</strong><div><button class="small-button" id="show-draft" aria-pressed="true">Live draft</button><button class="small-button" id="show-working" aria-pressed="false">Last working version</button></div><p>Layout updates as code arrives. Draft scripts stay off until the finished version is ready.</p><details><summary>Code arriving</summary><pre id="draft-code"></pre></details></div>
+      <section class="stage" aria-label="Running prototype">
+        <div class="build-overlay" id="build-overlay" hidden><div class="build-orbit" aria-hidden="true"></div><span class="build-phase" id="build-phase" role="status">Reading your reference</span><h2 id="build-message" aria-live="polite">Connecting the dots.</h2><p id="build-detail">Looking at the frame you chose.</p><p id="build-elapsed">0s elapsed</p><button class="small-button" id="cancel">Cancel</button></div>
         <div class="prototype" id="prototype">
-          <div class="browser-bar"><div class="browser-dots" aria-hidden="true"><i></i><i></i><i></i></div><span id="prototype-title">Your next idea, running.</span><span class="version-label" id="version-label">READY WHEN YOU ARE</span></div>
+          <div class="browser-bar"><div class="browser-dots" aria-hidden="true"><i></i><i></i><i></i></div><span id="prototype-title">Your next idea, running.</span><span class="version-label" id="version-label">No version yet</span><div class="preview-actions"><button id="desktop-view" class="viewport-button active" aria-label="Desktop preview" aria-pressed="true">Desktop</button><button id="mobile-view" class="viewport-button" aria-label="Mobile preview" aria-pressed="false">Mobile</button><button class="icon-button small" id="expand" aria-label="Expand preview"><svg><use href="#i-expand"/></svg></button></div></div>
+          <div id="draft-controls" class="draft-controls" hidden><strong id="draft-status" role="status">Live draft · unfinished</strong><div><button class="small-button" id="show-draft" aria-pressed="true">Live draft</button><button class="small-button" id="show-working" aria-pressed="false">Last working version</button></div><p>Layout updates as code arrives. Draft scripts stay off until the finished version is ready.</p><details><summary>Code arriving</summary><pre id="draft-code"></pre></details></div>
           <div class="preview-stage" id="preview-stage">
             <div class="preview-empty" id="preview-empty">
-              <span class="paper-index">FROM SKETCH TO PROTOTYPE</span>
-              <div class="paper-composition" aria-hidden="true"><div class="sketch-paper"><span>the idea</span><div class="sketch-window"><i></i><div><b></b><b></b><b></b></div></div><em>make this real</em></div><div class="result-paper"><span>the possibility</span><div class="mini-window"><i></i><div><b></b><b></b><b></b></div></div><small>● &nbsp; Running in your browser</small></div></div>
-              <h2>Less translating.<br><em>More making.</em></h2>
-              <p>Your reference becomes a working web prototype.<br>Then we keep building on it, together.</p>
-              <div class="empty-steps"><span><b>1</b> Show a reference</span><span><b>2</b> Give me direction</span><span><b>3</b> Try the result</span></div>
+              <h2>Your prototype will run here.</h2>
+              <button class="button secondary" id="try-demo">Try the working example</button>
+              <p>Sample data. No login or camera needed.</p>
             </div>
             <iframe id="draft-preview" title="Unfinished live draft, scripts disabled" sandbox="" referrerpolicy="no-referrer" hidden></iframe>
             <iframe id="preview" title="Generated interactive prototype" sandbox="allow-scripts allow-forms" referrerpolicy="no-referrer" hidden></iframe>
-
           </div>
           <div class="prototype-footer"><span id="preview-note">A real preview will appear here.</span><button class="quiet" id="retry-preview" hidden>Retry preview</button><div><button class="quiet" id="source" disabled><svg><use href="#i-code"/></svg> Source</button><button class="quiet" id="download" disabled><svg><use href="#i-download"/></svg> Download</button></div></div>
         </div>
-        <section class="reply" aria-label="Jarvis reply"><img class="reply-mark" src="/mark.svg" width="27" height="27" alt="" aria-hidden="true"><div><div class="reply-byline">JARVIS <span id="reply-status">Standing by</span></div><p id="reply-text" aria-live="polite">Show me a sketch and tell me what should work. I’ll take it from there.</p><ul id="changes"></ul></div></section>
-        <div class="revision-heading"><span class="eyebrow">THE EVOLUTION</span><span id="revision-count">Every build keeps the previous version.</span></div>
+        <section class="reply" aria-label="Jarvis reply"><img class="reply-mark" src="/mark.svg" width="27" height="27" alt="" aria-hidden="true"><div><div class="reply-byline">Jarvis <span id="reply-status">Standing by</span></div><p id="reply-text" aria-live="polite">Show me a sketch and tell me what should work. I’ll take it from there.</p><ul id="changes"></ul></div></section>
+        <div class="revision-heading"><span id="revision-count">Every build keeps the previous version.</span><button class="quiet" id="new-session">New project</button></div>
         <nav class="revisions" id="revisions" aria-label="Revision history"><p class="revision-empty">Your first version starts with an idea.</p></nav>
       </section>
     </main>
-
-
   </div>
 
-  <dialog id="live-dialog" aria-labelledby="live-title"><p class="eyebrow">AUTOMATIC SCREEN SNAPSHOTS</p><h2 id="live-title">Build as you work?</h2><p id="live-consent-detail"></p><p>After 3 quiet seconds, Jarvis sends a changed snapshot, your direction, and the selected prototype source. Up to 10 builds per start, one at a time. Keep private content out of the shared surface. The latest sent frame remains visible for review.</p><p>Pause stops new snapshots and cancels an unfinished build. Stop sharing also releases the screen. Provider work already received may still consume allowance or credits. A reload never restarts sharing or Live build.</p><div class="dialog-actions"><button class="button secondary" data-close="live-dialog">Keep it local</button><button class="button amber" id="live-confirm">Allow automatic builds</button></div></dialog>
-  <dialog id="privacy-dialog" aria-labelledby="privacy-title"><button class="dialog-close icon-button" data-close="privacy-dialog" aria-label="Close privacy"><svg><use href="#i-close"/></svg></button><p class="eyebrow">YOUR DESK. YOUR CONTROL.</p><h2 id="privacy-title">What leaves this device.</h2><p>Camera and screen preview stay local. Live build sends changed screen snapshots only after separate consent. Manual building shares your selected image, direction, and current prototype source with your selected provider: Astra through Codex and ChatGPT, or Fable through Claude Code and your Claude subscription. There is no continuous upload and no model API integration.</p><p>Computer mode is separately enabled. Planning shares a fresh accessibility reading from your selected Windows app, including editable text, the task and recent action descriptions. You approve each desktop action. Stop control or press Ctrl+Shift+F12 to prevent further actions; completed actions cannot be undone by Stop.</p><p>Revisions, including their reference images, are stored in this browser on this device. Up to 12 versions are kept. “New project” clears this project’s stored history.</p><p>Subscription login is required. When access or usage limits prevent a request, Jarvis stops. It never uses an API key or another model as a fallback. Fable can consume usage credits under your Claude account settings.</p><p>Generated applications run in a restricted frame. They cannot access Jarvis’s camera, credentials, or saved revisions. Prototype data resets when a version is reopened.</p><p class="muted">A request already received by the selected CLI may finish after you cancel. Jarvis discards a canceled result.</p><button class="button amber" data-close="privacy-dialog">Understood</button></dialog>
-  <dialog id="consent-dialog" aria-labelledby="consent-title"><p class="eyebrow">BEFORE THE FIRST BUILD</p><h2 id="consent-title">Let Jarvis work with this reference.</h2><p id="consent-detail">The selected image, your direction, and the current prototype source will be shared with <strong>Astra through your ChatGPT subscription</strong>, using the installed Codex CLI. No API key or metered model API is used.</p><p>Check that your frame contains only what you intend to share. This permission lasts for this page session. Only a checked frame is attached. Subscription usage limits apply.</p><div class="dialog-actions"><button class="button secondary" id="decline-consent">Keep it local</button><button class="button amber" id="accept-consent">Allow and build</button></div></dialog>
-  <dialog id="voice-dialog" aria-labelledby="voice-title"><p class="eyebrow">LOCAL VOICE INPUT</p><h2 id="voice-title">Think out loud.</h2><p>Windows speech recognition processes your microphone locally. Dictation becomes editable text. You still choose when to build.</p><div class="dialog-actions"><button class="button secondary" data-close="voice-dialog">Use typing</button><button class="button amber" id="accept-voice">Enable local dictation</button></div></dialog>
-  <dialog id="reset-dialog" aria-labelledby="reset-title"><p class="eyebrow">A FRESH PAGE</p><h2 id="reset-title">Start a new project?</h2><p>This clears this browser’s saved versions and their reference images. Download any source you want to keep first.</p><div class="dialog-actions"><button class="button secondary" data-close="reset-dialog">Keep working</button><button class="button amber" id="confirm-reset">Clear and start fresh</button></div></dialog>
+  <section id="companion" aria-label="Jarvis companion">
+    <header class="companion-header"><button id="companion-drag" class="companion-brand" aria-label="Drag Jarvis window"><img src="/mark.svg" alt="">JARVIS</button><div><button id="companion-settings" aria-label="Settings" title="Settings">⚙</button><button id="companion-expand" aria-label="Open the studio" title="Open the studio">↗</button><button id="companion-hide" aria-label="Return to dock" title="Return to dock">−</button></div></header>
+    <div class="companion-scroll">
+      <div id="companion-welcome"><h1>What are you working on?</h1></div>
+      <ol id="companion-messages" aria-label="Conversation" aria-live="polite" aria-relevant="additions"></ol>
+      <section id="computer-mode" class="computer-mode" aria-label="Computer mode">
+        <div class="computer-rest"><p><strong>Computer mode</strong> · Jarvis works in one Windows app, one approved action at a time.</p><button class="quiet" id="computer-open">Set it up</button></div>
+        <p id="computer-status" role="status" aria-live="polite" hidden></p>
+        <div id="computer-work" hidden>
+          <div class="computer-row"><label for="computer-window">Window</label><select id="computer-window"><option value="">Choose a window</option></select><button class="quiet" id="computer-refresh">Refresh</button><button class="quiet" id="computer-inspect">Read this window</button></div>
+          <div class="computer-row"><label for="computer-app">Open an app</label><select id="computer-app"><option value="notepad">Notepad</option><option value="calculator">Calculator</option><option value="paint">Paint</option></select><button class="quiet" id="computer-launch">Open</button></div>
+          <details><summary>What Jarvis read</summary><pre id="computer-snapshot">Read a window to see its controls. Password controls and protected windows are excluded. Other visible text may contain private information.</pre></details>
+          <label for="computer-task">What should Jarvis do?</label>
+          <textarea id="computer-task" maxlength="2000" rows="3" placeholder="Example: enter 24 × 7 in Calculator and show the result."></textarea>
+          <div class="send-gate" id="computer-gate"><label><input type="checkbox" id="computer-cloud"> <span class="consent-line" id="computer-consent-line"></span></label><button type="button" class="quiet" id="computer-preview">See exactly what goes</button><p class="billing" id="computer-billing" hidden></p></div>
+          <button class="button amber" id="computer-next">Plan next action</button>
+          <p class="muted">Each step uses one model request. Up to 20 per session.</p>
+          <section id="computer-review" class="computer-review" hidden aria-label="Review the next action"><h3 id="computer-action-title"></h3><p id="computer-reason"></p><pre id="computer-action-detail"></pre><p id="computer-expiry">This approval expires in one minute. Check the target before you approve.</p><div class="computer-row"><button class="button amber" id="computer-approve">Approve</button><button class="button secondary" id="computer-reject">Reject</button></div></section>
+          <details><summary>Action history · <span id="computer-count">0 actions</span></summary><ol id="computer-history"></ol></details>
+          <button class="button secondary" id="computer-stop">Stop computer control</button>
+        </div>
+      </section>
+    </div>
+    <div class="companion-deck">
+      <p id="companion-front" hidden><span id="companion-front-title"></span><button class="quiet" id="companion-front-clear">not this one</button></p>
+      <p id="companion-hint" aria-live="polite"></p>
+      <div class="chip-row" id="companion-chips" aria-label="Prewritten questions"></div>
+    </div>
+    <div class="companion-compose">
+      <div class="frame-strip" id="companion-context" hidden><img id="companion-frame" alt="Exact frame selected for the next message"><div><strong id="companion-frame-label"></strong><small id="companion-frame-time"></small><label><input id="companion-include" type="checkbox"> Include this frame</label></div><button id="companion-remove" aria-label="Remove frame">×</button></div>
+      <div class="text-strip" id="companion-text" hidden><div class="text-head"><strong id="companion-text-label"></strong><button id="companion-text-remove" aria-label="Remove window text">×</button></div><pre id="companion-text-body"></pre><small id="companion-text-volume"></small><label><input id="companion-include-text" type="checkbox"> Include this text</label></div>
+      <p id="companion-error" role="alert" hidden></p>
+      <form id="companion-form">
+        <label class="sr-only" for="companion-input">Message Jarvis</label><textarea id="companion-input" rows="2" maxlength="4000" placeholder="What are we working on?"></textarea>
+        <div class="send-gate" id="companion-gate"><label><input id="companion-consent" type="checkbox"> <span class="consent-line" id="companion-consent-line">Send this message to Astra (your ChatGPT subscription).</span></label><button type="button" class="quiet" id="companion-preview">See exactly what goes</button><p class="billing" id="companion-billing" hidden></p></div>
+        <div class="companion-tools"><div><button type="button" id="companion-capture">＋ Window</button><button type="button" id="companion-read" title="Read the accessible text of the window you came from">Read text</button><button type="button" id="companion-mic" aria-label="Dictate locally" aria-pressed="false">Mic</button></div><button type="submit" id="companion-send">Send ↑</button></div>
+      </form>
+      <footer><span id="companion-status" role="status">Connecting</span><button id="companion-ledger" class="quiet" hidden aria-label="See what was sent this session">0 sent</button><button id="companion-stop">Stop</button></footer>
+    </div>
+  </section>
+
+  <dialog id="settings" class="settings" aria-labelledby="settings-title">
+    <div class="settings-head"><h2 id="settings-title">Settings</h2><button class="quiet" id="settings-close" data-close="settings">Back</button></div>
+    <section class="settings-section" aria-label="Model">
+      <label class="settings-field" for="model-choice">Model <select id="model-choice"><option value="astra">Astra · ChatGPT</option><option value="fable">Fable 5.1 · Claude</option></select></label>
+      <p id="billing-note">Astra uses your ChatGPT subscription.</p>
+      <p class="setup-line"><span class="status-dot" id="setup-dot"></span><span id="setup-summary">Checking</span></p>
+      <ol id="setup-checks"><li>Local Jarvis is running.</li><li id="cli-check">Checking the official Codex CLI…</li><li id="login-check">Checking ChatGPT subscription login…</li><li id="model-check">Selected model access is checked when you build. Jarvis never switches models automatically.</li></ol>
+      <p id="setup-message" role="status">The working example and saved source are available while setup finishes.</p>
+      <div class="setup-actions"><button class="button secondary" id="install-codex" hidden>Install official Codex CLI</button><button class="button amber" id="login" hidden>Sign in with ChatGPT</button><button class="button secondary" id="recheck">Check again</button><button class="quiet" id="cancel-setup" hidden>Cancel setup action</button><a id="setup-help" href="https://developers.openai.com/codex/auth" target="_blank" rel="noreferrer">Official setup help</a></div>
+      <p class="muted" id="setup-detail">Sign-in opens the official browser flow and updates Codex login on this device. Installing Codex adds its official npm package globally. Each action starts only when you choose it.</p>
+    </section>
+    <details id="advanced" class="settings-section"><summary>Advanced</summary>
+      <label class="settings-field" for="effort-choice">Effort <select id="effort-choice"><option value="low">Low</option><option value="medium" selected>Medium</option><option value="high">High</option><option value="xhigh">Extra high</option><option value="max">Maximum</option></select></label>
+      <p id="effort-note" role="status">Balances speed and depth. Applies to your next request.</p><button class="quiet" id="faster-effort">Use low effort</button>
+      <label class="settings-field" for="rewrite-tone">Rewrite tone <select id="rewrite-tone"><option value="plainer">Plainer</option><option value="shorter">Shorter</option><option value="warmer">Warmer</option><option value="firmer">Firmer</option></select></label>
+      <p class="muted">Used by the "Say it plainly" chip. Every fact and number stays as you wrote it.</p>
+      <label class="check"><input id="companion-voice" type="checkbox"> Allow local Windows dictation when I click the microphone.</label>
+      <label class="check"><input id="companion-spoken" type="checkbox"> Read replies aloud with a local Windows voice.</label>
+      <button class="quiet" id="companion-import">Import a saved HTML prototype</button><input id="companion-import-file" type="file" accept=".html,.htm,text/html" hidden>
+      <p class="muted">Download the prototype from the browser version, then import its HTML here.</p>
+      <p id="budget">Checking local allowance</p><button class="quiet" id="reset-budget">Start new allowance</button>
+      <button class="quiet" id="companion-clear">Clear conversation</button>
+    </details>
+    <section class="settings-section" aria-label="What leaves this device">
+      <h3>What leaves this device</h3>
+      <ol class="leaves">
+        <li>Nothing is captured until you press ＋ Window, Read text, Share window or Camera. Jarvis never watches the screen and never listens on its own.</li>
+        <li>Read text reads the accessible text of the window you came from, shows every character with a count and whether it was cut short, and goes only while its Include box is ticked. Reading never clicks anything and never turns Computer mode on.</li>
+        <li>Copy puts a reply on your clipboard. Jarvis never reads the clipboard.</li>
+        <li>A frame goes only while its Include box is ticked, and the box clears after every send. The sharing tick clears after every send too.</li>
+        <li>Your message, up to 12 recent messages from this session, and the frame go to Astra through Codex on your ChatGPT subscription, or to Fable 5.1 through Claude Code on your Claude subscription. There is no API key and no fallback model.</li>
+        <li>Computer mode sends the chosen window's accessible text, your task and recent actions when you press Plan next action, after its own tick. No screenshot, no audio. You approve every action, and Ctrl+Shift+F12 stops it from any app.</li>
+        <li>Prototypes and their reference images are saved on this device, up to 12 versions. New project clears them. Generated pages run with no network access.</li>
+        <li>Live build sends changed snapshots automatically after its own permission, up to 10 per start, and never resumes after a reload.</li>
+      </ol>
+      <button class="quiet" id="settings-preview">See exactly what goes</button>
+    </section>
+    <footer class="settings-foot"><p>Jarvis runs on your own ChatGPT or Claude subscription.</p><p id="hotkey-note" hidden>Ctrl+Shift+E is taken by another app; Ctrl+Shift+Space still works.</p></footer>
+  </dialog>
+
+  <dialog id="send-preview" aria-labelledby="send-preview-title">
+    <div class="settings-head"><h2 id="send-preview-title">What goes with the next send</h2><button class="quiet" data-close="send-preview">Close</button></div>
+    <dl id="send-preview-list"></dl>
+    <details><summary>The request body, as it will be posted</summary><pre id="send-preview-body"></pre></details>
+    <h3>Sent this session</h3>
+    <p class="muted" id="send-ledger-empty">Nothing has been sent yet. The list resets when Jarvis reloads.</p>
+    <ol id="send-ledger"></ol>
+  </dialog>
+
+  <dialog id="computer-lease" aria-labelledby="computer-lease-title">
+    <h2 id="computer-lease-title">Let Jarvis act in one Windows app?</h2>
+    <p>For the next 10 minutes Jarvis can read one window you choose and propose one action at a time. Nothing runs until you approve it, every time.</p>
+    <p>Accessible controls only. No terminals, no Explorer, no sign-in windows, no admin prompts, no drawing canvas.</p>
+    <p>Ctrl+Shift+F12 stops it from any app. Stop prevents the next action; it cannot undo one already delivered.</p>
+    <label class="check"><input id="computer-permission" type="checkbox"> Allow local window inspection and reviewed control for 10 minutes.</label>
+    <p id="computer-lease-note" role="alert" class="lease-note"></p>
+    <div class="dialog-actions"><button class="button secondary" data-close="computer-lease">Not now</button><button class="button amber" id="computer-enable">Start 10 minutes</button></div>
+  </dialog>
+
+  <dialog id="live-dialog" aria-labelledby="live-title"><h2 id="live-title">Build as you work?</h2><p id="live-consent-detail"></p><p>After 3 quiet seconds, Jarvis sends a changed snapshot, your direction, and the selected prototype source. Up to 10 builds per start, one at a time. Keep private content out of the shared surface. The latest sent frame remains visible for review.</p><p>Pause stops new snapshots and cancels an unfinished build. Stop sharing also releases the screen. Provider work already received may still consume allowance or credits. A reload never restarts sharing or Live build.</p><div class="dialog-actions"><button class="button secondary" data-close="live-dialog">Keep it local</button><button class="button amber" id="live-confirm">Allow automatic builds</button></div></dialog>
+  <dialog id="reset-dialog" aria-labelledby="reset-title"><h2 id="reset-title">Start a new project?</h2><p>This clears this browser’s saved versions and their reference images. Download any source you want to keep first.</p><div class="dialog-actions"><button class="button secondary" data-close="reset-dialog">Keep working</button><button class="button amber" id="confirm-reset">Clear and start fresh</button></div></dialog>
   <dialog id="install-dialog"><h2 id="install-title">Install the official Codex CLI?</h2><p id="install-detail">This downloads the official @openai/codex package through npm and installs it globally on this device. No account or model request is made during installation.</p><div class="dialog-actions"><button class="button secondary" data-close="install-dialog">Cancel</button><a id="install-terms" href="https://code.claude.com/docs/en/legal-and-compliance" target="_blank" rel="noreferrer" hidden>Anthropic terms</a><button class="button amber" id="confirm-install">Install Codex</button></div></dialog>
-  <dialog id="budget-dialog"><h2>Start a new local allowance?</h2><p>This resets Jarvis’s local request counter. It does not renew your provider subscription allowance or change saved work.</p><div class="dialog-actions"><button class="button secondary" data-close="budget-dialog">Keep current allowance</button><button class="button amber" id="confirm-budget">Start new allowance</button></div></dialog>
   <dialog id="source-dialog" class="source-dialog" aria-labelledby="source-title"><div class="source-heading"><h2 id="source-title">The source is yours.</h2><button class="icon-button" data-close="source-dialog" aria-label="Close source"><svg><use href="#i-close"/></svg></button></div><p>One HTML file. Styles and interactions included.</p><pre><code id="source-code"></code></pre></dialog>
 </body>
 </html>
