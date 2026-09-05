@@ -11,6 +11,7 @@ foreach ($file in @('server.mjs','package.json')) { Copy-Item -LiteralPath (Join
 Copy-Item -LiteralPath (Join-Path $jarvisRoot 'desktop/Launcher.cs') -Destination (Join-Path $jarvisPayload 'Launcher.cs')
 New-Item -ItemType Directory -Force -Path (Join-Path $jarvisPayload 'scripts') | Out-Null
 Copy-Item -LiteralPath (Join-Path $jarvisRoot 'scripts/dictate.ps1') -Destination (Join-Path $jarvisPayload 'scripts')
+Copy-Item -LiteralPath (Join-Path $jarvisRoot 'scripts/check-publisher.ps1') -Destination (Join-Path $jarvisPayload 'scripts')
 foreach ($dir in @('lib','public')) {
     $target = Join-Path $jarvisPayload $dir
     New-Item -ItemType Directory -Force -Path $target | Out-Null

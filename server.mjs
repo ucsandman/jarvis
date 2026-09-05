@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { AppError, Vision } from './lib/vision.mjs';
 import { runProcess, subscriptionLogin, installCodex, SubscriptionError } from './lib/subscription.mjs';
+import { MODELS, selection, SelectionError } from './lib/models.mjs';
 
 export const PREVIEW_CSP = "sandbox allow-scripts allow-forms; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'";
 const APP_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
@@ -57,9 +58,10 @@ export function createApp({ vision = new Vision(), maxCalls = 60, login = subscr
       const url = new URL(req.url,`http://${host}`);
       if (req.method === 'GET' && url.pathname === '/api/health') return send(200,{ app:'jarvis-workbench',ready:true,...(instanceId ? {instanceId} : {}) });
       if (desktopKey && url.pathname.startsWith('/api/') && !matchesKey(req.headers['x-jarvis-launch'])) throw new AppError('Open Jarvis from its desktop shortcut to reconnect this browser.',403);
-      if (req.method === 'GET' && url.pathname === '/api/local-session') return send(200,{ token,remaining:maxCalls-calls,dictation:process.platform === 'win32' });
+      if (req.method === 'GET' && url.pathname === '/api/local-session') return send(200,{ token,models:MODELS,remaining:maxCalls-calls,dictation:process.platform === 'win32' });
       if (req.method === 'GET' && url.pathname === '/api/session') {
-        const status = await vision.status(AbortSignal.timeout(15000));
+        const selected=selection({model:req.headers['x-jarvis-model'],effort:req.headers['x-jarvis-effort']});
+        const status = await vision.status(AbortSignal.timeout(15000),selected);
         return send(200,{ token, ...status, remaining:maxCalls-calls,dictation:process.platform === 'win32' });
       }
       if (req.method === 'GET' && url.pathname.startsWith('/preview/')) {
@@ -84,12 +86,13 @@ export function createApp({ vision = new Vision(), maxCalls = 60, login = subscr
         calls = 0; return send(200,{ remaining:maxCalls });
       }
       if (url.pathname === '/api/login' || url.pathname === '/api/install-codex') {
+        const selected=selection(data);
         if (data.consent !== true) throw new AppError('Choose Sign in with ChatGPT to start login.',403);
         if (busy) throw new AppError('Wait for the current request to finish.',409,'BUSY');
         busy = true;
         const controller = new AbortController(); const abort = () => controller.abort();
         res.once('close',abort);
-        try { return send(200,await (url.pathname === '/api/login' ? login : install)(AbortSignal.any([controller.signal,AbortSignal.timeout(180000)]))); }
+        try { return send(200,await (url.pathname === '/api/login' ? login : install)(AbortSignal.any([controller.signal,AbortSignal.timeout(180000)]),selected)); }
         finally { busy = false; res.removeListener('close',abort); }
       }
       if (url.pathname === '/api/dictate') {
@@ -128,7 +131,7 @@ export function createApp({ vision = new Vision(), maxCalls = 60, login = subscr
       } finally { busy = false; res.removeListener('close',abort); }
     } catch (error) {
       const interrupted = ['AbortError','TimeoutError'].includes(error.name);
-      const safe = error instanceof AppError || error instanceof SubscriptionError;
+      const safe = error instanceof AppError || error instanceof SubscriptionError || error instanceof SelectionError;
       send(error.status || (interrupted ? 504 : 500),{ code:safe ? error.code : interrupted ? 'TIMEOUT' : 'REQUEST_FAILED',remaining:maxCalls-calls,error:safe ? error.message : interrupted ? 'The request timed out or was canceled. Your saved versions are safe. Try a smaller change.' : 'Jarvis could not complete that request. Try again.' });
     }
   });

@@ -11,12 +11,35 @@ const launchHeaders = () => launchKey ? {'X-Jarvis-Launch':launchKey} : {};
 const $ = id => document.getElementById(id);
 const state = { token:'', configured:false, stream:null, image:null, imageLabel:'', observation:null,
   revisions:[], selected:null, busy:false, consent:false, voiceConsent:false, speaking:false, recognition:null, controller:null, previewSequence:0, remaining:null, setupBusy:false, setupController:null, dictation:false, inputBusy:false };
+state.model='astra'; state.effort='medium'; state.checking=false;
+try {
+  const saved=JSON.parse(localStorage.getItem('jarvisModelPreferences') || '{}');
+  if (['astra','fable'].includes(saved.model)) state.model=saved.model;
+  if (['low','medium','high','xhigh','max'].includes(saved.effort)) state.effort=saved.effort;
+} catch { /* Preferences are optional when browser storage is unavailable. */ }
+const selectedLabel = () => state.model==='fable' ? 'Fable 5.1' : 'Astra';
+const selectedAccount = () => state.model==='fable' ? 'Claude' : 'ChatGPT';
+const effortNotes = {low:'Faster, with lighter reasoning.',medium:'Balances speed and depth.',high:'More reasoning for complex changes.',xhigh:'Extra reasoning; expect a longer wait.',max:'Deepest reasoning; may take much longer and use more allowance.'};
+function renderSelection() {
+  $('model-choice').value=state.model; $('effort-choice').value=state.effort;
+  $('effort-note').textContent=`${effortNotes[state.effort]} Applies to your next build.`;
+  $('billing-note').textContent=state.model==='fable' ? 'Fable uses your Claude subscription. Usage credits may be charged automatically under your account settings.' : 'Astra uses your ChatGPT subscription. Model access and usage limits apply.';
+  $('consent-detail').textContent=state.model==='fable' ? 'Your direction, selected prototype source, and included reference frame will be sent to Anthropic through Claude Code. Fable can automatically consume paid usage credits under your Claude account settings. Camera preview stays local until you choose a frame and build.' : 'Your direction, selected prototype source, and included reference frame will be sent to OpenAI through Codex using your ChatGPT subscription. Camera preview stays local until you choose a frame and build.';
+  const claude=state.model==='fable';
+  $('install-title').textContent=claude?'Install official Claude Code?':'Install the official Codex CLI?';
+  $('install-detail').textContent=claude?'Downloads the verified Claude Code runtime directly from Anthropic’s official npm package into Jarvis’s per-user tools folder. No terminal or administrator access is needed. Claude Code is subject to Anthropic’s terms. No model request is made during installation.':'Downloads the official @openai/codex package through npm and installs it globally on this device. No account or model request is made during installation.';
+  $('confirm-install').textContent=claude?'Install Claude Code':'Install Codex';
+  $('install-terms').hidden=!claude;
+  $('setup-help').href=claude?'https://code.claude.com/docs/en/authentication':'https://developers.openai.com/codex/auth';
+  $('setup-detail').textContent=claude?'Sign-in opens Anthropic’s official browser flow and updates Claude Code login on this device. Installation downloads Claude Code into Jarvis’s own tools folder. Each action starts only when you choose it.':'Sign-in opens the official browser flow and updates Codex login on this device. Installing Codex adds its official npm package globally. Each action starts only when you choose it.';
+}
 const current = () => state.revisions.find(r => r.id === state.selected);
 const showError = message => { $('error-text').textContent = message; $('error').hidden = false; };
 const hideError = () => { $('error').hidden = true; };
 const time = value => new Date(value).toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
 
 async function api(path, body, signal) {
+  if (['/api/build','/api/observe','/api/login','/api/install-codex'].includes(path)) body={...body,model:state.model,effort:state.effort};
   const response = await fetch(path,{ method:'POST',signal,headers:{ ...launchHeaders(),'Content-Type':'application/json','X-Jarvis-Session':state.token },body:JSON.stringify(body) });
   const data = await response.json();
   if (Number.isFinite(data.remaining)) { state.remaining = data.remaining; renderBudget(); }
@@ -31,10 +54,11 @@ function textElement(tag, text, className) {
 function updateControls() {
   const controls = ['build','connect','upload','example','file','new-session','camera-select','clear-reference','resume','mic','try-demo','include-frame'];
   controls.forEach(id => { $(id).disabled = state.busy || state.setupBusy || state.inputBusy || (!state.token && id === 'build'); });
-  $('build').disabled = state.busy || state.setupBusy || state.inputBusy || !state.configured || !state.token || state.remaining === 0;
+  $('build').disabled = state.busy || state.setupBusy || state.inputBusy || state.checking || !state.configured || !state.token || state.remaining === 0;
+  for (const id of ['model-choice','effort-choice']) $(id).disabled=state.busy || state.setupBusy || state.inputBusy;
   $('mic').disabled = state.busy || state.setupBusy || !state.token || !state.dictation;
   $('mic').title = state.dictation ? 'Dictate direction locally' : 'Local dictation is available on Windows after connection';
-  for (const id of ['login','install-codex','recheck','reset-budget']) $(id).disabled = state.busy || state.setupBusy;
+  for (const id of ['login','install-codex','recheck','reset-budget']) $(id).disabled = state.busy || state.setupBusy || state.checking;
   $('direction').disabled = state.busy || state.setupBusy;
   document.querySelectorAll('.revision').forEach(b => { b.disabled = state.busy || state.inputBusy; });
   $('build-overlay').hidden = !state.busy;
@@ -210,12 +234,12 @@ function say(text) {
   utterance.rate = 1.02; utterance.pitch = .92; speechSynthesis.speak(utterance);
 }
 async function beginBuild() {
-  if (state.busy || state.setupBusy || state.inputBusy) return;
+  if (state.busy || state.setupBusy || state.inputBusy || state.checking) return;
   hideError();
   const direction = $('direction').value.trim();
   if (!direction) { showError('Tell Jarvis what should work, such as “Build a task board.”'); $('direction').focus(); return; }
-  if (!state.configured || !state.token) { $('setup-panel').open = true; showError('Connect your ChatGPT subscription in Setup, then try again.'); return; }
-  if (state.remaining === 0) { $('setup-panel').open = true; showError('Choose Start new allowance in Setup. This does not renew your ChatGPT allowance.'); return; }
+  if (!state.configured || !state.token) { $('setup-panel').open = true; showError('Check the selected model in Setup, then try again.'); return; }
+  if (state.remaining === 0) { $('setup-panel').open = true; showError('Choose Start new allowance in Setup. This does not renew your provider subscription allowance.'); return; }
   try {
     if ($('include-frame').checked && !state.image && state.stream) setImage(imageFromElement($('camera')),`CHOSEN FRAME · ${time(Date.now())}`);
   } catch(error) { showError(error.message); return; }
@@ -231,7 +255,7 @@ async function beginBuild() {
   $('build-elapsed').textContent = '0s elapsed · up to 5 minutes';
   const elapsedTimer = setInterval(() => {
     const elapsed = Math.floor((Date.now()-started)/1000);
-    $('activity').textContent = `ASTRA · ${elapsed}s elapsed`;
+    $('activity').textContent = `${selectedLabel().toUpperCase()} · ${state.effort} · ${elapsed}s elapsed`;
     $('build-elapsed').textContent = `${elapsed}s elapsed · ${Math.max(0,300-elapsed)}s until timeout`;
   },1000);
   updateControls();
@@ -239,7 +263,7 @@ async function beginBuild() {
     const built = await api('/api/build',{ image,instruction:direction,previous,consent:true },controller.signal);
     if (controller.signal.aborted) return;
     const observation = built.result.observation || (image ? null : parent?.observation) || null;
-    const revision = { ...built.result,id:crypto.randomUUID(),image:image || parent?.image || null,referenceUsed:!!image,observation,instruction:direction,created,model:built.model };
+    const revision = { ...built.result,id:crypto.randomUUID(),image:image || parent?.image || null,referenceUsed:!!image,observation,instruction:direction,created,model:built.model,effort:built.effort || state.effort };
     // Accept and persist completed inference before attempting any preview work.
     state.revisions.push(revision); state.revisions = state.revisions.slice(-12); state.selected = revision.id;
     state.controller = null; $('cancel').disabled = true;
@@ -248,7 +272,7 @@ async function beginBuild() {
     if (observation && image) renderObservations(observation,created);
     $('build-phase').textContent = 'SOURCE READY'; $('build-detail').textContent = 'Opening the preview. You can retry it without generating again.';
     await selectRevision(revision.id,true);
-    $('provider-status').textContent = 'Astra · subscription';
+    $('provider-status').textContent = `${selectedLabel()} · ${state.effort}`;
     say(revision.reply);
   } catch(error) {
     if (error.name !== 'AbortError') {
@@ -357,41 +381,57 @@ function updateFrameChoice() {
 function renderBudget() {
   $('budget').textContent = Number.isFinite(state.remaining) ? `${state.remaining} local requests left · subscription limits also apply` : 'Local allowance unavailable';
 }
+let sessionSequence=0;
 async function refreshSession() {
+  const sequence=++sessionSequence;
+  const requestedModel=state.model,requestedEffort=state.effort;
+  state.checking=true; state.configured=false; updateControls();
   $('recheck').disabled = true;
   try {
     const local = await fetch('/api/local-session',{ signal:AbortSignal.timeout(3000),headers:launchHeaders() });
     if (!local.ok) throw new Error('Local connection unavailable. Open Jarvis from its desktop shortcut, then choose Reconnect.');
     const connection = await local.json();
+    if (sequence!==sessionSequence) return;
     state.token = connection.token; state.remaining = connection.remaining; state.dictation = connection.dictation;
     updateControls(); renderBudget();
     if (current()) await selectRevision(state.selected);
-    const response = await fetch('/api/session',{ signal:AbortSignal.timeout(17000),headers:launchHeaders() });
+    const response = await fetch('/api/session',{ signal:AbortSignal.timeout(17000),headers:{...launchHeaders(),'X-Jarvis-Model':requestedModel,'X-Jarvis-Effort':requestedEffort} });
     if (!response.ok) throw new Error('Could not connect to Jarvis. Reopen Jarvis, then choose Reconnect. Your saved source is available.');
     const session = await response.json();
+    if (sequence!==sessionSequence) return;
     state.token = session.token; state.configured = session.configured; state.remaining = session.remaining; state.dictation = session.dictation;
-    $('provider-status').textContent = session.configured ? 'Astra · subscription' : 'Setup needed';
+    $('provider-status').textContent = session.configured ? `${selectedLabel()} · ${state.effort}` : 'Setup needed';
     $('provider-dot').classList.toggle('ready',session.configured);
-    $('setup-summary').textContent = session.configured ? 'ChatGPT connected' : 'Action needed';
-    $('cli-check').textContent = session.cli === false ? 'Official Codex CLI needs installation.' : 'Official Codex CLI is available.';
-    $('login-check').textContent = session.configured ? 'Signed in with ChatGPT.' : 'ChatGPT subscription sign-in is needed.';
-    $('install-codex').hidden = session.cli !== false;
-    $('login').hidden = session.configured || session.cli === false;
-    $('setup-message').textContent = session.reason || 'Ready to build. Astra model access and subscription allowance are checked on each request.';
+    $('setup-summary').textContent = session.configured ? `${selectedAccount()} connected` : 'Action needed';
+    const cliName=state.model==='fable'?'Claude Code':'Codex CLI';
+    $('cli-check').textContent = session.cli === false ? `Official ${cliName} needs installation.` : session.code==='CLI_UPDATE_REQUIRED' ? `Official ${cliName} needs updating.` : `Official ${cliName} is available.`;
+    $('login-check').textContent = session.configured ? `Signed in with ${selectedAccount()}.` : `${selectedAccount()} subscription sign-in is needed.`;
+    $('install-codex').hidden = session.cli !== false && session.code!=='CLI_UPDATE_REQUIRED';
+    $('install-codex').textContent=`Install official ${cliName}`;
+    $('login').hidden = session.configured || session.cli === false || session.code==='CLI_UPDATE_REQUIRED';
+    $('login').textContent=`Sign in with ${selectedAccount()}`;
+    $('setup-message').textContent = session.reason || 'Ready to build. Selected model access and subscription allowance are checked on each request.';
     $('setup-panel').open = !session.configured;
   } catch(error) {
+    if (sequence!==sessionSequence) return;
     state.configured = false;
     $('provider-status').textContent = 'Local connection unavailable';
     $('provider-dot').classList.remove('ready'); $('setup-panel').open = true;
     $('setup-summary').textContent = 'Reconnect needed'; $('setup-message').textContent = error.message;
     showError(error.message);
-  } finally { renderBudget(); updateControls(); updateFrameChoice(); }
+  } finally { if (sequence===sessionSequence) {state.checking=false;renderBudget(); updateControls(); updateFrameChoice();} }
 }
+for (const id of ['model-choice','effort-choice']) $(id).addEventListener('change',async()=>{
+  if (state.busy || state.setupBusy) {renderSelection();return;}
+  state.model=$('model-choice').value; state.effort=$('effort-choice').value; state.consent=false;
+  try {localStorage.setItem('jarvisModelPreferences',JSON.stringify({model:state.model,effort:state.effort}));} catch { }
+  renderSelection(); hideError(); await refreshSession();
+});
 async function setupAction(path) {
   if (state.setupBusy || state.busy || !state.token) return;
   state.setupBusy = true; state.setupController = new AbortController();
   $('cancel-setup').hidden = false;
-  $('setup-message').textContent = path === '/api/login' ? 'Complete ChatGPT sign-in in the browser window opened by Codex. This can take up to three minutes.' : 'Installing the official Codex CLI. This can take up to three minutes.';
+  $('setup-message').textContent = path === '/api/login' ? `Complete ${selectedAccount()} sign-in in the browser opened by the official CLI. This can take up to three minutes.` : `Installing official ${state.model==='fable'?'Claude Code':'Codex CLI'}. This can take up to three minutes.`;
   updateControls();
   try { await api(path,{ consent:true },state.setupController.signal); await refreshSession(); }
   catch(error) { $('setup-message').textContent = error.name === 'AbortError' ? 'Setup action canceled. Choose Check again to inspect the current state.' : error.message; }
@@ -428,6 +468,7 @@ $('try-demo').addEventListener('click',async () => {
 });
 window.addEventListener('pagehide',() => state.setupController?.abort());
 async function init() {
+  renderSelection();
   updateControls();
   try {
     const project = await loadProject();

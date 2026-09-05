@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0 · 2026-09-05
+
+- Choose Astra or Fable 5.1 and low, medium, high, xhigh, or max effort in the workbench. Preferences persist; each build records its selection.
+- Fable generation and image input through official Claude Code with a paid Claude subscription. Usage credits may be charged; the UI shows this before consent.
+- Provider-specific Setup, sign-in, and a Windows button to install the checksum- and publisher-verified Claude Code runtime directly from Anthropic.
+- Server-side model/effort validation, isolated CLI settings, disabled executable tools and model fallback, safe errors and cancellation.
+- Updated Windows executable and public download guidance.
+
 ## Website update · 2026-09-05
 
 - Removed the optional task-board section and its hosted sample file. The public page now focuses on the reference-to-result walkthrough and Windows download.

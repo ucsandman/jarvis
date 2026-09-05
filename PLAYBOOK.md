@@ -104,3 +104,16 @@ Security review caught unauthenticated cross-account loopback access, then a coo
 Packaging failures: Windows PowerShell could not deserialize npm's empty root-package property, and native argument quoting stripped JavaScript string quotes. Parsing package integrity through Node stdin fixed both. HOME overrides also failed to create an unsigned-in Windows identity; the verifier now uses an explicit isolated CLI storage directory only for the signed-out status probe and does not claim a fresh OS account. Preserve these real failure cases when changing the packager or verifier.
 
 Public hosting remains a static allowlisted deployment on the approved existing Vercel Pro team. Google and Bing ownership are verified and sitemaps submitted. Initial Google indexing request hit the account's daily quota; indexing is not guaranteed. Standard Vercel analytics is enabled, without the Plus add-on.
+
+## 0.4.0 provider and effort verification
+
+- 28 unit tests, 13 model/effort browser assertions, nine recovery browser checks, and 24 local public-site checks passed. Static verification checked 25 JavaScript files.
+- Installed the pinned official Claude Code runtime through the production installer: archive checksum and Anthropic publisher verified; existing paid first-party login reused without exposing credential output.
+- A real Fable image build at low effort completed in 34 seconds with five observations and 4,133 HTML characters. Its restricted preview passed five checks: load, task creation, search, movement, and zero page errors.
+- Independent security review found no critical/high issue. Its stale billing-documentation finding was fixed before packaging.
+
+Retro: the provider mechanism and rendered output worked. Initial preview QA used an incorrect session header and correctly received HTTP 403; using the server's actual header fixed the probe. Derive future verification clients from the canonical endpoint contract. Subscription OAuth does not prove included-only billing; preserve explicit credit notices and fresh consent on provider changes.
+
+DEVIATIONS: Claude Code installs directly from Anthropic through Setup instead of redistribution inside the executable. The no-terminal flow is preserved. The user explicitly allowed Claude subscription usage credits; no direct model API was introduced.
+
+Packaging evidence: the final 0.4.0 executable is 171,300,352 bytes. All 18 packaged-app assertions and six actual Windows lifecycle checks passed. Payload inventory checked 37 files, including 27 text files, with seven current-source matches and zero credential filenames or secret/private-path matches. A clean staged-source checkout passed npm ci, 28 tests, lint and build. The production dry-run contains 12 public files and excludes generated environment data.
