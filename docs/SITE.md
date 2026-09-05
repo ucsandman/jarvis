@@ -57,3 +57,7 @@ Retro: the static deployment and live-browser checks worked without exposing the
 ## 0.3.0 product correction
 
 The task board demonstrated an output, but visitors reasonably read its input as a prompt to Jarvis. The main demo now explains the actual reference, prompt, result, and revision journey. The board is an optional collapsed sample, and the site labels all prepared material. Keep captured results visible when describing a change, rather than relying on text that claims something was added. Real generation remains in the downloadable workbench.
+
+Release evidence: v0.3.0 points to `ea4048925bae34f91bc89224b25b28b0e2deaad3`. GitHub CI run `33975720229` passed on both Windows and Linux. The anonymous executable download returned HTTP 200 and 171,293,696 bytes; its SHA-256 matched the published checksum. The payload scan checked 34 files, including 24 text files, with zero credential filenames or secret/private-path hits and four current-source matches.
+
+Production deployment `dpl_Dk8zgMJQYqs6qzb6cEXhuBKXXtup` is READY. Its dry-run/upload contains 13 public files and excludes generated environment data. All 25 public-site browser checks pass against the live alias, including captured before/after images, sample controls, pinned executable link, public assets, private-route rejection and mobile layout. The download and public walkthrough are shipped; search indexing remains subject to the previously recorded provider limits.
