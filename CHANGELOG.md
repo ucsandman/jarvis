@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.8.0 — Desktop companion
+
+- Added a compact native Windows companion that can be summoned with Ctrl+Shift+Space and expands into the existing workbench when the user chooses a build or Computer mode workflow.
+- Added optional local dictation and spoken replies, a bounded in-session conversation, and an explicit current-window screenshot that shows the exact frame used.
+- Added a persistent WebView2 profile for the companion. Existing browser-stored revisions are not imported automatically; export HTML and use Settings → Import a saved HTML prototype. Imports are limited to 120,000 bytes and append a revision when the 12-version history has room.
+- Kept camera sharing, consented Live build, source versions, downloads, Astra/Fable subscription transports, and reviewed Computer mode actions unchanged.
+
 ## 0.7.0 — Reviewed computer actions
 
 - Added Windows Computer mode with explicit local and subscription sharing consent.

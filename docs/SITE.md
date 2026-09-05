@@ -8,9 +8,9 @@ The public site is a static walkthrough and Windows download page. It does not r
 ## Release procedure
 
 1. Verify tests, browser behavior, and the final Windows executable. Publish the versioned GitHub release and checksum.
-2. Update the pinned download and release links in the README and site. Keep model, streaming, credit, and signing disclosures accurate.
+2. Update the pinned download and release links in the README and site. Keep desktop-runtime, model, streaming, credit, and signing disclosures accurate.
 3. Run `node scripts/build-site.mjs` and `node scripts/verify-site.mjs`.
-4. Inspect `vercel deploy --dry --json --cwd .artifacts/site --scope ucsandmans-projects`. It must contain exactly the 10 allowlisted public files and exclude environment/configuration data.
+4. Inspect `vercel deploy --dry --json --cwd .artifacts/site --scope ucsandmans-projects`. It must contain only allowlisted public files, including the verified `companion.png` capture, and exclude environment/configuration data.
 5. Deploy the approved release with `vercel deploy --prod --yes --cwd .artifacts/site --scope ucsandmans-projects`.
 6. Run `node scripts/verify-site.mjs https://jarvis-workbench.vercel.app`. Confirm the anonymous executable download hash, metadata, website link, and GitHub About text.
 
@@ -26,11 +26,17 @@ Never deploy the repository root. The build output is `.artifacts/site`; generat
 
 ## Current product copy
 
-Screen/window sharing is the primary input; camera and upload remain available. Live build sends consented snapshots after a pause, with minimum intervals and a ten-request cap. Fable can show incremental HTML drafts and may consume paid Claude usage credits. Astra's isolated Codex exec path releases completed messages. Draft scripts are disabled until final validation. Source is MIT licensed; upstream runtimes retain their own terms. The outer Windows executable is unsigned.
+The native desktop companion is the primary entry point. It uses a separate persistent WebView2 profile, has bounded in-session conversation, and opens the builder or Computer mode only through explicit user controls. Revisions from a source-development browser profile or older browser-based install are not imported automatically; **Settings → Import a saved HTML prototype** imports exported HTML up to 120,000 bytes and appends a revision only when the 12-version history has room. Screen/window sharing, camera and upload remain available in the workbench. A requested companion screenshot shows the exact frame used; it does not monitor the screen or listen continuously. Live build sends consented snapshots after a pause, with minimum intervals and a ten-request cap. Fable can show incremental HTML drafts and may consume paid Claude usage credits. Astra's isolated Codex exec path releases completed messages. Draft scripts are disabled until final validation. Source is MIT licensed; upstream runtimes retain their own terms. The outer Windows executable is unsigned.
 
 ## Verification
 
-The site suite checks all four current walkthrough steps on desktop and mobile, arrow/Home/End navigation, the draft replay disclosure, six public assets, seven removed/private routes, download link, overflow and page errors. Public release evidence is appended below. Detailed historical investigations remain in [PLAYBOOK.md](../PLAYBOOK.md).
+The site suite checks the companion and all four current walkthrough steps on desktop and mobile, arrow/Home/End navigation, the draft replay disclosure, public assets, removed/private routes, download link, overflow and page errors. It must also verify the companion's capture, subscription, profile-migration and Computer-mode boundary disclosures. Public release evidence is appended below. Detailed historical investigations remain in [PLAYBOOK.md](../PLAYBOOK.md).
+
+## 0.8 Desktop companion surface audit
+
+The public page leads with the native companion, Ctrl+Shift+Space summon shortcut, explicit current-window screenshot, optional local voice features, bounded conversation, WebView2 requirement, and the separate WebView profile. It keeps the established builder walkthrough lower on the page. The companion does not claim ambient listening, screen monitoring, automatic revision import, model fallback, or action permission changes. The Computer guide remains explicit that the user opens its workflow and approves each action.
+
+The verified `docs/images/companion.png` capture appears in the hero and is a required allowlisted public asset. Its caption identifies it as a captured idle local interface, not a live conversation or desktop-control surface, and states that screen and microphone are off until the user chooses a feature and consents.
 
 ### 0.6.0 publication
 

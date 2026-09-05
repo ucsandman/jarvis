@@ -19,6 +19,7 @@ internal static class Launcher {
     static string VersionDir = Path.Combine(Root, "versions", BuildInfo.Version + "-" + BuildInfo.PayloadHash.Substring(0,12));
     static Process Server;
     static NotifyIcon Tray;
+    static DesktopShell Window;
     static Mutex Instance;
     static EventWaitHandle OpenSignal,QuitSignal;
     static readonly System.Collections.Generic.List<EventWaitHandle> AppSignals=new System.Collections.Generic.List<EventWaitHandle>();
@@ -33,9 +34,11 @@ internal static class Launcher {
     [DllImport("kernel32.dll")] static extern bool SetInformationJobObject(IntPtr job,int info,ref ExtendedLimits limits,uint size);
     [DllImport("kernel32.dll")] static extern bool AssignProcessToJobObject(IntPtr job,IntPtr process);
     [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
+    [DllImport("kernel32.dll",CharSet=CharSet.Unicode)] static extern bool SetDllDirectory(string path);
 
     [STAThread]
     static int Main(string[] args) {
+        EmbeddedDependencyLoader.Install();
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         if (args.Length == 1 && args[0] == "--verify") {
@@ -77,6 +80,7 @@ internal static class Launcher {
             loading.Shown += async delegate {
                 try {
                     await Task.Run((Action)Extract);
+                    if(!SetDllDirectory(VersionDir)) throw new Exception("Windows couldn't load Jarvis's desktop components.");
                     if (PortInUse()) throw new Exception("Another application is using port 4317. Quit that session, then reopen Jarvis.");
                     if (!Ready()) {
                         Job=CreateJobObject(IntPtr.Zero,null);
@@ -101,15 +105,23 @@ internal static class Launcher {
                     menu.Items.Add("Quit Jarvis",null,delegate { Application.Exit(); });
                     Tray=new NotifyIcon { Icon=SystemIcons.Application, Text="Jarvis", ContextMenuStrip=menu, Visible=true };
                     Tray.DoubleClick += delegate { Open(); };
-                    AppReady=true; loading.Hide(); Open();
+                    Window=new DesktopShell(Root,Url,LaunchKey);
+                    Window.ShowDock();
+                    await Window.InitializeAsync();
+                    if(!Window.HotkeyAvailable) MessageBox.Show("Ctrl+Shift+Space is already in use. Use the Jarvis dock or tray menu to open the companion.","Jarvis shortcut unavailable",MessageBoxButtons.OK,MessageBoxIcon.Information);
+                    AppReady=true; loading.Hide(); Window.SummonPanel();
                 } catch (Exception error) {
-                    MessageBox.Show(error.Message,"Jarvis couldn't start",MessageBoxButtons.OK,MessageBoxIcon.Error);
+                    if (error is DesktopRuntimeMissingException) {
+                        if (MessageBox.Show("Jarvis needs Microsoft Edge WebView2 Runtime. Open Microsoft's official download page?","Jarvis needs WebView2",MessageBoxButtons.YesNo,MessageBoxIcon.Information)==DialogResult.Yes)
+                            Process.Start(new ProcessStartInfo("https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section") {UseShellExecute=true});
+                    } else MessageBox.Show(error.Message,"Jarvis couldn't start",MessageBoxButtons.OK,MessageBoxIcon.Error);
                     Application.Exit();
                 }
             };
             Application.Run(loading);
             return 0;
         } finally {
+            if (Window!=null) { Window.Shutdown(); Window.Dispose(); }
             if (Tray!=null) Tray.Dispose();
             if (Server!=null && !Server.HasExited) {
                 // Stop only the process tree this launcher owns, including a canceled inference.
@@ -147,7 +159,7 @@ internal static class Launcher {
     }
     static bool PortInUse() { try { using(var socket=new TcpClient()) socket.Connect("127.0.0.1",4317); return true; } catch { return false; } }
     static string NewKey() { var bytes=new byte[32]; using(var random=RandomNumberGenerator.Create()) random.GetBytes(bytes); return BitConverter.ToString(bytes).Replace("-","").ToLowerInvariant(); }
-    static void Open() { Process.Start(new ProcessStartInfo(Url+"/#launch="+LaunchKey) { UseShellExecute=true }); }
+    static void Open() { if(Window!=null) Window.SummonPanel(); }
     static string Run(string args) {
         using(var process=Process.Start(new ProcessStartInfo(Path.Combine(VersionDir,"runtime","node.exe"),args) { WorkingDirectory=VersionDir,UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true })) {
             string output=process.StandardOutput.ReadToEnd();

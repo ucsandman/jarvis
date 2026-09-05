@@ -1,8 +1,10 @@
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { AppError, Vision } from './lib/vision.mjs';
+import { Assistant } from './lib/assistant.mjs';
 import { runProcess, subscriptionLogin, installCodex, SubscriptionError } from './lib/subscription.mjs';
 import { MODELS, selection, SelectionError } from './lib/models.mjs';
 import { Computer } from './lib/computer.mjs';
@@ -12,6 +14,7 @@ export const DRAFT_CSP = "sandbox; default-src 'none'; script-src 'none'; style-
 const APP_CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
 const assets = new Map([
   ['/', ['index.html','text/html']], ['/style.css',['style.css','text/css']],
+  ['/companion.js',['companion.js','text/javascript']], ['/companion.css',['companion.css','text/css']],
   ['/computer.js',['computer.js','text/javascript']], ['/live.js',['live.js','text/javascript']], ['/app.js',['app.js','text/javascript']], ['/storage.js',['storage.js','text/javascript']],
   ['/mark.svg',['mark.svg','image/svg+xml']], ['/reference.svg',['reference.svg','image/svg+xml']],
   ['/demo.html',['demo.html','text/html']]
@@ -33,7 +36,7 @@ async function readJson(req) {
   } catch { throw new AppError('The request is not valid JSON.'); }
 }
 
-export function createApp({ vision = new Vision(), computer, maxCalls = 60, login = subscriptionLogin, install = installCodex, instanceId, desktopKey } = {}) {
+export function createApp({ vision = new Vision(), assistant = new Assistant({vision}), computer, maxCalls = 60, login = subscriptionLogin, install = installCodex, instanceId, desktopKey } = {}) {
   computer ||= new Computer({launcherInstance:instanceId});
   if (desktopKey !== undefined && !/^[a-f0-9]{64}$/.test(desktopKey)) throw new Error('Invalid desktop launch key.');
   const matchesKey = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value) && timingSafeEqual(Buffer.from(value),Buffer.from(desktopKey));
@@ -82,7 +85,7 @@ export function createApp({ vision = new Vision(), computer, maxCalls = 60, logi
         const data = await readFile(new URL(`./public/${name}`,import.meta.url));
         res.writeHead(200,{'Content-Type':`${type}; charset=utf-8`}); return res.end(data);
       }
-      if (req.method !== 'POST' || !['/api/computer','/api/observe','/api/build','/api/preview','/api/dictate','/api/login','/api/install-codex','/api/reset-budget'].includes(url.pathname)) throw new AppError('Not found.',404);
+      if (req.method !== 'POST' || !['/api/chat','/api/computer','/api/observe','/api/build','/api/preview','/api/dictate','/api/login','/api/install-codex','/api/reset-budget'].includes(url.pathname)) throw new AppError('Not found.',404);
       if (req.headers['x-jarvis-session'] !== token) throw new AppError('Reload Jarvis to reconnect your local session.',403);
       const data = await readJson(req);
       if(url.pathname==='/api/computer') {
@@ -116,7 +119,8 @@ export function createApp({ vision = new Vision(), computer, maxCalls = 60, logi
         const controller = new AbortController();
         const abort = () => controller.abort(); res.once('close',abort);
         try {
-          const result = await runProcess('powershell.exe',['-NoProfile','-File',fileURLToPath(new URL('./scripts/dictate.ps1',import.meta.url))],{ signal:AbortSignal.any([controller.signal,AbortSignal.timeout(30000)]) });
+          const powershell=join(process.env.SystemRoot || process.env.WINDIR || 'C:\\Windows','System32','WindowsPowerShell','v1.0','powershell.exe');
+          const result = await runProcess(powershell,['-NoProfile','-File',fileURLToPath(new URL('./scripts/dictate.ps1',import.meta.url))],{ signal:AbortSignal.any([controller.signal,AbortSignal.timeout(30000)]) });
           if (result.code !== 0) throw new AppError('Windows local dictation could not start. Check your default microphone and installed English speech recognition.',503);
           return send(200,JSON.parse(result.stdout));
         } finally { dictating=false; res.removeListener('close',abort); }
@@ -128,6 +132,20 @@ export function createApp({ vision = new Vision(), computer, maxCalls = 60, logi
         previews.set(id,data.draft===true?{html:data.html,draft:true,session:draftSession}:data.html);
         while (previews.size > 24) previews.delete(previews.keys().next().value);
         return send(200,{ url: `/preview/${id}` });
+      }
+      if (url.pathname === '/api/chat') {
+        if (data.consent !== true) throw new AppError('Allow sharing through your selected subscription before chatting.',403);
+        if (busy) throw new AppError('Another request is still finishing. Try again in a moment.',409,'BUSY');
+        assistant.validate(data);
+        if (calls >= maxCalls) throw new AppError('Your local Jarvis request allowance is used up. Choose Start new allowance in Setup. Your saved work stays here.',429,'SESSION_LIMIT');
+        busy = true;
+        const controller = new AbortController();
+        const abort = () => controller.abort();
+        res.once('close',abort);
+        try {
+          calls++;
+          return send(200,{ ...await assistant.chat(data,AbortSignal.any([controller.signal,AbortSignal.timeout(120000)])),remaining:maxCalls-calls });
+        } finally { busy=false;res.removeListener('close',abort); }
       }
       if (data.consent !== true) throw new AppError('Allow sharing through your OpenAI subscription before building.',403);
       if (busy) throw new AppError('Another request is still finishing. Try again in a moment.',409,'BUSY');

@@ -3,6 +3,7 @@ import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { browserTools } from './browser.mjs';
 const config = JSON.parse(await readFile('.artifacts/site/vercel.json','utf8'));
+const {version}=JSON.parse(await readFile('package.json','utf8'));
 const types = {html:'text/html',js:'text/javascript',css:'text/css',svg:'image/svg+xml',png:'image/png',xml:'application/xml',txt:'text/plain'};
 const server = createServer(async(req,res)=>{
   const path = new URL(req.url,'http://localhost').pathname;
@@ -46,7 +47,7 @@ try {
   await faq.press('Enter');
   assert.ok(await page.getByText('This website provides a prepared walkthrough.',{exact:false}).isVisible());
   const href=await page.locator('#download-zip').getAttribute('href');
-  assert.equal(href,'https://github.com/ucsandman/jarvis/releases/download/v0.7.0/Jarvis-0.7.0-Windows-x64.exe');
+  assert.equal(href,`https://github.com/ucsandman/jarvis/releases/download/v${version}/Jarvis-${version}-Windows-x64.exe`);
   for(const path of ['/robots.txt','/sitemap.xml','/llms.txt','/og.png','/mark.svg','/streaming.png','/computer.png']) assert.equal((await page.request.get(`${base}${path}`)).status(),200,path);
   for(const path of ['/api/session','/server.mjs','/.env','/demo.html','/reference.svg','/workbench.png','/revision.png']) assert.equal((await page.request.get(`${base}${path}`)).status(),404,path);
   await page.getByRole('link',{name:'Computer mode',exact:true}).click();

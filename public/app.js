@@ -1,6 +1,7 @@
 import { loadProject, saveProject } from './storage.js';
 import { LiveFrames } from './live.js';
 import { initComputer } from './computer.js';
+import { initCompanion } from './companion.js';
 
 let launchKey = new URLSearchParams(location.hash.slice(1)).get('launch');
 if (launchKey) history.replaceState(null,'',location.pathname+location.search);
@@ -85,7 +86,7 @@ $('show-draft').addEventListener('click',()=>chooseDraft(true));
 $('show-working').addEventListener('click',()=>chooseDraft(false));
 
 async function api(path, body, signal, keepalive=false) {
-  if (['/api/build','/api/observe','/api/login','/api/install-codex'].includes(path)) body={...body,model:state.model,effort:state.effort};
+  if (['/api/build','/api/observe','/api/chat','/api/login','/api/install-codex'].includes(path)) body={...body,model:state.model,effort:state.effort};
   const response = await fetch(path,{ method:'POST',signal,keepalive,headers:{ ...launchHeaders(),'Content-Type':'application/json','X-Jarvis-Session':state.token,...(path==='/api/build'?{Accept:'application/x-ndjson'}:{}) },body:JSON.stringify(body) });
   let data;
   if(response.headers.get('content-type')?.includes('application/x-ndjson')) {
@@ -134,6 +135,7 @@ function updateControls() {
   $('activity').textContent = state.busy ? 'WORKING ON YOUR IDEA' : current() ? 'READY FOR THE NEXT CHANGE' : 'IDEAS WELCOME';
   $('reply-status').textContent = state.busy ? 'Working' : current() ? 'Version ready' : 'Standing by';
   updateFrameChoice();
+  document.dispatchEvent(new Event('jarvis-state'));
 }
 function clearObservations() {
   state.observation = null; $('annotations').replaceChildren(); $('observations').replaceChildren();
@@ -368,7 +370,12 @@ async function markReady(revision) {
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   if (state.selected === revision.id) $('version-label').textContent = `VERSION ${String(state.revisions.indexOf(revision)+1).padStart(2,'0')}`;
 }
+function stopSpeech() {
+  window.chrome?.webview?.postMessage({type:'stop-speaking'});
+  window.speechSynthesis?.cancel();
+}
 function say(text) {
+  if (state.speaking && window.chrome?.webview) { window.chrome.webview.postMessage({type:'speak',text}); return; }
   if (!state.speaking || !('speechSynthesis' in window)) return;
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
@@ -391,7 +398,7 @@ async function beginBuild(automatic=false) {
   } catch(error) { showError(error.message); return; }
   if (!state.consent) { $('consent-dialog').showModal(); return; }
   clearDraft();draftShown=true;
-  state.busy = true; $('cancel').disabled = false; stopDictation(); window.speechSynthesis?.cancel();
+  state.busy = true; $('cancel').disabled = false; stopDictation(); stopSpeech();
   state.controller = new AbortController(); const controller = state.controller;
   let completed=false;
   const parent = current();
@@ -454,7 +461,7 @@ function stopDictation() {
 async function startDictation() {
   if (state.recognition) { stopDictation(); return; }
   if (!state.voiceConsent) { $('voice-dialog').showModal(); return; }
-  window.speechSynthesis?.cancel();
+  stopSpeech();
   const recognition = new AbortController(); state.recognition = recognition;
   const base = $('direction').value.trim();
   $('mic').setAttribute('aria-pressed','true'); $('input-note').textContent = 'Listening locally through Windows. Pause to finish, or click the microphone to cancel.';
@@ -494,7 +501,7 @@ $('decline-consent').addEventListener('click',() => $('consent-dialog').close())
 $('cancel').addEventListener('click',() => { pauseLive('Paused. Your previous version is still here.'); state.controller?.abort(); $('reply-text').textContent = 'Canceled. Your previous version is still here.'; });
 $('mic').addEventListener('click',startDictation);
 $('accept-voice').addEventListener('click',() => { state.voiceConsent = true; $('voice-dialog').close(); startDictation(); });
-$('sound').addEventListener('click',() => { state.speaking = !state.speaking; $('sound').setAttribute('aria-pressed',String(state.speaking)); $('sound').setAttribute('aria-label',state.speaking ? 'Mute spoken replies' : 'Enable spoken replies'); if (state.speaking) say('I’m here. Show me what you’re thinking.'); else window.speechSynthesis?.cancel(); });
+$('sound').addEventListener('click',() => { state.speaking = !state.speaking; $('sound').setAttribute('aria-pressed',String(state.speaking)); $('sound').setAttribute('aria-label',state.speaking ? 'Mute spoken replies' : 'Enable spoken replies'); if (state.speaking) say('I’m here. Show me what you’re thinking.'); else stopSpeech(); });
 $('privacy').addEventListener('click',() => $('privacy-dialog').showModal());
 $('dismiss-error').addEventListener('click',hideError);
 document.querySelectorAll('[data-close]').forEach(button => button.addEventListener('click',() => $(button.dataset.close).close()));
@@ -529,7 +536,7 @@ $('confirm-reset').addEventListener('click',async () => {
 });
 $('reference').addEventListener('load',positionAnnotations);
 new ResizeObserver(positionAnnotations).observe($('viewfinder'));
-window.addEventListener('pagehide',() => { state.controller?.abort(); stopCamera(); stopDictation(); window.speechSynthesis?.cancel(); });
+window.addEventListener('pagehide',() => { state.controller?.abort(); stopCamera(); stopDictation(); stopSpeech(); });
 document.addEventListener('visibilitychange',() => { if (document.hidden) stopDictation(); });
 
 function updateFrameChoice() {
@@ -646,4 +653,19 @@ initComputer({api,getSelection:()=>({model:state.model,effort:state.effort}),ope
   $('model-choice').dispatchEvent(new Event('change'));
   $('setup-panel').open=true;$('setup-panel').scrollIntoView({block:'start',behavior:'smooth'});
 }});
+initCompanion({api,getState:()=>state,updateControls,
+  stopWork:()=>{pauseLive('Paused from the companion.');state.controller?.abort();state.setupController?.abort();stopDictation();stopCamera();$('computer-stop')?.click();},
+  openWorkflow:(kind,instruction='',evidence)=>{
+    if(kind==='setup'){$('setup-panel').open=true;$('setup-panel').scrollIntoView({block:'start'});return;}
+    if(kind==='computer'){$('computer-mode').open=true;$('computer-task').value=instruction.slice(0,2000);$('computer-model').value=state.model;$('computer-effort').value=state.effort;$('computer-mode').scrollIntoView({block:'start'});return;}
+    $('direction').value=instruction;if(evidence)setImage(evidence.image,evidence.label);else{$('include-frame').checked=false;updateFrameChoice();}$('direction').focus();
+  },
+  importSource:async(html,name)=>{
+    if(state.busy || state.live || state.setupBusy || state.inputBusy)throw new Error('Finish the current task before importing.');
+    if(typeof html!=='string'||html.length>120000||!/<html[\s>]/i.test(html)||!/<\/html>/i.test(html))throw new Error('Choose a complete HTML document under 120 KB.');
+    if(state.revisions.length>=12)throw new Error('This project already has 12 versions. Download your work and start a new project before importing.');
+    const revision={id:crypto.randomUUID(),title:name.replace(/\.html?$/i,'').slice(0,100),reply:'Imported from your HTML file. The preview uses the same restricted sandbox as generated prototypes.',changes:['Imported source'],html,created:new Date().toISOString(),image:null,observation:null,referenceUsed:false};
+    state.revisions.push(revision);await selectRevision(revision.id,true);
+  }
+});
 init();

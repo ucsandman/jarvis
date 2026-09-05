@@ -5,10 +5,21 @@ $jarvisVersion = (Get-Content package.json -Raw | ConvertFrom-Json).version
 $jarvisBuild = Join-Path $jarvisRoot ".artifacts/windows-$jarvisVersion"
 $jarvisPayload = Join-Path $jarvisBuild ('payload-' + [Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path $jarvisPayload | Out-Null
+$jarvisWebViewVersion = '1.0.4191.47'
+$jarvisWebViewHash = 'f492bbf547d0da329553b6727435b677579b1e9f91cc9e4a1ad029366d5f23d0'
+$jarvisWebViewPackage = Join-Path $jarvisBuild "Microsoft.Web.WebView2.$jarvisWebViewVersion.nupkg"
+if (-not (Test-Path -LiteralPath $jarvisWebViewPackage)) { Invoke-WebRequest "https://api.nuget.org/v3-flatcontainer/microsoft.web.webview2/$jarvisWebViewVersion/microsoft.web.webview2.$jarvisWebViewVersion.nupkg" -OutFile $jarvisWebViewPackage }
+if ((Get-FileHash -LiteralPath $jarvisWebViewPackage -Algorithm SHA256).Hash.ToLowerInvariant() -ne $jarvisWebViewHash) { throw 'Official WebView2 SDK package checksum mismatch.' }
+$jarvisWebView = Join-Path $jarvisBuild ('webview2-' + [Guid]::NewGuid().ToString('N'))
+New-Item -ItemType Directory -Force -Path $jarvisWebView | Out-Null
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+[System.IO.Compression.ZipFile]::ExtractToDirectory($jarvisWebViewPackage,$jarvisWebView)
 # Fixed public inputs only. No profile, credentials, local artifacts or user revisions.
 foreach ($file in @('server.mjs','package.json','LICENSE')) { Copy-Item -LiteralPath (Join-Path $jarvisRoot $file) -Destination $jarvisPayload }
 # Include launcher source so its changes also select a fresh immutable install directory.
-Copy-Item -LiteralPath (Join-Path $jarvisRoot 'desktop/Launcher.cs') -Destination (Join-Path $jarvisPayload 'Launcher.cs')
+Get-ChildItem -LiteralPath (Join-Path $jarvisRoot 'desktop') -Filter '*.cs' -File | Copy-Item -Destination $jarvisPayload
+Copy-Item -LiteralPath (Join-Path $jarvisWebView 'runtimes/win-x64/native/WebView2Loader.dll') -Destination $jarvisPayload
+Copy-Item -LiteralPath (Join-Path $jarvisWebView 'LICENSE.txt') -Destination (Join-Path $jarvisPayload 'WEBVIEW2-LICENSE.txt')
 New-Item -ItemType Directory -Force -Path (Join-Path $jarvisPayload 'scripts') | Out-Null
 Copy-Item -LiteralPath (Join-Path $jarvisRoot 'scripts/dictate.ps1') -Destination (Join-Path $jarvisPayload 'scripts')
 Copy-Item -LiteralPath (Join-Path $jarvisRoot 'scripts/check-publisher.ps1') -Destination (Join-Path $jarvisPayload 'scripts')
@@ -48,8 +59,11 @@ $jarvisInfo = Join-Path $jarvisBuild 'BuildInfo.cs'
 Set-Content -LiteralPath $jarvisInfo -Value "internal static class BuildInfo { public const string Version = `"$jarvisVersion`"; public const string PayloadHash = `"$jarvisHash`"; }"
 $jarvisExe = Join-Path $jarvisBuild "Jarvis-$jarvisVersion-Windows-x64.exe"
 $jarvisCompiler = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
-& $jarvisCompiler /nologo /target:winexe /platform:x64 /optimize+ /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.IO.Compression.dll /reference:System.IO.Compression.FileSystem.dll /reference:Microsoft.CSharp.dll "/resource:$jarvisZip,payload.zip" "/out:$jarvisExe" (Join-Path $jarvisRoot 'desktop/Launcher.cs') $jarvisInfo
+$jarvisWebViewCore = Join-Path $jarvisWebView 'lib/net462/Microsoft.Web.WebView2.Core.dll'
+$jarvisWebViewForms = Join-Path $jarvisWebView 'lib/net462/Microsoft.Web.WebView2.WinForms.dll'
+$jarvisSources = @(Get-ChildItem -LiteralPath (Join-Path $jarvisRoot 'desktop') -Filter '*.cs' -File | ForEach-Object FullName)
+& $jarvisCompiler /nologo /target:winexe /platform:x64 /optimize+ /reference:System.Windows.Forms.dll /reference:System.Drawing.dll /reference:System.IO.Compression.dll /reference:System.IO.Compression.FileSystem.dll /reference:System.Web.Extensions.dll /reference:Microsoft.CSharp.dll "/reference:$jarvisWebViewCore" "/reference:$jarvisWebViewForms" "/resource:$jarvisZip,payload.zip" "/resource:$jarvisWebViewCore,Microsoft.Web.WebView2.Core.dll" "/resource:$jarvisWebViewForms,Microsoft.Web.WebView2.WinForms.dll" "/out:$jarvisExe" $jarvisSources $jarvisInfo
 if ($LASTEXITCODE -ne 0) { throw 'Windows launcher compilation failed.' }
 $jarvisExeHash = (Get-FileHash -LiteralPath $jarvisExe -Algorithm SHA256).Hash.ToLowerInvariant()
 Set-Content -LiteralPath (Join-Path $jarvisBuild 'SHA256SUMS.txt') -Value "$jarvisExeHash  Jarvis-$jarvisVersion-Windows-x64.exe"
-Write-Output "PASS: packaged Jarvis $jarvisVersion, Node 24.15.0, Codex 0.153.4. Executable bytes: $((Get-Item -LiteralPath $jarvisExe).Length)"
+Write-Output "PASS: packaged Jarvis $jarvisVersion, Node 24.15.0, Codex 0.153.4, WebView2 SDK $jarvisWebViewVersion. Executable bytes: $((Get-Item -LiteralPath $jarvisExe).Length)"

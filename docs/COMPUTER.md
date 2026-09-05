@@ -2,6 +2,8 @@
 
 Computer mode helps you work in Windows applications through accessible controls. It is separate from the screen-to-prototype builder. Every proposed action requires your approval; it is not unattended or unrestricted computer access.
 
+The desktop companion can discuss a task and suggest that Computer mode may help. It cannot enable control, choose a target, or change a permission. Use its explicit workflow button to open the existing Computer mode surface, then follow the same consent and review steps below.
+
 ## Use it
 
 1. Open **Computer mode** in the downloaded workbench. Allow local inspection and enable the ten-minute session.

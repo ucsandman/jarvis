@@ -1,6 +1,6 @@
 {
   "name": "jarvis-workbench",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -21,7 +21,9 @@
     "verify:windows": "node scripts/verify-windows.mjs",
     "verify:stream": "node scripts/verify-stream.mjs",
     "verify:computer": "node scripts/verify-computer.mjs",
-    "verify:computer-native": "node scripts/verify-computer-native.mjs"
+    "verify:computer-native": "node scripts/verify-computer-native.mjs",
+    "verify:assistant": "node scripts/verify-assistant.mjs",
+    "verify:companion": "node scripts/verify-companion.mjs"
   },
   "license": "MIT"
 }

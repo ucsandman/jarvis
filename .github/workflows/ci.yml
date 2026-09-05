@@ -29,6 +29,7 @@ jobs:
           node-version: 24
       - run: npm ci
       - run: npm test
+      - run: npm run verify:assistant
       - run: npm run lint
       - run: npm run build
       - name: Compile and verify Windows control filters
