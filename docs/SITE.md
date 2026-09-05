@@ -10,7 +10,7 @@ The public site is a static walkthrough and Windows download page. It does not r
 1. Verify tests, browser behavior, and the final Windows executable. Publish the versioned GitHub release and checksum.
 2. Update the pinned download and release links in the README and site. Keep model, streaming, credit, and signing disclosures accurate.
 3. Run `node scripts/build-site.mjs` and `node scripts/verify-site.mjs`.
-4. Inspect `vercel deploy --dry --json --cwd .artifacts/site --scope ucsandmans-projects`. It must contain exactly the 12 allowlisted public files and exclude environment/configuration data.
+4. Inspect `vercel deploy --dry --json --cwd .artifacts/site --scope ucsandmans-projects`. It must contain exactly the 13 allowlisted public files and exclude environment/configuration data.
 5. Deploy the approved release with `vercel deploy --prod --yes --cwd .artifacts/site --scope ucsandmans-projects`.
 6. Run `node scripts/verify-site.mjs https://jarvis-workbench.vercel.app`. Confirm the anonymous executable download hash, metadata, website link, and GitHub About text.
 
@@ -35,3 +35,7 @@ The site suite performs 24 browser checks across the walkthrough, keyboard navig
 ### 0.6.0 publication
 
 Published source 45e139d and GitHub release v0.6.0. CI run 33980839433 passed on Windows and Linux. Vercel deployment dpl_9DBCD1x4HN27ZX2TbyNRu8Sv47Tk is ready on the production alias; all 24 public browser checks passed. The anonymous Windows download matched its published SHA-256 and 171,309,056-byte size. GitHub reports MIT and the correct homepage. The local desktop launcher was restarted and serves the new draft UI.
+
+### Marketing refresh after 0.6.0
+
+The hero now shows the current Fable draft interface and leads with screen sharing and the Windows download. Model/effort choice, bounded Live build, incremental drafts, and version controls are visible before the earlier prepared walkthrough. Metadata and the social preview use the current product. The walkthrough keeps its historical captures and is labeled accordingly. The deployment allowlist now includes streaming.png, for 13 public files.
