@@ -11,6 +11,10 @@ Jarvis runs on your computer and uses your eligible **ChatGPT or Claude subscrip
 
 **Experimental.** Fable can consume paid Claude usage credits. Model access and limits depend on your account. The website is a prepared walkthrough; generation and sign-in happen in the downloaded app.
 
+<img src="docs/images/companion.png" width="360" alt="Jarvis desktop companion with a message field, window capture, microphone control, and explicit sharing permission">
+
+*A compact companion beside your work. Open the workbench for previews, source, camera, Live build, and reviewed computer actions.*
+
 ![Jarvis displaying a draft as HTML arrives](docs/images/streaming.png)
 
 *The streaming interface replaying captured HTML from a real Fable build. Drafts are unfinished and have scripts disabled. Complete versions run in the interactive preview.*
