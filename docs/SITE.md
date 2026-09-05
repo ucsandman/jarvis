@@ -86,6 +86,10 @@ The anonymous executable download was 171,325,440 bytes and matched SHA-256 bef0
 
 The installed app was not reopened after release: automatic approval review rejected that separate local launch with only a blocked-by-policy reason. Public download and production site verification completed successfully.
 
+## 0.8.1 Identity and copy release
+
+Release v0.8.1 from commit 0395477 is public with `Jarvis-0.8.1-Windows-x64.exe` (172,306,432 bytes) and `SHA256SUMS.txt`. The anonymous download matched SHA-256 35f62bf93f3a83f088511678744b989030b85fb27e2819fb6a50896ff72231e8. CI run 33990408097 passed on Windows and Linux. Production deployment dpl_PxwVirH4Ja6baaCGQGfEczp1uaom is Ready at the canonical URL with 12 allowlisted files; the production browser check passed, the live page carries the 0.8.1 download and no eyebrow labels, and llms.txt serves the rewritten summary. Local verification before the push: 40 unit tests, lint, verify:site, companion, stream, recovery, computer, assistant, desktop-host, desktop-content and verify:windows (20 assertions). The rebuilt app was relaunched locally on the released executable.
+
 ## 0.8 Desktop companion release
 
 The live hero, companion screenshot, social image, download, FAQ and metadata now describe the desktop companion. The prototype walkthrough and Computer guide remain available. The deployment contains 12 public files; existing search-verification tags, sitemap and analytics are preserved.
