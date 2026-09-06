@@ -5,6 +5,8 @@
 - Three words under the conversation: New chat, Clear context, Compact. New chat is the old Clear conversation from Settings, moved where you need it. Clear context leaves the messages on screen and sends none of them with the next message. Compact is one send that trades the earlier messages for a summary under 150 words, and a line saying what it saved.
 - A meter line under them: how full the 24,000 characters the next send can carry is, what the last send cost in tokens, and what this chat has cost. Cached input is counted beside each number, never inside it. The percent turns warm past 80.
 - The model's token counts reach the page: Codex reports its cached input, Claude reports both its cache read and its cache write. They also go in the What goes panel.
+- Local models. Whatever LM Studio or Ollama holds on this computer appears in the model list under the runtime's name, while the runtime is running. Sidelook talks to it through Codex's open-source provider, in the same read-only sandbox as a subscription model; nothing leaves the machine and nothing is metered. Setup checks that the runtime answers and the model is still there, and offers Start LM Studio server when it is not. Proven with Qwen3 8B in LM Studio on 2026-09-06; Ollama is wired the same way but has not been run yet.
+- An LM Studio model is loaded with a 32,768-token context before the first request, because Codex's own prompt is about 12,700 tokens and LM Studio's default load of 4,096 refuses it. The studio shows "Loading <model> into memory" while that happens, about ten seconds for an 8B model.
 
 ## 0.16.0: Sidelook
 

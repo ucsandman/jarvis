@@ -1,4 +1,4 @@
-import {activityLine,sensorLine,sendLabel,gate,record,ledger,renderPreview,MODEL_LABEL,ACCOUNT,CLI,usesCredits} from './harness.js';
+import {activityLine,sensorLine,sendLabel,gate,record,ledger,renderPreview,MODEL_LABEL,usesCredits,isLocal,goesTo} from './harness.js';
 import {families,chipsFor,captureFor,UNKNOWN_CHIPS,TONES} from './chips.js';
 import {Follow} from './follow.js';
 import {eyeOffset,eyeCenters} from './eyes.js';
@@ -100,7 +100,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     $('running').hidden=!busy;$('goes').hidden=busy;
     $('activity').textContent=activity;
     // The model in ink, the credits warning beside it when it applies; the account is in Settings and What goes.
-    if(activity==='Ready'){const model=document.createElement('b');model.textContent=MODEL_LABEL[s.model];$('goes-text').replaceChildren(model,usesCredits(s.model)?' · may use paid credits':'');}
+    if(activity==='Ready'){const model=document.createElement('b');model.textContent=MODEL_LABEL[s.model];$('goes-text').replaceChildren(model,usesCredits(s.model)?' · may use paid credits':isLocal(s.model)?' · on this computer':'');}
     else $('goes-text').textContent=activity;
     $('computer').hidden=!s.computerOn;
     renderStrips();renderMeter();
@@ -258,7 +258,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
       ['Message',body.instruction || '(nothing typed yet)'],['Earlier messages',String(body.history.length)],
       ['Screenshot',evidence?`${evidence.label} · ${kb(evidence.image)} JPEG`:'none'],
       ['Window text',read?`${read.title} · ${read.controls} controls · ${read.characters.toLocaleString()} characters${read.truncated?' · cut short':''}`:'none'],
-      ['Model',`${MODEL_LABEL[s.model]} · ${s.effort}`],['Goes to',`your ${ACCOUNT[s.model]} subscription through ${CLI[s.model]}`],
+      ['Model',`${MODEL_LABEL[s.model]} · ${s.effort}`],['Goes to',goesTo(s.model)],
       ['Last send',lastTokens===null?'nothing has gone yet':`${tokenWords(lastTokens,lastCached,' tokens')}`],['This chat',lastTokens===null?'nothing has gone yet':`${tokenWords(chatTokens,chatCached,' tokens')}`]],
       body:{...body,model:s.model,effort:s.effort,...(evidence?{image:`<screenshot: ${evidence.label}>`}:{})}};
   }
