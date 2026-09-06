@@ -21,7 +21,7 @@ const state = { token:'', configured:false, stream:null, image:null, imageLabel:
 state.live=false; state.liveCount=0; state.captureKind=null; state.liveFrames=new LiveFrames(); state.liveTimer=null;
 state.model='astra'; state.effort='medium'; state.checking=false;
 try {
-  const saved=JSON.parse(localStorage.getItem('sidelookModelPreferences') || '{}');
+  const saved=JSON.parse(localStorage.getItem('sidelookModelPreferences') || localStorage.getItem('jarvisModelPreferences') || '{}'); // legacy key from 0.15 and earlier: read once, written back under the new name
   if (choice(saved.model)) state.model=saved.model;
   if (['low','medium','high','xhigh','max'].includes(saved.effort)) state.effort=saved.effort;
 } catch { /* Preferences are optional when browser storage is unavailable. */ }

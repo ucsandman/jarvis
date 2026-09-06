@@ -34,7 +34,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   const error=message=>{$('error').textContent=message;$('error').hidden=!message;};
   const clock=value=>new Date(value).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
   const kb=image=>`${Math.round(image.length*3/4/1024)} KB`;
-  try {tone.value=localStorage.getItem('sidelookTone') in TONES?localStorage.getItem('sidelookTone'):'plainer';} catch {tone.value='plainer';}
+  try {const savedTone=localStorage.getItem('sidelookTone') ?? localStorage.getItem('jarvisTone'); tone.value=savedTone in TONES?savedTone:'plainer';} catch {tone.value='plainer';} // legacy key from 0.15 and earlier: read once, written back under the new name
   tone.onchange=()=>{try{localStorage.setItem('sidelookTone',tone.value);}catch{}};
   function showSurface(next,notify=true) {
     document.body.dataset.surface=next==='studio'?'studio':'companion';
