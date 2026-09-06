@@ -20,6 +20,8 @@ public static class JarvisComputer {
     [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
     [DllImport("user32.dll")] static extern bool RegisterHotKey(IntPtr h, int id, uint modifiers, uint key);
     [DllImport("user32.dll")] static extern bool UnregisterHotKey(IntPtr h, int id);
+    [DllImport("user32.dll")] static extern bool IsIconic(IntPtr h);
+    [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h,int cmd);
     static volatile bool armed, hotkeyReady;
     static DateTime expires;
     static readonly object gate = new object();
@@ -101,7 +103,9 @@ public static class JarvisComputer {
         lock(gate) { if(!armed || DateTime.UtcNow>=expires || !hotkeyReady) throw new Exception("Computer control is stopped or expired. Enable it again in Jarvis."); }
     }
     static void Focus(IntPtr h) {
-        Check(); SetForegroundWindow(h);
+        Check();
+        if(IsIconic(h)) { ShowWindow(h,9); Thread.Sleep(150); }
+        SetForegroundWindow(h);
         if(GetForegroundWindow()!=h) { try { AutomationElement.FromHandle(h).SetFocus(); } catch {} }
         Thread.Sleep(150); Check();
         if(GetForegroundWindow()!=h) throw new Exception("The target did not take focus. No input was sent.");

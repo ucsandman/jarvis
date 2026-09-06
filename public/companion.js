@@ -1,4 +1,4 @@
-import {activityLine,sensorLine,sendLabel,gate,record,ledger,renderPreview,MODEL_LABEL,ACCOUNT,CLI} from './harness.js';
+import {activityLine,sensorLine,sendLabel,gate,record,ledger,renderPreview,MODEL_LABEL,ACCOUNT,CLI,usesCredits} from './harness.js';
 import {families,chipsFor,captureFor,UNKNOWN_CHIPS,TONES} from './chips.js';
 
 // The panel. Its markup lives in index.html; this file only queries and wires it.
@@ -45,7 +45,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     $('dot').className=sensor==='screen & mic off'?'':'on';
     $('running').hidden=!busy;$('goes').hidden=busy;
     $('activity').textContent=activity;
-    $('goes-text').textContent=activity==='Ready'?`To ${MODEL_LABEL[s.model]} on your ${ACCOUNT[s.model]} subscription${s.model==='fable'?' · may use paid credits':''}`:activity;
+    $('goes-text').textContent=activity==='Ready'?`To ${MODEL_LABEL[s.model]} on your ${ACCOUNT[s.model]} subscription${usesCredits(s.model)?' · may use paid credits':''}`:activity;
     $('computer').hidden=!s.computerOn;
     renderStrips();
     $('hide').hidden=!native;$('drag').disabled=!native;
@@ -241,11 +241,12 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   }
   function closePicker() {$('targets').hidden=true;$('chips').hidden=false;$('front-change').setAttribute('aria-expanded','false');}
   function renderPicker(list) {
-    const rows=[{id:DESKTOP,title:'Whole desktop',process:'',note:'every monitor, without Jarvis'},...list.map(w=>({id:String(w.id || '').slice(0,32),title:String(w.title || '').slice(0,200),process:String(w.process || '').slice(0,100)})).filter(w=>w.id && w.title)];
+    const rows=[{id:DESKTOP,title:'Whole desktop',process:'',note:'every monitor, without Jarvis'},...list.map(w=>({id:String(w.id || '').slice(0,32),title:String(w.title || '').slice(0,200),process:String(w.process || '').slice(0,100),minimized:w.minimized===true})).filter(w=>w.id && w.title)];
     $('targets').replaceChildren(...rows.map(row=>{
       const button=document.createElement('button');button.type='button';button.className='starter';button.setAttribute('aria-current',String(front?.id===row.id));
       const label=document.createElement('strong');label.textContent=row.title;
-      const small=document.createElement('small');small.textContent=row.note || (row.process?row.process[0].toUpperCase()+row.process.slice(1).replace(/\.exe$/i,''):'');
+      const pretty=row.process?row.process[0].toUpperCase()+row.process.slice(1).replace(/\.exe$/i,''):'';
+      const small=document.createElement('small');small.textContent=row.note || (pretty?pretty+(row.minimized?' · minimized':''):(row.minimized?'minimized':''));
       const wrap=document.createElement('span');wrap.append(label,small);button.append(wrap);
       button.onclick=()=>{error('');post({type:'select-target',target:row.id});};
       return button;

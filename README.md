@@ -3,12 +3,12 @@
   <h1>Jarvis</h1>
   <p><strong>A desktop companion for Windows that runs on the ChatGPT or Claude subscription you already pay for.</strong></p>
   <p><a href="https://github.com/ucsandman/jarvis/actions/workflows/ci.yml"><img src="https://github.com/ucsandman/jarvis/actions/workflows/ci.yml/badge.svg" alt="Windows and Linux checks"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-e5b977" alt="MIT license"></a> <a href="https://github.com/ucsandman/jarvis/releases/latest"><img src="https://img.shields.io/github/v/release/ucsandman/jarvis" alt="Latest release"></a></p>
-  <p><a href="https://jarvis-workbench.vercel.app/">Website</a> · <a href="https://github.com/ucsandman/jarvis/releases/download/v0.11.0/Jarvis-0.11.0-Windows-x64.exe">Download for Windows</a> · <a href="#getting-started">Get started</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
+  <p><a href="https://jarvis-workbench.vercel.app/">Website</a> · <a href="https://github.com/ucsandman/jarvis/releases/download/v0.12.0/Jarvis-0.12.0-Windows-x64.exe">Download for Windows</a> · <a href="#getting-started">Get started</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
 </div>
 
-Jarvis sits in the corner of your screen. Hit **Ctrl+Shift+Space** and the panel opens already knowing which window you were in, with three questions written for it as buttons. Pick one, look at the screenshot it took, press **Send with screenshot**. Or hand it something bigger: turn a sketch into a working prototype in the studio, or let it drive a Windows app one approved click at a time. Pick **Astra** (ChatGPT) or **Fable 5.1** (Claude), go. No API key, nothing metered.
+Jarvis sits in the corner of your screen. Hit **Ctrl+Shift+Space** and the panel opens already knowing which window you were in, with three questions written for it as buttons. Pick one, look at the screenshot it took, press **Send with screenshot**. Or hand it something bigger: turn a sketch into a working prototype in the studio, or let it drive a Windows app one approved click at a time. Pick any model in the catalog, OpenAI through ChatGPT or Anthropic through Claude, go. No API key, nothing metered.
 
-It's experimental and built around how I work. Fable can burn paid Claude usage credits. What your account can reach is up to your plan. The website is a walkthrough, the app is where the sign-in and generation actually happen.
+It's experimental and built around how I work. Anthropic models can burn paid Claude usage credits. What your account can reach is up to your plan. The website is a walkthrough, the app is where the sign-in and generation actually happen.
 
 <img src="docs/images/companion.png" width="360" alt="Jarvis panel: a header reading screen and mic off, the question What are we looking at, the line Looking at: Brave with a change link, three starter rows that each say takes a screenshot of Brave, and a message box holding a screenshot chip with a button reading Send with screenshot">
 
@@ -25,20 +25,20 @@ It's experimental and built around how I work. Fable can burn paid Claude usage 
 - **Copies, never reads.** Every reply has **Copy**. The clipboard is write-only; lint fails on any clipboard read in the page or the shell.
 - **The button says what goes.** No checkbox. A screenshot or window text sits in the box as a chip, and the Send button reads **Send**, **Send with screenshot** or **Send with window text**. × removes it. The line under the button names the model and the account, and **What goes** shows the request body and every send this session. After a send the attachment leaves the box and stays on the message as evidence.
 - **Asks the second question for you.** Three follow-ups under each reply. **Ctrl+Shift+E** summons, grabs the window you were in, fills the first starter, and stops at the Send button.
-- **Build as you draw.** Open the studio, share your design window, turn on Live build, and Jarvis sends a snapshot after you pause and updates the prototype. Fable streams HTML into a live draft; Astra hands over finished messages.
+- **Build as you draw.** Open the studio, share your design window, turn on Live build, and Jarvis sends a snapshot after you pause and updates the prototype. Anthropic models stream HTML into a live draft; OpenAI models hand over finished messages.
 - **Keep your versions.** Up to 12 stay in Jarvis's desktop profile. Restore one, read the source, download the HTML, import an old one.
 - **Work inside Windows apps.** Computer mode lives in the panel. It reads the accessible controls of one window, proposes one action, and waits for your yes. [Computer mode guide](docs/COMPUTER.md).
 
 ## Getting started
 
-1. [Download Jarvis 0.11.0](https://github.com/ucsandman/jarvis/releases/download/v0.11.0/Jarvis-0.11.0-Windows-x64.exe) and open it. No terminal, no Node, no admin.
-2. Settings opens by itself until you're signed in. Pick **Astra** or **Fable 5.1** and use the sign-in button. Codex ships inside. For Fable, **Install official Claude Code** downloads and verifies Anthropic's runtime.
+1. [Download Jarvis 0.12.0](https://github.com/ucsandman/jarvis/releases/download/v0.12.0/Jarvis-0.12.0-Windows-x64.exe) and open it. No terminal, no Node, no admin.
+2. Settings opens by itself until you're signed in. Pick an OpenAI or Anthropic model and use the sign-in button. Codex ships inside. For Anthropic models, **Install official Claude Code** downloads and verifies Anthropic's runtime.
 3. Press a starter or type a question, then **Send**. **Screenshot** grabs the window you came from and shows it in the box before anything leaves; the button then reads **Send with screenshot**.
 4. For a prototype, open the studio from Settings. **Share window**, describe the product, tick the line, **Make it real**. For hands-off updates, **Live build** has its own permission dialog.
 
 **Ctrl+Shift+Space** brings the panel back. So does the desktop or Start menu shortcut. Closing the panel leaves Jarvis in the tray; **Quit Jarvis** from the tray menu stops the server.
 
-Windows 10/11 x64 only. Chrome or Edge for screen sharing. The download is about 164 MiB. **The exe is unsigned**, so expect the unknown-publisher prompt. The [release has a SHA-256 checksum](https://github.com/ucsandman/jarvis/releases/tag/v0.11.0) and the bundled Node and Codex are publisher-verified. [Install, update, remove](docs/WINDOWS.md).
+Windows 10/11 x64 only. Chrome or Edge for screen sharing. The download is about 164 MiB. **The exe is unsigned**, so expect the unknown-publisher prompt. The [release has a SHA-256 checksum](https://github.com/ucsandman/jarvis/releases/tag/v0.12.0) and the bundled Node and Codex are publisher-verified. [Install, update, remove](docs/WINDOWS.md).
 
 The companion needs the Microsoft Edge WebView2 Runtime. Jarvis checks on launch and tells you where to get it if it's missing. Its WebView profile is separate from any browser profile you used with an older install, so old revisions don't show up on their own. Export the HTML from the old profile, then **Settings, Advanced, Import a saved HTML prototype**. Imports cap at 120,000 bytes and add a version when the 12-slot history has room.
 
@@ -60,8 +60,8 @@ A click or a key in the target app can send, delete, or buy something. Read ever
 
 | Model | Account | Preview while generating |
 | --- | --- | --- |
-| Astra | ChatGPT subscription through Codex | Updates when the CLI finishes a message |
-| Fable 5.1 | Paid Claude subscription through Claude Code | HTML drafts as chunks arrive |
+| OpenAI models (Astra, GPT-5.6 Sol, Terra, Luna, GPT-5.5, GPT-5.4 Mini, GPT-5.3 Codex Spark) | ChatGPT subscription through Codex | Updates when the CLI finishes a message |
+| Anthropic models (Fable 5.1, Opus 5, Sonnet 5, Haiku 4.5) | Paid Claude subscription through Claude Code | HTML drafts as chunks arrive |
 
 Model and effort live in **Settings**; effort is under **Advanced**. Start on **low effort** for small changes. High effort can take a while.
 
@@ -134,11 +134,11 @@ Changed the mark? Run `powershell -NoProfile -File scripts/build-icon.ps1` to re
 
 | Problem | Try |
 | --- | --- |
-| Slow generation | Drop to low effort in Settings, Advanced, ask for less, or cancel. Fable streams drafts; Astra stays quiet until it's done. |
+| Slow generation | Drop to low effort in Settings, Advanced, ask for less, or cancel. Anthropic models stream drafts; OpenAI models stay quiet until they're done. |
 | Model or login unavailable | Open Settings, use the sign-in or install button, then Check again. |
 | Send is greyed out | The line under the box says why: reconnect, sign in, or start a new allowance in Settings. |
 | The starters don't match the window | Press **change** on the "Looking at" line and pick the window, or **Whole desktop** for the generic three. |
-| "That window is minimized" | Restore it, then take the screenshot again. Off-screen and other-monitor windows capture fine; minimized ones have nothing to render. |
+| A minimized window flashed on screen | Jarvis shows it without taking focus, captures it, then minimizes it again. Pick it under **change**, where the picker marks it "minimized". |
 | Ctrl+Shift+E does nothing | Another app owns it. Settings says so at the bottom; Ctrl+Shift+Space still works. |
 | Can't share the screen | Use Chrome or Edge, upload an image, or use the camera. |
 | Live build paused | Read the message, check the shared window and your allowance, start it again yourself. |

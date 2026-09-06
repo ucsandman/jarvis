@@ -2,7 +2,7 @@ import { loadProject, saveProject } from './storage.js';
 import { LiveFrames } from './live.js';
 import { initComputer } from './computer.js';
 import { initCompanion } from './companion.js';
-import { gate, spend, record, ledger, renderGate, renderPreview, MODEL_LABEL, ACCOUNT, CLI } from './harness.js';
+import { gate, spend, record, ledger, renderGate, renderPreview, MODEL_LABEL, ACCOUNT, CLI, MODELS, PROVIDERS, choice, usesCredits, billingLine } from './harness.js';
 import { DESIGN_CHIPS } from './chips.js';
 
 let launchKey = new URLSearchParams(location.hash.slice(1)).get('launch');
@@ -21,20 +21,35 @@ state.live=false; state.liveCount=0; state.captureKind=null; state.liveFrames=ne
 state.model='astra'; state.effort='medium'; state.checking=false;
 try {
   const saved=JSON.parse(localStorage.getItem('jarvisModelPreferences') || '{}');
-  if (['astra','fable'].includes(saved.model)) state.model=saved.model;
+  if (choice(saved.model)) state.model=saved.model;
   if (['low','medium','high','xhigh','max'].includes(saved.effort)) state.effort=saved.effort;
 } catch { /* Preferences are optional when browser storage is unavailable. */ }
 const selectedLabel = () => MODEL_LABEL[state.model];
 const selectedAccount = () => ACCOUNT[state.model];
+const selectedIsClaude = () => choice(state.model).provider==='anthropic';
 const effortNotes = {low:'Faster, with lighter reasoning.',medium:'Balances speed and depth.',high:'More reasoning for complex changes.',xhigh:'Extra reasoning; expect a longer wait.',max:'Deepest reasoning; may take much longer and use more allowance.'};
 const openSettings = () => { if (!$('settings').open) $('settings').showModal(); };
 const notifyState = () => document.dispatchEvent(new Event('jarvis-state'));
+// The selector lists the whole catalog, grouped by the CLI and account each model runs on. A model that lacks an effort greys it out;
+// a saved effort the new model does not offer moves to that model's deepest level, and the note says so.
+$('model-choice').replaceChildren(...Object.entries(PROVIDERS).map(([key,provider])=>{
+  const group=document.createElement('optgroup');group.label=`${provider.label} · ${provider.account} through ${provider.cli}`;
+  group.append(...MODELS.filter(m=>m.provider===key).map(m=>new Option(`${m.label} · ${provider.account}`,m.id)));return group;
+}));
+function settleEffort() {
+  const efforts=choice(state.model).efforts;
+  for (const option of $('effort-choice').options) option.disabled=!efforts.includes(option.value);
+  const moved=!efforts.includes(state.effort);
+  if (moved) state.effort=efforts.at(-1);
+  return moved;
+}
 function renderSelection() {
+  const moved=settleEffort();
   $('faster-effort').hidden=state.effort==='low';
   $('model-choice').value=state.model; $('effort-choice').value=state.effort;
-  $('effort-note').textContent=`${effortNotes[state.effort]} Applies to your next request.`;
-  $('billing-note').textContent=state.model==='fable' ? 'Fable can use paid usage credits on your Claude account.' : 'Astra uses your ChatGPT subscription.';
-  const claude=state.model==='fable';
+  $('effort-note').textContent=`${moved?`${selectedLabel()} goes up to ${$('effort-choice').selectedOptions[0].textContent.toLowerCase()} effort, so that is selected. `:''}${effortNotes[state.effort]} Applies to your next request.`;
+  $('billing-note').textContent=billingLine(state.model) || `${selectedLabel()} uses your ${selectedAccount()} subscription.`;
+  const claude=selectedIsClaude();
   $('install-title').textContent=claude?'Install official Claude Code?':'Install the official Codex CLI?';
   $('install-detail').textContent=claude?'Downloads the verified Claude Code runtime directly from Anthropic’s official npm package into Jarvis’s per-user tools folder. No terminal or administrator access is needed. Claude Code is subject to Anthropic’s terms. No model request is made during installation.':'Downloads the official @openai/codex package through npm and installs it globally on this device. No account or model request is made during installation.';
   $('confirm-install').textContent=claude?'Install Claude Code':'Install Codex';
@@ -79,7 +94,7 @@ function buildProgress(event) {
   if(event.type==='phase') {
     if(/^[a-f0-9]{40}$/.test(event.draftSession || '')) draftSession=event.draftSession;
     $('build-phase').textContent=event.phase==='connecting'?'Connecting to your subscription':'Waiting for model output';
-    if(event.phase==='waiting') $('build-detail').textContent=event.streaming?'The live draft will appear when HTML starts arriving. Reasoning happens before visible code.':'This Codex CLI returns completed messages. The preview will update as soon as it releases HTML; Fable supports incremental drafts.';
+    if(event.phase==='waiting') $('build-detail').textContent=event.streaming?'The live draft will appear when HTML starts arriving. Reasoning happens before visible code.':'This Codex CLI returns completed messages. The preview will update as soon as it releases HTML; Anthropic models through Claude Code support incremental drafts.';
   }
   if(event.type!=='draft' || typeof event.html!=='string' || event.html.length>120000) return;
   draftHtml=event.html;$('draft-code').textContent=draftHtml;
@@ -254,7 +269,7 @@ $('screen-stop').addEventListener('click',stopCamera);
 $('live-pause').addEventListener('click',()=>pauseLive());
 $('live-start').addEventListener('click',()=>{
   if(state.captureKind!=='screen' || !state.stream || state.busy || !state.configured) return;
-  $('live-consent-detail').textContent=`Automatic snapshots go to ${selectedLabel()} through your ${selectedAccount()} subscription, at least ${Number($('live-interval').value)/1000} seconds apart. ${state.model==='fable'?'Fable can automatically consume paid Claude usage credits.':'Each build uses your subscription allowance.'}`;
+  $('live-consent-detail').textContent=`Automatic snapshots go to ${selectedLabel()} through your ${selectedAccount()} subscription, at least ${Number($('live-interval').value)/1000} seconds apart. ${usesCredits(state.model)?`${selectedLabel()} can automatically consume paid Claude usage credits.`:'Each build uses your subscription allowance.'}`;
   $('live-dialog').showModal();
 });
 $('live-confirm').addEventListener('click',()=>{
@@ -427,8 +442,8 @@ async function beginBuild(automatic=false) {
   const image = $('include-frame').checked ? state.image : null;
   const previous = parent?.html || '', created = new Date().toISOString(), started = Date.now();
   $('build-phase').textContent = image ? 'Reading and building' : previous ? 'Revising your application' : 'Building your application';
-  $('build-overlay').dataset.model=state.model;
-  $('build-message').textContent = state.model==='fable' ? 'Fable is grinding.' : 'Astra is thinking.';
+  $('build-overlay').dataset.provider=choice(state.model).provider;
+  $('build-message').textContent = `${selectedLabel()} is ${selectedIsClaude() ? 'grinding' : 'thinking'}.`;
   if (image) { $('sent-image').src=image; $('sent-label').textContent=`Last frame sent · ${time(created)} · ${selectedLabel()}`; $('sent-evidence').hidden=false; }
   if (automatic) showSharedScreen();
   $('build-detail').textContent = image ? 'One selected frame, one subscription turn. Observations and the prototype arrive together. This can take several minutes.' : 'Using your direction and selected source. No image is sent. This can take several minutes.';
@@ -439,7 +454,7 @@ async function beginBuild(automatic=false) {
     $('activity').textContent = `${selectedLabel()} · ${state.effort} · ${elapsed}s`;
     $('build-elapsed').textContent = `${elapsed}s elapsed · ${Math.max(0,300-elapsed)}s until timeout`;
     if (state.controller===controller && !draftHtml) {
-      $('build-message').textContent=elapsed<20 ? state.model==='fable' ? 'Fable is grinding.' : 'Astra is thinking.' : elapsed<60 ? 'Your idea is in motion.' : 'Still working on this version.';
+      $('build-message').textContent=elapsed<20 ? `${selectedLabel()} is ${selectedIsClaude() ? 'grinding' : 'thinking'}.` : elapsed<60 ? 'Your idea is in motion.' : 'Still working on this version.';
       if(elapsed>=20) $('build-detail').textContent=elapsed<60 ? 'Waiting for the model’s result. You can keep trying the current prototype.' : 'No result yet. Complex builds can take several minutes. Cancel anytime; your saved versions stay here.';
     }
     notifyState();
@@ -597,7 +612,7 @@ async function refreshSession() {
     $('provider-status').textContent = session.configured ? `${selectedLabel()} · ${state.effort}` : 'Setup needed';
     $('provider-dot').classList.toggle('ready',session.configured); $('setup-dot').classList.toggle('ready',session.configured);
     $('setup-summary').textContent = session.configured ? `${selectedAccount()} connected` : 'Action needed';
-    const cliName=state.model==='fable'?'Claude Code':'Codex CLI';
+    const cliName=selectedIsClaude()?'Claude Code':'Codex CLI';
     $('cli-check').textContent = session.cli === false ? `Official ${cliName} needs installation.` : session.code==='CLI_UPDATE_REQUIRED' ? `Official ${cliName} needs updating.` : `Official ${cliName} is available.`;
     $('login-check').textContent = session.configured ? `Signed in with ${selectedAccount()}.` : `${selectedAccount()} subscription sign-in is needed.`;
     $('install-codex').hidden = session.cli !== false && session.code!=='CLI_UPDATE_REQUIRED';
@@ -619,14 +634,15 @@ $('faster-effort').addEventListener('click',()=>{if(state.busy || state.live) re
 for (const id of ['model-choice','effort-choice']) $(id).addEventListener('change',async()=>{
   if (state.busy || state.setupBusy) {renderSelection();return;}
   state.model=$('model-choice').value; state.effort=$('effort-choice').value; state.consent=false; $('build-consent').checked=false;
+  renderSelection();
   try {localStorage.setItem('jarvisModelPreferences',JSON.stringify({model:state.model,effort:state.effort}));} catch { }
-  renderSelection(); hideError(); await refreshSession();
+  hideError(); await refreshSession();
 });
 async function setupAction(path) {
   if (state.setupBusy || state.busy || !state.token) return;
   state.setupBusy = true; state.setupController = new AbortController();
   $('cancel-setup').hidden = false;
-  $('setup-message').textContent = path === '/api/login' ? `Complete ${selectedAccount()} sign-in in the browser opened by the official CLI. This can take up to three minutes.` : `Installing official ${state.model==='fable'?'Claude Code':'Codex CLI'}. This can take up to three minutes.`;
+  $('setup-message').textContent = path === '/api/login' ? `Complete ${selectedAccount()} sign-in in the browser opened by the official CLI. This can take up to three minutes.` : `Installing official ${selectedIsClaude()?'Claude Code':'Codex CLI'}. This can take up to three minutes.`;
   updateControls();
   try { await api(path,{ consent:true },state.setupController.signal); await refreshSession(); }
   catch(error) { $('setup-message').textContent = error.name === 'AbortError' ? 'Setup action canceled. Choose Check again to inspect the current state.' : error.message; }

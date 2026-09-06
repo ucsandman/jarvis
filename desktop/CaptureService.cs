@@ -5,6 +5,7 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Threading;
 using System.Windows.Forms;
 
 internal sealed class CaptureResult {
@@ -15,12 +16,15 @@ internal sealed class CaptureResult {
 
 // What Jarvis looks at: the window that was in front at summon, or one the user picked from the list, or the whole desktop.
 // A pick lasts until the next summon. Nothing is captured until the page asks.
+// A minimized window is shown without activation for the capture and minimized again afterwards.
 internal sealed class CaptureService {
     const int DwmwaCloaked = 14;
     const int MaxWidth = 1600;
     const int MaxHeight = 1200;
     const int GwlExStyle = -20;
     const long WsExToolWindow = 0x80;
+    const int SwShowNoActivate = 4;
+    const int SwShowMinNoActive = 7;
     public const string DesktopId = "desktop";
     public const string DesktopTitle = "Whole desktop";
     static readonly TimeSpan MaxTargetAge = TimeSpan.FromMinutes(5);
@@ -40,9 +44,11 @@ internal sealed class CaptureService {
         internal string Title;
         internal NativeRect Bounds;
         internal bool Desktop;
+        internal bool Minimized;
     }
 
     [StructLayout(LayoutKind.Sequential)] internal struct NativeRect { public int Left, Top, Right, Bottom; }
+    [StructLayout(LayoutKind.Sequential)] internal struct WindowPlacement { public int Length; public int Flags; public int ShowCmd; public System.Drawing.Point MinPosition; public System.Drawing.Point MaxPosition; public NativeRect NormalPosition; }
     delegate bool EnumWindowsProc(IntPtr window, IntPtr lParam);
     [DllImport("user32.dll")] static extern bool EnumWindows(EnumWindowsProc callback, IntPtr lParam);
     [DllImport("user32.dll")] static extern IntPtr GetForegroundWindow();
@@ -56,6 +62,10 @@ internal sealed class CaptureService {
     [DllImport("user32.dll")] static extern bool GetWindowDisplayAffinity(IntPtr window, out uint affinity);
     [DllImport("user32.dll", EntryPoint="GetWindowLongPtrW")] static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
     [DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr window, int attribute, out int value, int size);
+    [DllImport("user32.dll")] static extern bool ShowWindow(IntPtr window, int command);
+    [DllImport("user32.dll")] static extern bool GetWindowPlacement(IntPtr window, ref WindowPlacement placement);
+    [DllImport("user32.dll")] static extern bool SetWindowPlacement(IntPtr window, ref WindowPlacement placement);
+    [DllImport("dwmapi.dll")] static extern int DwmFlush();
 
     public void RememberForeground() {
         IntPtr window = GetForegroundWindow();
@@ -91,7 +101,7 @@ internal sealed class CaptureService {
         int processId;
         if (!IsWindow(window) || GetWindowThreadProcessId(window, out processId) == 0 || processId == ownProcessId) return false;
         string title = WindowTitle(window);
-        if (String.IsNullOrWhiteSpace(title) || !IsWindowVisible(window) || IsIconic(window)) return false;
+        if (String.IsNullOrWhiteSpace(title) || !IsWindowVisible(window)) return false;
         lock (sync) { desktop = false; picked = true; Remember(window, processId, title); }
         return true;
     }
@@ -105,13 +115,13 @@ internal sealed class CaptureService {
         }
     }
 
-    // Every visible, titled top-level window except Jarvis, tool windows, cloaked and minimized ones. Titles only; no pixels.
+    // Every visible, titled top-level window except Jarvis, tool windows and cloaked ones, minimized ones included. Titles only; no pixels.
     public List<Dictionary<string, object>> ListWindows() {
         var windows = new List<Dictionary<string, object>>();
         var names = new Dictionary<int, string>();
         EnumWindows(delegate(IntPtr window, IntPtr lParam) {
             int processId;
-            if (!IsWindowVisible(window) || IsIconic(window) || GetWindowThreadProcessId(window, out processId) == 0 || processId == ownProcessId) return true;
+            if (!IsWindowVisible(window) || GetWindowThreadProcessId(window, out processId) == 0 || processId == ownProcessId) return true;
             if (((long)GetWindowLongPtr(window, GwlExStyle) & WsExToolWindow) != 0) return true;
             int cloaked;
             if (DwmGetWindowAttribute(window, DwmwaCloaked, out cloaked, sizeof(int)) == 0 && cloaked != 0) return true;
@@ -119,7 +129,7 @@ internal sealed class CaptureService {
             if (String.IsNullOrWhiteSpace(title) || windows.Count >= 60) return true;
             string name;
             if (!names.TryGetValue(processId, out name)) { name = ProcessName(processId); names[processId] = name; }
-            windows.Add(new Dictionary<string, object> { {"id", window.ToInt64().ToString()}, {"title", title.Length > 200 ? title.Substring(0, 200) : title}, {"process", name} });
+            windows.Add(new Dictionary<string, object> { {"id", window.ToInt64().ToString()}, {"title", title.Length > 200 ? title.Substring(0, 200) : title}, {"process", name}, {"minimized", IsIconic(window)} });
             return true;
         }, IntPtr.Zero);
         return windows;
@@ -139,6 +149,26 @@ internal sealed class CaptureService {
 
     public CaptureResult Capture(CaptureTarget snapshot) {
         if (snapshot.Desktop) return CaptureDesktop();
+        if (!snapshot.Minimized) return CaptureWindow(snapshot);
+        // A minimized window has nothing rendered. Show it at its last size without activating it, capture, then put it back exactly as it was.
+        WindowPlacement placement = new WindowPlacement();
+        placement.Length = Marshal.SizeOf(typeof(WindowPlacement));
+        if (!GetWindowPlacement(snapshot.Window, ref placement)) throw new InvalidOperationException("Jarvis could not read the minimized window's placement.");
+        ShowWindow(snapshot.Window, SwShowNoActivate);
+        try {
+            for (int waited = 0; IsIconic(snapshot.Window) && waited < 1000; waited += 50) Thread.Sleep(50);
+            if (IsIconic(snapshot.Window)) throw new InvalidOperationException("That window would not restore for the screenshot. Restore it yourself, then take the screenshot again.");
+            Thread.Sleep(250);
+            DwmFlush();
+            if (!GetWindowRect(snapshot.Window, out snapshot.Bounds)) throw new InvalidOperationException("Jarvis could not read the selected window bounds.");
+            return CaptureWindow(snapshot);
+        } finally {
+            placement.ShowCmd = SwShowMinNoActive;
+            SetWindowPlacement(snapshot.Window, ref placement);
+        }
+    }
+
+    CaptureResult CaptureWindow(CaptureTarget snapshot) {
         // The window's own surface at its full size, so a window half off the screen or on another monitor still captures whole.
         int width = snapshot.Bounds.Right - snapshot.Bounds.Left, height = snapshot.Bounds.Bottom - snapshot.Bounds.Top;
         if (width < 2 || height < 2) throw new InvalidOperationException("The selected window has no size to capture.");
@@ -185,15 +215,15 @@ internal sealed class CaptureService {
         if (selected == IntPtr.Zero || DateTime.UtcNow - selectedAt > MaxTargetAge) throw new InvalidOperationException("Choose a window with \"change\", or summon Jarvis from the window you want.");
         int processId;
         if (!IsWindow(selected) || GetWindowThreadProcessId(selected, out processId) == 0 || processId != selectedProcessId || processId == ownProcessId) throw new InvalidOperationException("That window is no longer open. Choose another with \"change\".");
-        if (!IsWindowVisible(selected) || IsIconic(selected)) throw new InvalidOperationException("That window is minimized. Restore it, then take the screenshot again.");
+        if (!IsWindowVisible(selected)) throw new InvalidOperationException("The selected window is not currently visible.");
         if (!String.Equals(WindowTitle(selected), selectedTitle, StringComparison.Ordinal)) throw new InvalidOperationException("That window changed. Choose it again with \"change\".");
         uint affinity;
         if (GetWindowDisplayAffinity(selected, out affinity) && affinity != 0) throw new InvalidOperationException("Windows protected this window from capture.");
         int cloaked;
         if (DwmGetWindowAttribute(selected, DwmwaCloaked, out cloaked, sizeof(int)) == 0 && cloaked != 0) throw new InvalidOperationException("The selected window is not currently visible.");
-        NativeRect bounds;
-        if (!GetWindowRect(selected, out bounds)) throw new InvalidOperationException("Jarvis could not read the selected window bounds.");
-        return new CaptureTarget { Window = selected, ProcessId = selectedProcessId, Title = selectedTitle, Bounds = bounds };
+        var result = new CaptureTarget { Window = selected, ProcessId = selectedProcessId, Title = selectedTitle, Minimized = IsIconic(selected) };
+        if (!result.Minimized && !GetWindowRect(selected, out result.Bounds)) throw new InvalidOperationException("Jarvis could not read the selected window bounds.");
+        return result;
     }
 
     void ValidateTarget(CaptureTarget snapshot) {

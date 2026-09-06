@@ -15,7 +15,7 @@ await writeFile(join(out,'robots.txt'),`User-agent: *\nAllow: /\nDisallow: /demo
 await writeFile(join(out,'sitemap.xml'),`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${origin}/</loc></url></urlset>\n`);
 await writeFile(join(out,'llms.txt'),`# Jarvis
 
-> A local Windows desktop companion. Ask about the window you're in, turn a sketch into a working web prototype, or work a Windows app one approved action at a time. Runs on the user's own ChatGPT (Astra through Codex) or Claude (Fable 5.1 through Claude Code) subscription. No API key, no metered model API, no model fallback.
+> A local Windows desktop companion. Ask about the window you're in, turn a sketch into a working web prototype, or work a Windows app one approved action at a time. Runs on the user's own ChatGPT (OpenAI models through Codex) or Claude (Anthropic models through Claude Code) subscription, any model in the catalog. No API key, no metered model API, no model fallback.
 
 - [Website](${origin}/): A prepared walkthrough with captured screenshots of the companion, the builder and Computer mode. The site does not run inference, take a login, or control anything.
 - [Source and download](https://github.com/ucsandman/jarvis): MIT-licensed Node.js server plus a Windows launcher that bundles Node and the official Codex CLI. Setup downloads and verifies Claude Code from Anthropic when Fable is chosen. Fable can spend paid Claude usage credits.

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.12.0: Any model, minimized windows too
+
+- Settings' model selector now lists the full catalog from `public/models.js` in two groups, "OpenAI · ChatGPT through Codex" and "Anthropic · Claude through Claude Code": Astra, GPT-5.6 Sol, GPT-5.6 Terra, GPT-5.6 Luna, GPT-5.5, GPT-5.4 Mini and GPT-5.3 Codex Spark on OpenAI; Fable 5.1, Opus 5, Sonnet 5 and Haiku 4.5 on Anthropic. Every Anthropic model can spend paid Claude usage credits.
+- Picking a model whose effort levels don't include the saved effort moves it to that model's deepest level and says so under the effort control. GPT-5.5, GPT-5.4 Mini and GPT-5.3 Codex Spark stop at xhigh; the rest go to max.
+- The "Looking at" line's **change** picker now lists minimized windows too, marked "minimized" under the title. Picking one and taking a screenshot shows the window without activating it, captures it, then minimizes it again, restoring its exact placement.
+- Computer mode: an approved action on a minimized window restores it first, since focus is required for input.
+- Shell: `windows` message rows carry a `minimized` boolean. `/api/local-session` returns the whole catalog instead of a fixed two-model list.
+
 ## 0.11.0: Choose what Jarvis looks at
 
 - The "In front" line is now "Looking at" with **change**. It lists **Whole desktop** and every open window (title and app, Jarvis excluded) as rows in place of the starters; a pick tells the shell, re-fits the starters to that app, and Screenshot and the starters capture that target until the next summon. A closed window is refused and the list refreshes. "not this one" is gone.

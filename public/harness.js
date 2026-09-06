@@ -1,9 +1,13 @@
 // Shared plumbing for both surfaces: one status line, one consent sentence, one gate, one ledger.
 // Pure functions first so tests/harness.test.mjs can import this file under node --test.
-export const MODEL_LABEL={astra:'Astra',fable:'Fable 5.1'};
-export const ACCOUNT={astra:'ChatGPT',fable:'Claude'};
-export const CLI={astra:'Codex',fable:'Claude Code'};
-export const BILLING='Fable can use paid usage credits on your Claude account.';
+import {MODELS,PROVIDERS,choice} from './models.js';
+export {MODELS,PROVIDERS,choice};
+export const MODEL_LABEL=Object.fromEntries(MODELS.map(m=>[m.id,m.label]));
+export const ACCOUNT=Object.fromEntries(MODELS.map(m=>[m.id,PROVIDERS[m.provider].account]));
+export const CLI=Object.fromEntries(MODELS.map(m=>[m.id,PROVIDERS[m.provider].cli]));
+// Anthropic models can spend paid usage credits; the line names the chosen model. Null when the choice is subscription-only.
+export const usesCredits=model=>!!choice(model)?.usageCredits;
+export const billingLine=model=>usesCredits(model)?`${MODEL_LABEL[model]} can use paid usage credits on your Claude account.`:null;
 export const ledger=[];
 
 const list=items=>items.length<2?items.join(''):`${items.slice(0,-1).join(', ')} and ${items.at(-1)}`;
@@ -72,7 +76,7 @@ export function renderGate(root,view) {
   if(!root) return;
   const line=root.querySelector('.consent-line'),billing=root.querySelector('.billing'),tick=root.querySelector('input[type=checkbox]');
   if(line) line.textContent=consentLine(view);
-  if(billing) {billing.textContent=BILLING;billing.hidden=view.model!=='fable';}
+  if(billing) {const text=billingLine(view.model);billing.textContent=text || '';billing.hidden=!text;}
   if(tick) {tick.hidden=!!view.live;if(view.live) tick.checked=false;}
 }
 

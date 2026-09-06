@@ -44,3 +44,14 @@ test('Fable parser rejects model switches, external tools, partial output, limit
   assert.throws(()=>parseClaudeResult(result([init,{type:'result',subtype:'error',is_error:true,result:'Usage limit reached'}],1),'low'),{code:'SUBSCRIPTION_LIMIT'});
   assert.throws(()=>parseClaudeResult(result([init,{type:'result',subtype:'error',is_error:true,result:'PRIVATE UPSTREAM ERROR'}],1),'low'),error=>!error.message.includes('PRIVATE'));
 });
+
+test('another Anthropic choice pins its own model ID in the flags, the settings and the parser',()=>{
+  const args=claudeInferenceArgs({system:'Bounded generation',schema:{type:'object'},effort:'low',model:'opus'});
+  assert.equal(args[args.indexOf('--model')+1],'claude-opus-5');
+  assert.deepEqual(JSON.parse(args[args.indexOf('--settings')+1]).availableModels,['claude-opus-5']);
+  const completed={type:'result',subtype:'success',is_error:false,structured_output:{ok:true}};
+  const result=events=>({code:0,stdout:events.map(e=>JSON.stringify(e)).join('\n'),stderr:''});
+  assert.equal(parseClaudeResult(result([{type:'system',subtype:'init',model:'claude-opus-5',tools:['StructuredOutput']},completed]),'low','opus').model,'claude-opus-5');
+  assert.throws(()=>parseClaudeResult(result([{type:'system',subtype:'init',model:FABLE_MODEL,tools:['StructuredOutput']},completed]),'low','opus'),error=>error.message.startsWith('Opus 5'));
+  assert.throws(()=>claudeInferenceArgs({system:'x',schema:{},effort:'low',model:'astra'}));
+});

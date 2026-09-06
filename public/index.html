@@ -168,7 +168,7 @@
       <button class="quiet" id="computer-open">Computer mode · let Jarvis work in one Windows app, one approved action at a time</button>
     </section>
     <section class="settings-section" aria-label="Model">
-      <label class="settings-field" for="model-choice">Model <select id="model-choice"><option value="astra">Astra · ChatGPT</option><option value="fable">Fable 5.1 · Claude</option></select></label>
+      <label class="settings-field" for="model-choice">Model <select id="model-choice"></select></label>
       <p id="billing-note">Astra uses your ChatGPT subscription.</p>
       <p class="setup-line"><span class="status-dot" id="setup-dot"></span><span id="setup-summary">Checking</span></p>
       <ol id="setup-checks"><li>Local Jarvis is running.</li><li id="cli-check">Checking the official Codex CLI…</li><li id="login-check">Checking ChatGPT subscription login…</li><li id="model-check">Selected model access is checked when you build. Jarvis never switches models automatically.</li></ol>
@@ -195,7 +195,7 @@
         <li>Read text reads the accessible text of the window you came from, shows every character with a count and whether it was cut short, and goes only while its Include box is ticked. Reading never clicks anything and never turns Computer mode on.</li>
         <li>Copy puts a reply on your clipboard. Jarvis never reads the clipboard.</li>
         <li>A frame goes only while its Include box is ticked, and the box clears after every send. The sharing tick clears after every send too.</li>
-        <li>Your message, up to 12 recent messages from this session, and the frame go to Astra through Codex on your ChatGPT subscription, or to Fable 5.1 through Claude Code on your Claude subscription. There is no API key and no fallback model.</li>
+        <li>Your message, up to 12 recent messages from this session, and the frame go to the model you picked: an OpenAI model through Codex on your ChatGPT subscription, or an Anthropic model through Claude Code on your Claude subscription. There is no API key and no fallback model.</li>
         <li>Computer mode sends the chosen window's accessible text, your task and recent actions when you press Plan next action, after its own tick. No screenshot, no audio. You approve every action, and Ctrl+Shift+F12 stops it from any app.</li>
         <li>Prototypes and their reference images are saved on this device, up to 12 versions. New project clears them. Generated pages run with no network access.</li>
         <li>Live build sends changed snapshots automatically after its own permission, up to 10 per start, and never resumes after a reload.</li>
