@@ -56,6 +56,8 @@ internal sealed class DesktopShell : Form {
     PointF eyes = new PointF(SidelookMark.EyeTravel, 0);
     Point lastCursor = new Point(int.MinValue, int.MinValue);
     bool animations = true;   // Windows' animation switch, refreshed on preference change; false means the eyes stay at the static right
+    readonly Timer fadeTimer = new Timer { Interval = 15 };
+    DateTime fadeStart; double fadeFrom, fadeTo, fadeMs; Action fadeDone;
     string mode = "dock";
     bool ready;
     bool allowClose;
@@ -115,6 +117,7 @@ internal sealed class DesktopShell : Form {
         Microsoft.Win32.SystemEvents.SessionSwitch += OnSessionSwitch;
         eyeTimer.Tick += delegate { TrackEyes(); };
         eyeTimer.Start();
+        fadeTimer.Tick += delegate { StepFade(); };
         FormClosing += OnShellClosing;
         Shown += delegate { PositionForMode(); };
         ProfileDirectory = Path.Combine(dataRoot, "WebView2");
@@ -158,9 +161,11 @@ internal sealed class DesktopShell : Form {
         capture.ClearPick();
         capture.RememberForeground();
         panelSized = false;
+        if (animations) Opacity = 0;
         SetMode("panel");
         Show();
         Activate();
+        Fade(Opacity, 1, 150, null);
     }
 
     public void Shutdown() {
@@ -270,6 +275,24 @@ internal sealed class DesktopShell : Form {
         return enabled;
     }
 
+    // Summon fades in over 150 ms, dismiss out over 120 ms, opacity only, ease-out. Under Windows' animation switch both are instant.
+    void Fade(double from, double to, double ms, Action done) {
+        if (!animations) { Opacity = to; if (done != null) done(); return; }
+        fadeFrom = from; fadeTo = to; fadeMs = ms; fadeDone = done; fadeStart = DateTime.UtcNow;
+        Opacity = from;
+        fadeTimer.Start();
+    }
+
+    void StepFade() {
+        double t = Math.Min(1, (DateTime.UtcNow - fadeStart).TotalMilliseconds / fadeMs);
+        double eased = 1 - Math.Pow(1 - t, 3);
+        Opacity = fadeFrom + (fadeTo - fadeFrom) * eased;
+        if (t < 1) return;
+        fadeTimer.Stop();
+        Action done = fadeDone; fadeDone = null;
+        if (done != null) done();
+    }
+
     void OnPreferenceChanged(object sender, Microsoft.Win32.UserPreferenceChangedEventArgs args) { animations = AnimationsEnabled(); lastCursor = new Point(int.MinValue, int.MinValue); }
 
     // A locked session has no cursor to follow; the eyes rest and the timer stops until the desktop is back.
@@ -324,7 +347,10 @@ internal sealed class DesktopShell : Form {
         if (type == "resize") {
             object rawMode, rawHeight;
             string requested = message.TryGetValue("mode", out rawMode) ? rawMode as string : null;
-            if (requested == "dock" || requested == "panel" || requested == "workbench") SetMode(requested);
+            if (requested == "dock" || requested == "panel" || requested == "workbench") {
+                if (requested == "dock" && mode != "dock") Fade(1, 0, 120, delegate { SetMode("dock"); Opacity = 1; });
+                else SetMode(requested);
+            }
             else if (message.TryGetValue("height", out rawHeight) && (rawHeight is int || rawHeight is long || rawHeight is decimal || rawHeight is double)) FitPanel(Convert.ToInt32(rawHeight));
         } else if (type == "capture") {
             object rawRequestId;
