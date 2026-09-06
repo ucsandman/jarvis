@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.0: One box, one button
+
+- The panel redesigned from first principles: one message box, one Send button, nothing to tick. The button says what goes ("Send with screenshot", "Send with window text"); a screenshot or the window's text sits inside the box as a chip with its name, time and size, × removes it, and after a send it leaves the box and stays on the message as evidence. Refused and stopped sends keep it.
+- The panel has no checkbox, no details arrow and nothing that scrolls at rest; the companion verifier asserts all three. The consent sentence, the Include boxes, the hover hint, the horizontal chip strip, the footer status line, the sent counter, the Read text button and the studio arrow are gone from the panel.
+- Starters are three full-width rows, each saying what it takes ("takes a screenshot of Chrome", "reads the text of Notepad", "just asks"). They show while the conversation is empty and come back when Jarvis is summoned from a different window.
+- The header carries one sensor line, "Screen & mic off" with a dot, that no activity overwrites. The line under the box names the model and the account ("To Fable 5.1 on your Claude subscription · may use paid credits") with "What goes"; while a request is out it becomes "Thinking · 4s" with the only Stop on the screen.
+- Computer mode is a screen, not a card: entered from Settings, it replaces the conversation once the lease is on and shows the window, the task and the one action waiting for approval, with the lease countdown at the top and Stop control in the footer. Back keeps the lease; Open on the line under the box returns to it. "Plan next action" is the consent; the line under it names the window whose fresh reading goes.
+- Settings gains a "Do more" section: Open the studio, Computer mode.
+- Harness: `activityLine()`, `sensorLine()` and `sendLabel()` in `public/harness.js`; `gate()` requires a tick only in the studio. Old Computer card and text strip rules removed from `style.css`; the panel's rules live in `companion.css`.
+
 ## 0.9.0: One column, one tick
 
 - The companion column is the product. It keeps the same 440 pixels when the studio opens beside it; the native window widens to the left with its right edge pinned. Below 1180px the column steps aside and ← Panel brings it back.

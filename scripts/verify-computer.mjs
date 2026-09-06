@@ -15,21 +15,26 @@ const {chromium}=browserTools();const browser=await chromium.launch({channel:'ch
 const errors=[];page.on('pageerror',e=>errors.push(e.message));let count=0;
 try{
   await page.goto(`http://127.0.0.1:${app.address().port}/?companion`);await page.waitForFunction(()=>!document.getElementById('companion-send').disabled);
-  await page.locator('#computer-open').click();await page.locator('#computer-lease').waitFor({state:'visible'});
+  assert.equal(await page.locator('#computer-mode').isVisible(),false,'Computer mode is not in the conversation');
+  await page.locator('#companion-settings').click();await page.locator('#computer-open').click();await page.locator('#computer-lease').waitFor({state:'visible'});assert.equal(await page.locator('#settings').evaluate(d=>d.open),false,'Set it up leaves Settings');
   await page.locator('#computer-enable').click();await page.getByText('Allow local window inspection before enabling Computer mode.').waitFor();count++;
-  await page.locator('#computer-permission').check();await page.locator('#computer-enable').click();await page.locator('#computer-work').waitFor();assert.equal(await page.locator('#computer-lease').evaluate(d=>d.open),false);count++;
+  await page.locator('#computer-permission').check();await page.locator('#computer-enable').click();await page.locator('#computer-work').waitFor();assert.equal(await page.locator('#computer-lease').evaluate(d=>d.open),false);
+  assert.equal(await page.locator('.companion-compose').isVisible(),false,'the screen replaces the conversation');assert.match(await page.locator('#computer-left').innerText(),/^(9|10):\d\d left$/);count++;
   await page.locator('#companion-settings').click();await page.locator('#model-choice').selectOption('fable');await page.locator('#settings-close').click();
   assert.match(await page.locator('#computer-consent-line').innerText(),/the chosen window to Fable 5\.1/);count++;
-  await page.locator('#computer-window').selectOption('1:2:3');assert.match(await page.locator('#computer-consent-line').innerText(),/reading of Calculator fixture/);
-  await page.locator('#computer-inspect').click();await page.waitForFunction(()=>document.querySelector('#computer-snapshot').textContent.includes('Seven'));count++;
-  await page.locator('#computer-task').fill('Enter seven');await page.locator('#computer-next').click();await page.getByText('Tick the sharing line above Plan next action first.').waitFor();assert.equal(planned.length,0);count++;
-  await page.locator('#computer-cloud').check();await page.locator('#computer-next').click();await page.locator('#computer-review').waitFor();assert.equal(actions,0);
-  assert.equal(await page.locator('#computer-cloud').isChecked(),false,'the tick clears after every plan');assert.deepEqual(planned,[{model:'fable',effort:'medium'}]);count++;
-  await page.locator('#computer-mode').screenshot({path:'.artifacts/computer-desktop.png'});
-  await page.locator('#computer-approve').click();await page.waitForFunction(()=>document.querySelector('#computer-history').children.length===1);assert.equal(actions,1);assert.equal(await page.locator('#computer-count').innerText(),'1 action');count++;
-  await page.locator('#computer-cloud').check();await page.locator('#computer-next').click();await page.locator('#computer-review').waitFor();await page.locator('#computer-reject').click();await page.locator('#computer-review').waitFor({state:'hidden'});assert.equal(actions,1);count++;
-  await page.setViewportSize({width:390,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.locator('#computer-mode').screenshot({path:'.artifacts/computer-mobile.png'});count++;
-  await page.locator('#computer-stop').click();await page.locator('#computer-work').waitFor({state:'hidden'});assert.equal(armed,false);count++;
+  await page.locator('#computer-window').selectOption('1:2:3');assert.match(await page.locator('#computer-consent-line').innerText(),/reading of Calculator fixture/);assert.equal(await page.locator('#computer-title').innerText(),'Jarvis in Calculator fixture');
+  await page.locator('#computer-inspect').click();await page.waitForFunction(()=>document.querySelector('#computer-snapshot').textContent.includes('Seven'));assert.ok(await page.locator('#computer-read').isVisible());count++;
+  await page.locator('#computer-next').click();await page.getByText('Say what Jarvis should do first.').waitFor();assert.equal(planned.length,0);count++;
+  await page.locator('#computer-task').fill('Enter seven');await page.locator('#computer-next').click();await page.locator('#computer-review').waitFor();assert.equal(actions,0);
+  assert.equal(await page.locator('#computer input[type=checkbox], #computer-mode input[type=checkbox]').count(),0,'no tick anywhere on the screen');assert.deepEqual(planned,[{model:'fable',effort:'medium'}]);assert.match(await page.locator('#computer-step-label').innerText(),/^Step 1 of 20 · waiting for you$/);count++;
+  await page.locator('#companion').screenshot({path:'.artifacts/computer-desktop.png'});
+  await page.locator('#computer-approve').click();await page.waitForFunction(()=>document.querySelector('#computer-history').children.length===1);assert.equal(actions,1);assert.equal(await page.locator('#computer-count').innerText(),'1 action');assert.ok(await page.locator('#computer-done').isVisible());count++;
+  await page.locator('#computer-next').click();await page.locator('#computer-review').waitFor();await page.locator('#computer-reject').click();await page.locator('#computer-review').waitFor({state:'hidden'});assert.equal(actions,1);count++;
+  // Back keeps the lease; the conversation says so and Open returns to the screen.
+  await page.locator('#computer-back').click();assert.ok(await page.locator('.companion-compose').isVisible());assert.match(await page.locator('#companion-goes-text').innerText(),/^Computer mode on/);assert.equal(armed,true);
+  await page.locator('#companion-computer').click();assert.ok(await page.locator('#computer-work').isVisible());count++;
+  await page.setViewportSize({width:390,height:844});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));await page.locator('#companion').screenshot({path:'.artifacts/computer-mobile.png'});count++;
+  await page.locator('#computer-stop').click();await page.locator('#computer-work').waitFor({state:'hidden'});assert.equal(armed,false);assert.ok(await page.locator('.companion-compose').isVisible(),'Stop returns to the conversation');count++;
   assert.deepEqual(errors,[]);count++;
-  console.log(`PASS: ${count} Computer UI checks; lease dialog, local and cloud consent, per-plan clearing, model from Settings, inspection, approve/reject, stop, mobile overflow and browser errors. Synthetic planner and native adapter, no model charges.`);
+  console.log(`PASS: ${count} Computer UI checks; Set it up from Settings, lease dialog, the screen replacing the conversation, no tick, model from Settings, inspection, approve/reject, Back and Open, stop, mobile overflow and browser errors. Synthetic planner and native adapter, no model charges.`);
 }finally{await browser.close();await new Promise(r=>app.close(r));}

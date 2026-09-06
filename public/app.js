@@ -680,13 +680,14 @@ async function init() {
   } catch(error) { showError(error.message); }
   await refreshSession();
 }
-// The Computer mode card lives inside #companion in index.html; both init calls query static markup.
-initComputer({api,getSelection:()=>({model:state.model,effort:state.effort,configured:state.configured,token:state.token,remaining:state.remaining}),onState:s=>{state.computerOn=s.on;state.planning=s.planning;notifyState();}});
+// The Computer mode screen lives inside #companion in index.html; both init calls query static markup.
+const computer=initComputer({api,getSelection:()=>({model:state.model,effort:state.effort,configured:state.configured,token:state.token,remaining:state.remaining}),onState:s=>{state.computerOn=s.on;state.planning=s.planning;notifyState();}});
 initCompanion({api,getState:()=>state,updateControls,
   stopWork:()=>{pauseLive('Paused from the companion.');state.controller?.abort();state.setupController?.abort();stopDictation();stopCamera();$('computer-stop')?.click();},
   openWorkflow:(kind,instruction='',evidence)=>{
     if(kind==='setup'){openSettings();return;}
-    if(kind==='computer'){$('computer-task').value=instruction.slice(0,2000);$('computer-mode').scrollIntoView({block:'start'});$('computer-open').focus();return;}
+    // A reply's "Let Jarvis do this" carries the task; the panel's "Open" carries none and keeps whatever was typed.
+    if(kind==='computer'){if(instruction)$('computer-task').value=instruction.slice(0,2000);computer.open();return;}
     $('direction').value=instruction;if(evidence)setImage(evidence.image,evidence.label);else{$('include-frame').checked=false;updateFrameChoice();}$('direction').focus();
   },
   importSource:async(html,name)=>{

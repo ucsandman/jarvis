@@ -75,13 +75,6 @@
   .frame-strip label { display:flex; align-items:center; gap:8px; font-size:12px; }
   .frame-strip input { margin:0; accent-color:var(--amber); width:16px; height:16px; }
   .frame-strip-plain { justify-content:space-between; flex-wrap:wrap; padding:10px 0; border-top:1px solid var(--line); border-bottom:1px solid var(--line); margin:4px 0 12px; }
-  /* Window text, shown in full before it goes. */
-  .text-strip { margin:0 0 10px; font-size:12px; color:var(--muted); }
-  .text-head { display:flex; justify-content:space-between; align-items:center; gap:8px; }
-  .text-strip strong { color:var(--ink); font-weight:500; font-size:12px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .text-strip pre { max-height:140px; margin:6px 0; padding:8px 10px; font-size:12px; line-height:1.45; }
-  .text-strip label { display:flex; align-items:center; gap:8px; margin-top:4px; }
-  .text-strip input { margin:0; accent-color:var(--amber); width:16px; height:16px; }
   .companion-provenance { font-size:12px; color:var(--muted); margin:4px 0 0; }
   .companion-copy { font-size:12px; }
 
@@ -249,26 +242,10 @@
   #send-preview pre { max-height:220px; font-size:12px; }
   #send-ledger { padding-left:20px; margin:0; font-size:12px; color:#c2ccb8; line-height:1.8; }
 
-  /* Computer mode is a card in the column: one resting line until you ask for it. */
-  .computer-mode { border-top:1px solid var(--line); padding:14px 0 6px; margin-top:6px; }
-  .computer-rest { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
-  .computer-rest p { font-size:12px; color:var(--muted); line-height:1.5; }
-  .computer-rest strong { color:var(--ink); font-weight:600; }
-  .computer-rest .quiet { white-space:nowrap; padding:0; color:var(--amber); }
-  #computer-status { font-size:12px; color:#c2ccb8; margin:8px 0; padding:8px 10px; border:1px solid var(--line); background:#1f231f; }
-  #computer-work { display:flex; flex-direction:column; gap:8px; margin-top:10px; }
-  #computer-work label { font-size:12px; color:var(--muted); }
-  .computer-row { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
-  .computer-row select { flex:1; min-width:120px; }
-  .computer-row .quiet { padding:6px 4px; }
-  #computer-work summary { cursor:pointer; font-size:12px; color:var(--muted); }
-  #computer-work pre { max-height:180px; font-size:12px; margin:6px 0; }
-  #computer-task { width:100%; min-height:64px; padding:8px 10px; background:#242820; border:1px solid #4a5140; border-radius:5px; resize:vertical; font-size:13px; }
-  .computer-review { border:1px solid #e5bb77; padding:12px; margin:6px 0; }
-  .computer-review h3 { font-size:14px; margin:0 0 6px; }
-  .computer-review p { font-size:12px; color:#c2ccb8; margin:6px 0; }
-  #computer-history { padding-left:18px; line-height:1.7; font-size:12px; margin:6px 0; }
-  #computer-count { color:#c8c2b4; }
+  /* Computer mode is a screen inside the panel; its rules live in companion.css. */
+  .settings-more { display:flex; flex-direction:column; align-items:flex-start; gap:2px; }
+  .settings-more .quiet { text-align:left; justify-content:flex-start; font-size:13px; color:var(--ink); padding:6px 0; }
+  .settings-more .quiet:hover { color:var(--amber); }
   @keyframes scan { from { transform:translateY(0); } to { transform:translateY(450px); } }
   @keyframes rotate { to { transform:rotate(360deg); } }
   @keyframes breathe { 50% { opacity:.5; } }

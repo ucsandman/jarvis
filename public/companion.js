@@ -1,7 +1,8 @@
-import {statusLine,gate,spend,record,ledger,sentCount,renderGate,renderPreview,MODEL_LABEL,ACCOUNT,CLI} from './harness.js';
+import {activityLine,sensorLine,sendLabel,gate,record,ledger,renderPreview,MODEL_LABEL,ACCOUNT,CLI} from './harness.js';
 import {families,chipsFor,captureFor,UNKNOWN_CHIPS,TONES} from './chips.js';
 
-// The column. Its markup lives in index.html; this file only queries and wires it.
+// The panel. Its markup lives in index.html; this file only queries and wires it.
+// One box, one button. Attached means it goes; the Send button says what goes; there is no tick.
 export function initCompanion({api,getState,updateControls,openWorkflow,stopWork,importSource}) {
   const native=window.chrome?.webview;
   const host=document.getElementById('companion');
@@ -11,6 +12,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   const post=value=>native?.postMessage(value);
   const error=message=>{$('error').textContent=message;$('error').hidden=!message;};
   const clock=value=>new Date(value).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
+  const kb=image=>`${Math.round(image.length*3/4/1024)} KB`;
   try {tone.value=localStorage.getItem('jarvisTone') in TONES?localStorage.getItem('jarvisTone'):'plainer';} catch {tone.value='plainer';}
   tone.onchange=()=>{try{localStorage.setItem('jarvisTone',tone.value);}catch{}};
   function showSurface(next,notify=true) {
@@ -19,32 +21,31 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     if(notify)post({type:'resize',mode:next==='studio'?'workbench':next==='dock'?'dock':'panel'});
     if(next==='companion')setTimeout(()=>$('input').focus(),100);
   }
-  const frameOn=()=>!!frame && $('include').checked,textOn=()=>!!text && $('include-text').checked;
   const currentFamilies=()=>front?families(front.process,front.title):['unknown'];
-  const view=()=>{const s=getState();return {dictating:!!dictation || !!s.recognition,thinking:!!controller,capturing:capturing || reading,busy:s.busy,elapsed:s.elapsed,planning:s.planning,live:s.live,liveCount:s.liveCount,setupBusy:s.setupBusy,checking:s.checking,token:s.token,configured:s.configured,remaining:s.remaining,computerOn:s.computerOn,frameAttached:frameOn(),textAttached:textOn(),stream:s.stream,captureKind:s.captureKind};};
-  const gateView=()=>({surface:'chat',model:getState().model,earlier:history.length,frame:frameOn(),text:textOn()});
-  // The strips describe the attachment from state, so a re-ticked box and its caption can never disagree, and the truncation flag never disappears.
+  const appName=()=>{const name=String(front?.process || '').replace(/\.exe$/i,'');return name?name[0].toUpperCase()+name.slice(1):'the window';};
+  const view=()=>{const s=getState();return {dictating:!!dictation || !!s.recognition,thinking:!!controller,capturing:capturing || reading,busy:s.busy,elapsed:s.elapsed,planning:s.planning,live:s.live,liveCount:s.liveCount,setupBusy:s.setupBusy,checking:s.checking,token:s.token,configured:s.configured,remaining:s.remaining,computerOn:s.computerOn,frameAttached:!!frame,textAttached:!!text,stream:s.stream,captureKind:s.captureKind};};
+  const running=v=>!!(v.dictating || v.thinking || v.capturing || v.busy || v.planning || v.live || v.setupBusy);
+  // The attachment chips describe themselves from state, so the caption can never disagree with what goes.
   function renderStrips() {
-    if(frame){
-      const when=new Date(frame.capturedAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit',second:'2-digit'});
-      $('frame-time').textContent=$('include').checked?`Captured ${when}${frame.sentAt?` · sent ${clock(frame.sentAt)} · attached again`:' · stays here until you send'}`:`Captured ${when}${frame.sentAt?` · sent ${clock(frame.sentAt)}`:''} · not attached`;
-    }
-    if(text){
-      $('text-volume').textContent=`${text.controls} controls · ${text.characters.toLocaleString()} characters · truncated: ${text.truncated?'yes':'no'}${text.sentAt?` · sent ${clock(text.sentAt)}`:''}${$('include-text').checked?'':' · not attached'}`;
-    }
+    if(frame)$('frame-time').textContent=`Captured ${clock(frame.capturedAt)} · ${kb(frame.image)}`;
+    if(text)$('text-volume').textContent=`${text.controls} controls · ${text.characters.toLocaleString()} characters${text.truncated?' · cut short':''}`;
   }
   function render() {
     const s=getState(),locked=!!controller || !!dictation || s.busy || s.live || s.setupBusy || s.inputBusy;
-    for(const id of ['clear','import','capture','remove','include','include-text','text-remove'])$(id).disabled=locked || capturing || reading;
-    $('read').disabled=locked || capturing || reading || !front || !s.token || s.planning;
-    host.querySelectorAll('.chip,.companion-followups button').forEach(button=>button.disabled=locked || capturing || reading);
+    for(const id of ['clear','import','capture','remove','text-remove'])$(id).disabled=locked || capturing || reading;
+    host.querySelectorAll('.starter,.companion-followups button').forEach(button=>button.disabled=locked || capturing || reading);
     $('send').disabled=locked || s.checking || !s.configured || !s.token || s.remaining===0;
+    $('send').textContent=`${sendLabel({frame:!!frame,text:!!text})} ↑`;
     $('input').disabled=!!controller;
     $('mic').disabled=!!controller || s.busy || s.setupBusy || s.live || !s.dictation || !s.token;
-    $('consent').disabled=!!controller;
-    $('status').textContent=statusLine(view());
-    renderGate($('gate'),gateView());renderStrips();
-    const sent=sentCount();$('ledger').hidden=!ledger.length;$('ledger').textContent=`${sent} sent${ledger.length>sent?` · ${ledger.length-sent} refused`:''}`;
+    const v=view(),sensor=sensorLine(v),activity=activityLine(v),busy=running(v);
+    $('status').textContent=sensor[0].toUpperCase()+sensor.slice(1);
+    $('dot').className=sensor==='screen & mic off'?'':'on';
+    $('running').hidden=!busy;$('goes').hidden=busy;
+    $('activity').textContent=activity;
+    $('goes-text').textContent=activity==='Ready'?`To ${MODEL_LABEL[s.model]} on your ${ACCOUNT[s.model]} subscription${s.model==='fable'?' · may use paid credits':''}`:activity;
+    $('computer').hidden=!s.computerOn;
+    renderStrips();
     $('hide').hidden=!native;$('drag').disabled=!native;
   }
   // Numbered or bulleted replies become lists; everything else stays a paragraph. No Markdown parser.
@@ -74,49 +75,51 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     if(!navigator.clipboard?.writeText){copied(false,'This browser has no clipboard access. Select the reply and copy it yourself.');return;}
     navigator.clipboard.writeText(body).then(()=>copied(true),()=>copied(false,'The browser refused the clipboard. Select the reply and copy it yourself.'));
   }
+  // Evidence stays on the message it went with: a small label that opens the exact screenshot or text.
+  function evidenceToggle(label,node) {
+    const button=document.createElement('button');button.type='button';button.className='companion-evidence';button.textContent=label;button.setAttribute('aria-expanded','false');
+    node.hidden=true;button.onclick=()=>{node.hidden=!node.hidden;button.setAttribute('aria-expanded',String(!node.hidden));};
+    return [button,node];
+  }
   function addMessage(role,body,evidence,sentText) {
     const li=document.createElement('li');li.className='companion-message '+role;
     if(role==='assistant'){const label=document.createElement('span');label.textContent='Jarvis';li.append(label);}
     renderText(li,body);
-    if(evidence){const details=document.createElement('details');const summary=document.createElement('summary');summary.textContent=`Frame sent · ${evidence.label}`;const img=document.createElement('img');img.src=evidence.image;img.alt='Exact frame sent with this message';details.append(summary,img);li.append(details);}
-    if(sentText){const details=document.createElement('details');const summary=document.createElement('summary');summary.textContent=`Text sent · ${sentText.title} · ${sentText.controls} controls${sentText.truncated?' · truncated':''}`;const pre=document.createElement('pre');pre.textContent=sentText.text;details.append(summary,pre);li.append(details);}
+    if(evidence){const img=document.createElement('img');img.src=evidence.image;img.alt='Exact screenshot sent with this message';li.append(...evidenceToggle(`Screenshot sent · ${evidence.label}`,img));}
+    if(sentText){const pre=document.createElement('pre');pre.textContent=sentText.text;li.append(...evidenceToggle(`Text sent · ${sentText.title} · ${sentText.controls} controls${sentText.truncated?' · cut short':''}`,pre));}
     if(role==='assistant'){const copy=document.createElement('button');copy.type='button';copy.className='quiet companion-copy';copy.textContent='Copy';copy.onclick=()=>copyText(body,copy);li.append(copy);}
     $('messages').append(li);while($('messages').children.length>24)$('messages').firstElementChild.remove();
-    $('welcome').hidden=true;li.scrollIntoView({block:'end',behavior:'smooth'});return li;
+    $('welcome').hidden=true;$('deck').hidden=true;li.scrollIntoView({block:'end',behavior:'smooth'});return li;
   }
   function renderFollowUps(reply,items) {
     const list=(items || []).filter(item=>typeof item==='string' && item.trim()).slice(0,3);
     if(!list.length)return;
     const wrap=document.createElement('div');wrap.className='companion-followups';
-    for(const item of list){const button=document.createElement('button');button.type='button';button.className='quiet';button.textContent=item+(frameOn() || textOn()?' · with what is attached':'');button.onclick=()=>{$('input').value=item;$('consent').focus();};wrap.append(button);}
+    for(const item of list){const button=document.createElement('button');button.type='button';button.textContent=item;button.onclick=()=>{$('input').value=item;$('input').focus();};wrap.append(button);}
     reply.append(wrap);
   }
-  // A tick authorizes exactly what its sentence said. New evidence changes the sentence, so it clears the tick.
+  // Attached means it goes. A new capture replaces the old one; × removes it; a send that reached the model clears it.
   function setFrame(value) {
     frame=value;$('context').hidden=!value;
-    if(value){$('frame').src=value.image;$('frame-label').textContent=value.label;$('include').checked=true;$('consent').checked=false;}
-    else {$('frame').removeAttribute('src');$('include').checked=false;}
+    if(value){$('frame').src=value.image;$('frame-label').textContent=value.label;}
+    else $('frame').removeAttribute('src');
     render();
   }
   // The window's accessible text, every character shown before it can go, with an honest volume line.
   function setText(value) {
-    text=value;$('text').hidden=!value;
-    if(value){$('text-label').textContent=`Read from ${value.title}`;$('text-body').textContent=value.text || '(no accessible text)';$('include-text').checked=true;$('consent').checked=false;}
-    else {$('text-body').textContent='';$('include-text').checked=false;}
+    text=value;$('text').hidden=!value;$('text-body').hidden=!value;
+    if(value){$('text-label').textContent=`Text from ${value.title}`;$('text-body').textContent=value.text || '(no accessible text)';}
+    else $('text-body').textContent='';
     render();
-  }
-  function markSent(evidence,sentText) {
-    if(evidence && frame===evidence){frame.sentAt=Date.now();$('include').checked=false;}
-    if(sentText && text===sentText){text.sentAt=Date.now();$('include-text').checked=false;}
   }
   function afterCapture(ok) {
     const route=pendingRoute;pendingRoute=null;
     if(route==='build'){
       if(ok && frame){const direction=$('input').value.trim();$('input').value='';openWorkflow('build',direction,frame);showSurface('studio');}
-      else error('No frame was captured, so nothing was sent to the studio. Try the chip again.');
+      else error('No screenshot was taken, so nothing went to the studio. Try the button again.');
       quickAsk=false;return;
     }
-    if(quickAsk){quickAsk=false;if(ok)setTimeout(()=>$('consent').focus(),300);}
+    if(quickAsk){quickAsk=false;if(ok)setTimeout(()=>$('input').focus(),300);}
   }
   async function capture(keepError=false) {
     if(capturing || reading || controller)return;
@@ -134,7 +137,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   // Read the accessible text of the window that was in front. Read-only on the server: it never arms Computer mode. Returns false when nothing could be read.
   async function readText() {
     if(capturing || reading || controller)return false;
-    if(!front){error('Summon Jarvis from the window you want read, then press Read text.');return false;}
+    if(!front){error('Summon Jarvis from the window you want read, then press the button again.');return false;}
     error('');reading=true;render();
     try {
       const result=await api('/api/computer',{op:'read',title:front.title,consent:true});
@@ -154,9 +157,9 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     controller?.abort();dictation?.abort();post({type:'cancel-capture',requestId:captureRequest});captureEpoch++;capturing=false;captureRequest=null;pendingRoute=null;quickAsk=false;
     post({type:'stop-speaking'});window.speechSynthesis?.cancel();stopWork();render();
   }
-  // The exact body submit() posts, and a description of it for the preview. Only the frame's bytes are elided from the preview.
+  // The exact body submit() posts, and a description of it for the preview. Only the screenshot's bytes are elided from the preview.
   function requestBody() {
-    const evidence=frameOn()?frame:null,read=textOn()?text:null;
+    const evidence=frame,read=text;
     const body={instruction:$('input').value.trim(),history:history.slice(-12),...(evidence?{image:evidence.image}:{}),...(read?{windowText:read.text,windowTextTruncated:read.truncated===true}:{}),...(evidence || read?{contextLabel:(evidence?evidence.label:read.title)}:{}),consent:true};
     return {body,evidence,read};
   }
@@ -164,35 +167,34 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     const s=getState();const {body,evidence,read}=requestBody();
     return {title:'What goes with the next send',fields:[
       ['Message',body.instruction || '(nothing typed yet)'],['Earlier messages',String(body.history.length)],
-      ['Frame',evidence?`${evidence.label} · ${Math.round(evidence.image.length*3/4/1024)} KB JPEG`:'none'],
-      ['Window text',read?`${read.title} · ${read.controls} controls · ${read.characters.toLocaleString()} characters${read.truncated?' · truncated':''}`:'none'],
+      ['Screenshot',evidence?`${evidence.label} · ${kb(evidence.image)} JPEG`:'none'],
+      ['Window text',read?`${read.title} · ${read.controls} controls · ${read.characters.toLocaleString()} characters${read.truncated?' · cut short':''}`:'none'],
       ['Model',`${MODEL_LABEL[s.model]} · ${s.effort}`],['Goes to',`your ${ACCOUNT[s.model]} subscription through ${CLI[s.model]}`]],
-      body:{...body,model:s.model,effort:s.effort,...(evidence?{image:`<frame: ${evidence.label}>`}:{})}};
+      body:{...body,model:s.model,effort:s.effort,...(evidence?{image:`<screenshot: ${evidence.label}>`}:{})}};
   }
   function showPreview() {renderPreview(preview,manifest(),ledger);preview.showModal();}
   async function submit() {
     const s=getState();if(controller || dictation || capturing || reading || s.busy || s.live || s.setupBusy || s.inputBusy)return;
     const instruction=$('input').value.trim();if(!instruction)return;
-    const refusal=gate({surface:'chat',ticked:$('consent').checked,configured:s.configured,token:s.token,remaining:s.remaining});
-    if(refusal){error(refusal);$('consent').focus();return;}
+    const refusal=gate({surface:'chat',configured:s.configured,token:s.token,remaining:s.remaining});
+    if(refusal){error(refusal);return;}
     error('');const request=new AbortController();controller=request;s.inputBusy=true;updateControls();render();
     const {body,evidence,read}=requestBody();
     const user=addMessage('user',instruction,evidence,read);
-    // The tick is one press: it clears whether the model answered, refused or was stopped. The attachments and the ledger follow what actually happened.
-    spend($('consent'));
+    // Only the response decides what happened: a send clears the box and its attachments, a refusal or a Stop keeps them here to retry.
     let outcome='refused';
     try {
       const result=await api('/api/chat',body,request.signal);
       if(request.signal.aborted){outcome='stopped';return;}
       outcome='sent';record({surface:'chat',ok:true,frame:!!evidence,text:!!read,model:s.model,effort:s.effort,remaining:result.remaining});
-      markSent(evidence,read);
       history.push({role:'user',text:instruction.slice(0,2000)},{role:'assistant',text:result.result.reply.slice(0,2000)});history=history.slice(-12);
       const reply=addMessage('assistant',result.result.reply);$('input').value='';
-      if(read){const provenance=document.createElement('p');provenance.className='companion-provenance';provenance.textContent=`Read from: ${read.title} · ${read.controls} controls${read.truncated?' · truncated':''}`;reply.append(provenance);}
+      if(evidence)setFrame(null);if(read)setText(null);
+      if(read){const provenance=document.createElement('p');provenance.className='companion-provenance';provenance.textContent=`Read from: ${read.title} · ${read.controls} controls${read.truncated?' · cut short':''}`;reply.append(provenance);}
       if(['build','computer'].includes(result.result.suggestion)){
-        const button=document.createElement('button');button.className='companion-workflow';button.textContent=result.result.suggestion==='build'?'Build this in the studio':'Let Jarvis do this';
-        // Hand over the frame only while it is still here; a removed frame does not come back through an old reply.
-        button.onclick=()=>{if(result.result.suggestion==='build')showSurface('studio');openWorkflow(result.result.suggestion,instruction,evidence && frame===evidence?frame:null);};reply.append(button);
+        const button=document.createElement('button');button.type='button';button.className='companion-workflow';button.textContent=result.result.suggestion==='build'?'Build this in the studio':'Let Jarvis do this';
+        // The studio gets the screenshot that went with this message, the one shown on it, and asks its own permission before any build.
+        button.onclick=()=>{if(result.result.suggestion==='build')showSurface('studio');openWorkflow(result.result.suggestion,instruction,evidence);};reply.append(button);
       }
       renderFollowUps(reply,result.result.followUps);
       speak(result.result.reply);
@@ -215,7 +217,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     catch(e){if(e.name!=='AbortError')error(e.message);}
     finally{if(dictation===request){dictation=null;s.inputBusy=false;updateControls();$('mic').setAttribute('aria-pressed','false');render();$('input').focus();}}
   }
-  // The deck: chips chosen locally from the window that was in front at summon. Nothing is captured or read until a chip, ＋ Window or Read text is pressed.
+  // The starters: chips chosen locally from the window that was in front at summon. Nothing is captured or read until a starter or Screenshot is pressed.
   const chipPrompt=chip=>chip.prompt.replace('{tone}',TONES[tone.value] || TONES.plainer);
   async function useChip(chip) {
     if(controller || capturing || reading)return;
@@ -223,43 +225,44 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     if(chip.route==='build'){pendingRoute='build';capture();return;}
     const take=captureFor(chip,currentFamilies());
     if(take==='text'){
-      if(await readText()){$('consent').focus();return;}
-      // The read failed for a reason worth reading; keep it on screen and fall back to a frame.
-      error(`${$('error').textContent} Capturing a frame instead.`);capture(true);return;
+      if(await readText()){$('input').focus();return;}
+      // The read failed for a reason worth reading; keep it on screen and fall back to a screenshot.
+      error(`${$('error').textContent} Taking a screenshot instead.`);capture(true);return;
     }
     if(take==='frame')capture();
     $('input').focus();
   }
-  function renderDeck() {
+  // The starters show while the conversation is empty, and again when Jarvis is summoned from a different window mid-conversation.
+  function renderDeck(show=false) {
     const fams=currentFamilies();
     chips=front?chipsFor(fams,front.title):UNKNOWN_CHIPS;
     $('front').hidden=!front;$('front-title').textContent=front?`In front: ${front.title}`:'';
+    $('ask').textContent=front?'What are we looking at?':'What are we working on?';
+    if(show)$('deck').hidden=false;
     $('chips').replaceChildren(...chips.map(chip=>{
       const take=captureFor(chip,fams);
-      const button=document.createElement('button');button.type='button';button.className='chip';button.dataset.chip=chip.id;button.append(chip.label);
-      if(take==='frame' || take==='text'){const badge=document.createElement('small');badge.textContent=take;button.append(badge);}
-      button.onclick=()=>useChip(chip);
-      button.onfocus=button.onmouseenter=()=>{$('hint').textContent=chipPrompt(chip).split(/(?<=\.)\s/)[0];};
-      button.onblur=button.onmouseleave=()=>{$('hint').textContent='';};
+      const button=document.createElement('button');button.type='button';button.className='starter';button.dataset.chip=chip.id;button.title=chipPrompt(chip);
+      const label=document.createElement('strong');label.textContent=chip.label;
+      const takes=document.createElement('small');takes.textContent=chip.route==='build'?`takes a screenshot of ${appName()} and opens the studio`:take==='frame'?`takes a screenshot of ${appName()}`:take==='text'?`reads the text of ${appName()}`:'just asks';
+      const wrap=document.createElement('span');wrap.append(label,takes);
+      button.append(wrap);button.onclick=()=>useChip(chip);
       return button;
     }));
     render();
   }
   $('form').onsubmit=e=>{e.preventDefault();submit();};
   $('input').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();submit();}};
-  $('consent').onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();submit();}};
   $('capture').onclick=()=>capture();$('remove').onclick=()=>setFrame(null);$('mic').onclick=dictate;$('stop').onclick=stop;
-  $('read').onclick=()=>readText();$('text-remove').onclick=()=>setText(null);
-  // Changing what is attached changes the sentence, so the tick clears with it.
-  $('include-text').onchange=()=>{$('consent').checked=false;render();};$('include').onchange=()=>{$('consent').checked=false;render();};
+  $('text-remove').onclick=()=>setText(null);
   $('settings').onclick=()=>{if(!settings.open)settings.showModal();};
-  $('preview').onclick=showPreview;$('ledger').onclick=showPreview;
+  $('preview').onclick=showPreview;
   document.getElementById('settings-preview').onclick=showPreview;
-  $('expand').onclick=()=>showSurface('studio');$('back').onclick=()=>showSurface('companion');
+  $('expand').onclick=()=>{if(settings.open)settings.close();showSurface('studio');};$('back').onclick=()=>showSurface('companion');
+  $('computer').onclick=()=>openWorkflow('computer','');
   $('hide').onclick=()=>{stop();showSurface('dock');};$('drag').onpointerdown=()=>post({type:'drag'});
   $('front-clear').onclick=()=>{front=null;renderDeck();};
-  document.getElementById('model-choice').addEventListener('change',()=>{$('consent').checked=false;render();});
-  $('clear').onclick=()=>{history=[];$('messages').replaceChildren();$('welcome').hidden=false;setFrame(null);setText(null);error('');};
+  document.getElementById('model-choice').addEventListener('change',render);
+  $('clear').onclick=()=>{history=[];$('messages').replaceChildren();$('welcome').hidden=false;$('deck').hidden=false;setFrame(null);setText(null);error('');};
   $('spoken').onchange=()=>{if(!$('spoken').checked){post({type:'stop-speaking'});window.speechSynthesis?.cancel();}};
   $('voice').onchange=()=>{if(!$('voice').checked)dictation?.abort();};
   $('import').onclick=()=>$('import-file').click();
@@ -269,9 +272,10 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     if(data.type==='stop')stop();
     if(data.type==='host-ready'){
       showSurface(data.mode==='workbench'?'studio':'companion',false);
+      const before=front?.title;
       front=data.front && typeof data.front==='object' && typeof data.front.title==='string' && data.front.title.trim()?{title:data.front.title.trim().slice(0,200),process:String(data.front.process || '').slice(0,100)}:null;
       document.getElementById('hotkey-note').hidden=!(data.hotkeys && data.hotkeys.quickAsk===false);
-      renderDeck();render();
+      renderDeck(!!front && front.title!==before);render();
     }
     // Ctrl+Shift+E: never while something is in flight, and never over a message the user is still writing.
     if(data.type==='quick-ask'){

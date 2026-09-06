@@ -33,9 +33,9 @@ try{
     await route.fulfill({json:{...connection,configured:true,cli:true,model:'gpt-6-astra',remaining:60,dictation:true}});
   });
   await page.waitForFunction(()=>!document.getElementById('recheck').disabled);
-  assert.match(await page.locator('#companion-status').innerText(),/screen & mic off$/);
+  assert.match(await page.locator('#companion-status').innerText(),/^screen & mic off$/i);
   const edge=await page.evaluate(()=>screenX+outerWidth);
-  await page.locator('#companion-expand').click();await page.locator('.app-shell').waitFor();await page.waitForFunction(()=>innerWidth>=1180);
+  await page.locator('#companion-settings').click();await page.locator('#companion-expand').click();await page.locator('.app-shell').waitFor();await page.waitForFunction(()=>innerWidth>=1180);
   assert.ok(Math.abs(await page.evaluate(()=>screenX+outerWidth)-edge)<=2,'the right edge stays pinned when the studio opens');
   assert.ok(await page.locator('#companion').isVisible(),'the column stays beside the studio');
   if(!await page.locator('#settings').evaluate(d=>d.open))await page.locator('#settings-open').click();await page.locator('#recheck').click();await page.waitForFunction(()=>!document.getElementById('build').disabled);await page.locator('#settings-close').click();checks.push('native expansion opens the studio beside the pinned column');
@@ -72,7 +72,7 @@ $p=Get-Process -Id ${fixture.pid};$deadline=[DateTime]::UtcNow.AddSeconds(5);do{
   await page.locator('#companion-capture').click();await page.waitForFunction(()=>!document.getElementById('companion-context').hidden || !document.getElementById('companion-error').hidden);
   if(await page.locator('#companion-context').isHidden())throw new Error('Native capture failed: '+await page.locator('#companion-error').innerText());
   assert.equal((await page.locator('#companion-frame-label').innerText()).includes('Jarvis capture verification'),true,'Capture must target only the owned fixture.');
-  assert.match(await page.locator('#companion-frame').getAttribute('src'),/^data:image\/jpeg;base64,/);assert.equal(await page.locator('#companion-consent').isChecked(),false);await page.screenshot({path:'.artifacts/native-capture.png'});checks.push('explicit native capture returns only named fixture, no sharing');
+  assert.match(await page.locator('#companion-frame').getAttribute('src'),/^data:image\/jpeg;base64,/);assert.equal(await page.locator('#companion-send').innerText(),'Send with screenshot ↑');await page.screenshot({path:'.artifacts/native-capture.png'});checks.push('explicit native capture returns only named fixture, no sharing');
   await page.locator('#companion-hide').click();await page.waitForTimeout(200);
   execFileSync(powershell,['-NoProfile','-Command',"$s=[Threading.EventWaitHandle]::OpenExisting('Local\\JarvisDesktopOpen');$s.Set()|Out-Null;$s.Dispose()"],{windowsHide:true,stdio:'pipe'});
   await page.locator('#companion-input').waitFor();assert.ok(await page.locator('#companion').isVisible());checks.push('dock collapse and summon restore conversation');

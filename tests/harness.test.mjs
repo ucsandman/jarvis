@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { statusLine, consentLine, gate, spend, record, ledger, sentCount } from '../public/harness.js';
+import { statusLine, activityLine, sensorLine, sendLabel, consentLine, gate, spend, record, ledger, sentCount } from '../public/harness.js';
 import { families, chipsFor, captureFor, UNKNOWN_CHIPS } from '../public/chips.js';
 
 test('status line never claims the sensors are off while something is on', () => {
@@ -32,13 +32,26 @@ test('consent sentence names exactly what goes', () => {
   assert.equal(consentLine({surface:'computer',model:'astra'}),'Send this task and a fresh reading of the chosen window to Astra (your ChatGPT subscription).');
 });
 
-test('gate refuses in order: words, tick, connection, allowance', () => {
+test('gate refuses in order: words, the studio tick, connection, allowance; the panel and Computer mode have no tick', () => {
   assert.equal(gate({surface:'build',direction:'  ',ticked:true,configured:true,token:'t'}),'Tell Jarvis what should work first.');
-  assert.equal(gate({surface:'chat',ticked:false,configured:true,token:'t'}),'Tick the sharing line under your message before sending.');
-  assert.equal(gate({surface:'computer',ticked:false,configured:true,token:'t'}),'Tick the sharing line above Plan next action first.');
-  assert.equal(gate({surface:'chat',ticked:true,configured:false,token:'t'}),'Open Settings and connect your subscription first.');
-  assert.equal(gate({surface:'chat',ticked:true,configured:true,token:'t',remaining:0}),'Your local allowance is used up. Open Settings, then Start new allowance.');
-  assert.equal(gate({surface:'chat',ticked:true,configured:true,token:'t',remaining:5}),null);
+  assert.equal(gate({surface:'build',direction:'Build it',ticked:false,configured:true,token:'t'}),'Tick the sharing line under your direction before building.');
+  assert.equal(gate({surface:'chat',configured:true,token:'t',remaining:5}),null);
+  assert.equal(gate({surface:'computer',configured:true,token:'t',remaining:5}),null);
+  assert.equal(gate({surface:'chat',configured:false,token:'t'}),'Open Settings and connect your subscription first.');
+  assert.equal(gate({surface:'chat',configured:true,token:'t',remaining:0}),'Your local allowance is used up. Open Settings, then Start new allowance.');
+});
+
+test('the Send button says what goes, and the header sensor line is computed apart from the activity', () => {
+  assert.equal(sendLabel({}),'Send');
+  assert.equal(sendLabel({frame:true}),'Send with screenshot');
+  assert.equal(sendLabel({text:true}),'Send with window text');
+  assert.equal(sendLabel({frame:true,text:true}),'Send with screenshot and text');
+  assert.equal(sensorLine({}),'screen & mic off');
+  assert.equal(sensorLine({dictating:true}),'mic on (local)');
+  assert.equal(sensorLine({stream:{},captureKind:'screen'}),'screen shared (local preview)');
+  assert.equal(activityLine({thinking:true,frameAttached:true}),'Thinking');
+  assert.equal(activityLine({token:'t',configured:true,computerOn:true}),'Computer mode on · Ctrl+Shift+F12 stops it');
+  assert.equal(`${activityLine({token:'t',configured:true})} · ${sensorLine({})}`,statusLine({token:'t',configured:true}));
 });
 
 test('spend clears the tick and the include box only when the frame went', () => {

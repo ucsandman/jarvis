@@ -10,12 +10,16 @@ const list=items=>items.length<2?items.join(''):`${items.slice(0,-1).join(', ')}
 const destination=model=>`${MODEL_LABEL[model] || MODEL_LABEL.astra} (your ${ACCOUNT[model] || ACCOUNT.astra} subscription)`;
 const clock=value=>new Date(value).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
 
-// activity[ · attachment] · sensor. The sensor clause is computed from live state, never from a literal at a call site.
+// What Jarvis is doing right now, and what the sensors are doing. Both computed from live state, never from a literal at a call site.
+export const activityLine=(v={})=>v.dictating?'Listening':v.thinking?'Thinking':v.capturing?'Choosing a frame':v.busy?`Building · ${v.elapsed || 0}s`:v.planning?'Planning the next action'
+  :v.live?`Live build on · ${v.liveCount || 0} of 10 sent`:v.setupBusy?'Setting up':v.checking?'Checking connection':!v.token?'Reconnect in Settings':!v.configured?'Sign in through Settings'
+  :v.remaining===0?'Allowance used · open Settings':v.computerOn?'Computer mode on · Ctrl+Shift+F12 stops it':'Ready';
+export const sensorLine=(v={})=>v.dictating?'mic on (local)':v.stream?v.captureKind==='screen'?'screen shared (local preview)':'camera on (local preview)':'screen & mic off';
+// The panel's Send button says what goes. Attached means it goes; there is no tick.
+export const sendLabel=(v={})=>v.frame && v.text?'Send with screenshot and text':v.frame?'Send with screenshot':v.text?'Send with window text':'Send';
+// activity[ · attachment] · sensor, for the studio's status line.
 export function statusLine(v={}) {
-  const activity=v.dictating?'Listening':v.thinking?'Thinking':v.capturing?'Choosing a frame':v.busy?`Building · ${v.elapsed || 0}s`:v.planning?'Planning the next action'
-    :v.live?`Live build on · ${v.liveCount || 0} of 10 sent`:v.setupBusy?'Setting up':v.checking?'Checking connection':!v.token?'Reconnect in Settings':!v.configured?'Sign in through Settings'
-    :v.remaining===0?'Allowance used · open Settings':v.computerOn?'Computer mode on · Ctrl+Shift+F12 stops it':'Ready';
-  const sensor=v.dictating?'mic on (local)':v.stream?v.captureKind==='screen'?'screen shared (local preview)':'camera on (local preview)':'screen & mic off';
+  const activity=activityLine(v),sensor=sensorLine(v);
   const parts=[activity];
   if(activity==='Ready' && v.frameAttached && v.textAttached) parts.push('1 frame and window text attached');
   else if(activity==='Ready' && v.frameAttached) parts.push('1 frame attached');
@@ -42,10 +46,11 @@ export function consentLine(v={}) {
   return `Send ${list(items)} to ${to}.`;
 }
 
-// Refusal text, or null when the press may go out. Order: the words, the tick, the connection, the allowance.
+// Refusal text, or null when the press may go out. Order: the words, the studio's tick, the connection, the allowance.
+// In the panel and in Computer mode the button is the consent: Send says what goes, Plan next action names the window whose reading goes.
 export function gate(v={}) {
   if(v.surface==='build' && v.direction!==undefined && !String(v.direction).trim()) return 'Tell Jarvis what should work first.';
-  if(!v.ticked) return v.surface==='computer'?'Tick the sharing line above Plan next action first.':v.surface==='build'?'Tick the sharing line under your direction before building.':'Tick the sharing line under your message before sending.';
+  if(v.surface==='build' && !v.ticked) return 'Tick the sharing line under your direction before building.';
   if(!v.configured || !v.token) return 'Open Settings and connect your subscription first.';
   if(v.remaining===0) return 'Your local allowance is used up. Open Settings, then Start new allowance.';
   return null;

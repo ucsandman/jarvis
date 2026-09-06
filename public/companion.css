@@ -1,16 +1,67 @@
-/* The column. 440px wide in the shell; the same pixels whether or not the studio is open beside it. */
+/* The panel. 440px wide in the shell; the same pixels whether or not the studio is open beside it. One column, one box, one button. */
 #companion{display:flex;height:100dvh;flex-direction:column;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.5;min-width:0}
 body[data-surface=companion] #companion{max-width:620px;margin:auto}
-#companion button{border-radius:7px;background:transparent;padding:8px 10px;min-height:36px;color:var(--ink)}#companion button:hover:not(:disabled){background:#323832}#companion button:disabled{opacity:.4;cursor:default}#companion button:focus-visible,#companion textarea:focus-visible,#companion input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
-.companion-header{display:flex;align-items:center;justify-content:space-between;margin:0 20px;padding:10px 0;border-bottom:1px solid var(--line);flex-shrink:0;height:56px}.companion-header>div{display:flex;gap:2px}.companion-header>div button{width:36px;font-size:20px}.companion-brand{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:650;letter-spacing:.14em}.companion-brand img{width:22px;height:22px}#companion .companion-brand:disabled{opacity:1}
-.companion-scroll{overflow:auto;flex:1;min-height:0;padding:18px 20px;scrollbar-width:thin;scrollbar-color:var(--line) transparent}#companion-welcome{padding:6px 0 14px}#companion h1{font-size:20px;font-weight:500;line-height:1.3;margin:0;text-wrap:balance}
-#companion-messages{list-style:none;margin:0;padding:0}.companion-message{margin:0 0 18px;overflow-wrap:anywhere}.companion-message.user{border-top:1px solid var(--line);padding-top:14px}.companion-message>span{display:block;font-size:12px;font-weight:600;color:var(--amber)}.companion-message p{white-space:pre-wrap;margin:6px 0;font-size:14px}.companion-message.user p{color:#c4c8be}.companion-message ol,.companion-message ul{margin:6px 0;padding-left:22px}.companion-message li{margin:4px 0}.companion-message details{font-size:12px;color:var(--muted)}.companion-message img{max-width:100%;margin-top:8px;border:1px solid var(--line)}#companion .companion-workflow{border:1px solid var(--line);font-size:12px;margin-top:8px}.companion-message.interrupted{opacity:.65}
-.companion-followups{display:flex;flex-direction:column;border-top:1px solid var(--line);margin-top:10px;padding-top:4px}#companion .companion-followups button{text-align:left;justify-content:flex-start;font-size:12px;color:var(--muted);padding:6px 0;border-radius:0}#companion .companion-followups button:hover:not(:disabled){background:none;color:var(--amber)}
-.companion-deck{padding:8px 20px 0;flex-shrink:0;border-top:1px solid var(--line)}#companion-front{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin:0 0 2px}#companion-front-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}#companion #companion-front-clear{padding:2px 4px;min-height:24px;font-size:12px;white-space:nowrap}#companion-hint{font-size:12px;color:var(--muted);min-height:18px;margin:0 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#companion .chip{min-height:32px;padding:5px 12px}
-.companion-compose{padding:10px 20px 10px;flex-shrink:0}#companion-form{border:1px solid #535a52;border-radius:12px;background:var(--panel);overflow:hidden}#companion-input{resize:none;display:block;width:100%;padding:12px 13px 4px;min-height:60px;max-height:120px;border:0;background:transparent;color:var(--ink);font:inherit;line-height:1.5}#companion-input::placeholder{color:var(--muted)}#companion-form .send-gate{padding:2px 13px 4px}#companion .send-gate .quiet{min-height:24px;padding:0}.companion-tools{display:flex;justify-content:space-between;align-items:center;padding:4px 7px 7px}.companion-tools>div{display:flex;gap:2px}#companion .companion-tools button{font-size:12px;padding:6px 9px;min-height:32px}#companion #companion-send{background:var(--amber);color:#24251f;font-weight:650}#companion #companion-send:hover:not(:disabled){background:#efcb96}
-#companion .frame-strip{margin:0 0 10px}#companion-frame{width:66px;height:48px;object-fit:contain;border:1px solid var(--line);background:var(--panel)}#companion #companion-remove{width:32px;min-height:32px;padding:0;font-size:18px}
-#companion-error{color:#f2b49e;font-size:12px;max-height:80px;overflow:auto;margin:0 0 8px}
-.companion-compose footer{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:12px;margin-top:8px;flex-wrap:wrap}.companion-compose footer span{flex:1;min-width:0;line-height:1.35}#companion .companion-compose footer button{font-size:12px;min-height:28px;padding:4px 8px}#companion #companion-ledger{color:var(--muted)}
+#companion button{border-radius:8px;background:transparent;padding:8px 10px;min-height:36px;color:var(--ink)}#companion button:hover:not(:disabled){background:#2b302c}#companion button:disabled{opacity:.4;cursor:default}#companion button:focus-visible,#companion textarea:focus-visible,#companion select:focus-visible,#companion input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+#companion .quiet{background:none;color:var(--muted);min-height:28px;padding:4px 8px}#companion .quiet:hover:not(:disabled){background:none;color:var(--ink)}
+
+/* Header: the mark, one sensor line that is never overwritten, Settings, dock. */
+.companion-header{display:flex;align-items:center;gap:8px;padding:0 10px 0 16px;height:52px;flex-shrink:0}
+.companion-brand{display:flex;align-items:center;gap:9px;font-size:12px;font-weight:650;letter-spacing:.14em;padding:6px 8px 6px 0}.companion-brand img{width:22px;height:22px}#companion .companion-brand:disabled{opacity:1}
+.companion-sense{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#companion-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}#companion-dot.on{background:var(--amber);animation:companion-pulse 1.4s ease-out infinite}
+@keyframes companion-pulse{0%{box-shadow:0 0 0 0 #e4ba7a99}100%{box-shadow:0 0 0 8px #e4ba7a00}}
+#companion .companion-header>button:not(.companion-brand){width:34px;min-height:34px;padding:0;font-size:18px;color:var(--muted)}#companion .companion-header>button:not(.companion-brand):hover:not(:disabled){color:var(--ink)}
+
+/* The conversation. It scrolls only once there is one. */
+.companion-scroll{overflow:auto;flex:1;min-height:0;padding:4px 16px 12px;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+#companion-front{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin:2px 0 0}#companion-front-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#companion h1{font:400 22px/1.3 Georgia,serif;margin:22px 0 14px;text-wrap:balance}
+.companion-starters{display:flex;flex-direction:column;gap:6px}
+#companion-messages:not(:empty)+#companion-deck{border-top:1px solid var(--line);padding-top:10px;margin-top:4px}#companion-messages:not(:empty)+#companion-deck #companion-front{margin-bottom:8px}
+#companion .starter{display:flex;align-items:center;gap:12px;text-align:left;padding:11px 14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);min-width:0}
+#companion .starter:hover:not(:disabled){border-color:var(--amber);background:var(--panel)}
+.starter>span{min-width:0;flex:1}.starter strong{display:block;font-weight:500;font-size:14px}.starter small{display:block;color:var(--muted);font-size:12px;margin-top:1px}.starter::after{content:'›';color:var(--muted);font-size:16px}
+#companion-messages{list-style:none;margin:0;padding:6px 0 0}.companion-message{margin:0 0 16px;overflow-wrap:anywhere}.companion-message.user{border-top:1px solid var(--line);padding-top:12px}.companion-message>span{display:block;font-size:12px;font-weight:600;color:var(--amber)}.companion-message p{white-space:pre-wrap;margin:4px 0 6px}.companion-message.user p{color:#c4c8be}.companion-message ol,.companion-message ul{margin:6px 0;padding-left:22px}.companion-message li{margin:4px 0}.companion-message.interrupted{opacity:.65}
+.companion-message img{display:block;max-width:100%;margin:6px 0 0;border:1px solid var(--line)}.companion-message pre{max-height:160px;overflow:auto;margin:6px 0 0;padding:8px 10px;font-size:12px;line-height:1.45;white-space:pre-wrap}
+#companion .companion-evidence{font-size:12px;color:var(--muted);border:1px solid var(--line);min-height:26px;padding:2px 8px;margin:2px 6px 0 0}#companion .companion-evidence[aria-expanded=true]{color:var(--ink)}
+#companion .companion-workflow{border:1px solid var(--amber);color:var(--amber);font-size:13px;margin-top:8px}#companion .companion-copy{margin-top:4px}
+.companion-followups{display:flex;flex-direction:column;border-top:1px solid var(--line);margin-top:10px;padding-top:2px}#companion .companion-followups button{text-align:left;justify-content:flex-start;font-size:13px;color:var(--muted);padding:6px 0;border-radius:0;min-height:30px}#companion .companion-followups button::before{content:'→ ';color:var(--line)}#companion .companion-followups button:hover:not(:disabled){background:none;color:var(--amber)}
+
+/* The box. Attachments sit inside it; the button says what goes. */
+.companion-compose{padding:8px 16px 12px;flex-shrink:0}
+#companion-error{color:#f2b49e;font-size:12px;max-height:60px;overflow:auto;margin:0 0 8px}
+#companion-form{border:1px solid #535a52;border-radius:12px;background:var(--panel);padding:10px 12px 8px}#companion-form:focus-within{border-color:var(--amber)}
+.companion-attach{display:flex;flex-wrap:wrap;gap:6px}.companion-attach:not(:has(:not([hidden]))){display:none}
+.companion-att{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:4px 4px 4px 4px;font-size:12px;background:var(--bg);max-width:100%;min-width:0}
+#companion-frame{width:44px;height:30px;object-fit:cover;border-radius:4px;border:1px solid var(--line);flex-shrink:0}.companion-att-text{width:44px;height:30px;border-radius:4px;border:1px solid var(--line);display:grid;place-items:center;font:12px Georgia,serif;color:var(--muted);flex-shrink:0}
+.companion-att>span:not(.companion-att-text){min-width:0}.companion-att b{display:block;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:240px;color:var(--ink)}.companion-att small{display:block;color:var(--muted);font-size:12px}
+#companion .companion-att button{width:24px;min-height:24px;padding:0;color:var(--muted);font-size:16px;line-height:1;flex-shrink:0}
+#companion-text-body{max-height:120px;overflow:auto;margin:6px 0 0;padding:8px 10px;font-size:12px;line-height:1.45;white-space:pre-wrap;border:1px solid var(--line);border-radius:6px;background:var(--bg)}
+#companion-input{resize:none;display:block;width:100%;margin-top:8px;padding:0;min-height:46px;max-height:120px;border:0;background:transparent;color:var(--ink);font:inherit;line-height:1.5}#companion-input::placeholder{color:var(--muted)}#companion #companion-input:focus-visible{outline:0}
+.companion-tools{display:flex;align-items:center;gap:2px;margin-top:6px}
+#companion .companion-tools button{font-size:12px;color:var(--muted);padding:6px 9px;min-height:32px;display:inline-flex;align-items:center;gap:6px}#companion .companion-tools button:hover:not(:disabled){color:var(--ink)}#companion .companion-tools svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8}
+#companion #companion-send{margin-left:auto;background:var(--amber);color:#24251f;font-weight:600;padding:8px 14px;border-radius:9px;white-space:nowrap}#companion #companion-send:hover:not(:disabled){background:#f0cb93}
+.companion-goes,.companion-running{display:flex;align-items:center;gap:8px;margin:8px 2px 0;font-size:12px;color:var(--muted);min-height:28px}.companion-goes span,.companion-running span{flex:1;min-width:0;line-height:1.35}
+#companion .companion-goes .quiet{text-decoration:underline;text-underline-offset:3px;white-space:nowrap}
+.companion-running i{width:7px;height:7px;border-radius:50%;background:var(--amber);flex-shrink:0;animation:companion-pulse 1.4s ease-out infinite}#companion #companion-stop{font-size:12px;color:var(--ink);border:1px solid var(--line);min-height:28px;padding:3px 10px}
+
+/* Computer mode: a screen, not a card. It takes the body and the box; the header stays. */
+#companion.computer .companion-scroll,#companion.computer .companion-compose{display:none}
+#computer-mode{display:flex;flex-direction:column;flex:1;min-height:0}#computer-work{display:flex;flex-direction:column;flex:1;min-height:0}
+.computer-head{display:flex;align-items:center;gap:6px;padding:0 16px 8px 8px;flex-shrink:0}.computer-head strong{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}#computer-left{margin-left:auto;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.computer-body{overflow:auto;flex:1;min-height:0;padding:4px 16px 12px;display:flex;flex-direction:column;gap:12px;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.computer-step{border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--panel)}.computer-step.computer-live{border-color:var(--amber)}
+.computer-lbl{font-size:12px;color:var(--muted);margin-bottom:8px}
+.computer-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}.computer-row+.computer-row{margin-top:6px}.computer-row>span{font-size:12px;color:var(--muted)}#computer-mode select{flex:1;min-width:120px;font-size:13px;padding:7px 8px;border-radius:7px}
+#computer-task{width:100%;resize:none;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;line-height:1.5;padding:8px 10px;margin:0 0 8px}
+#computer-mode .button.amber{background:var(--amber);color:#24251f;font-weight:600;padding:8px 14px;border-radius:9px;font-size:14px}#computer-mode .button.amber:hover:not(:disabled){background:#f0cb93}
+.computer-goes{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.45}.computer-goes .billing{margin:2px 0 0;color:#c9b58f}
+#computer-status{font-size:12px;color:var(--muted);margin:8px 0 0}
+#computer-review h3{font:500 16px/1.3 'Segoe UI',sans-serif;margin:0 0 4px}#computer-review p{margin:0 0 8px;color:var(--muted);font-size:13px}#computer-review pre{font-size:12px;line-height:1.5;color:var(--muted);background:var(--bg);border-radius:6px;padding:8px 10px;margin:0 0 10px;white-space:pre-wrap}#computer-expiry{margin-left:auto;font-size:12px;color:var(--muted)}
+#computer-read pre{max-height:160px;overflow:auto;font-size:12px;line-height:1.45;margin:0;padding:8px 10px;white-space:pre-wrap;border:1px solid var(--line);border-radius:6px}
+#computer-history{margin:0;padding-left:20px;font-size:13px;color:var(--muted)}#computer-history li{margin:2px 0}
+.computer-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 16px 12px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);flex-shrink:0}#companion #computer-stop{background:#373d35;color:var(--ink);padding:7px 14px;font-weight:500}#companion #computer-stop:hover:not(:disabled){background:#434a41}
+
 @media(max-width:1180px){body[data-surface=studio] #companion{display:none}}
-@media(max-height:650px){.companion-scroll{padding-top:10px;padding-bottom:10px}#companion-welcome{padding:0 0 8px}.companion-compose{padding-top:6px}#companion-input{min-height:48px}}
-@media(prefers-reduced-motion:reduce){#companion *,#companion *::before{scroll-behavior:auto!important;transition:none!important}}
+@media(max-height:650px){#companion h1{margin:12px 0 10px}#companion .starter{padding:8px 12px}#companion-input{min-height:40px}}
+@media(prefers-reduced-motion:reduce){#companion *,#companion *::before{scroll-behavior:auto!important;transition:none!important;animation:none!important}}

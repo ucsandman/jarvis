@@ -3,16 +3,16 @@
   <h1>Jarvis</h1>
   <p><strong>A desktop companion for Windows that runs on the ChatGPT or Claude subscription you already pay for.</strong></p>
   <p><a href="https://github.com/ucsandman/jarvis/actions/workflows/ci.yml"><img src="https://github.com/ucsandman/jarvis/actions/workflows/ci.yml/badge.svg" alt="Windows and Linux checks"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-e5b977" alt="MIT license"></a> <a href="https://github.com/ucsandman/jarvis/releases/latest"><img src="https://img.shields.io/github/v/release/ucsandman/jarvis" alt="Latest release"></a></p>
-  <p><a href="https://jarvis-workbench.vercel.app/">Website</a> · <a href="https://github.com/ucsandman/jarvis/releases/download/v0.9.0/Jarvis-0.9.0-Windows-x64.exe">Download for Windows</a> · <a href="#getting-started">Get started</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
+  <p><a href="https://jarvis-workbench.vercel.app/">Website</a> · <a href="https://github.com/ucsandman/jarvis/releases/download/v0.10.0/Jarvis-0.10.0-Windows-x64.exe">Download for Windows</a> · <a href="#getting-started">Get started</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
 </div>
 
-Jarvis sits in the corner of your screen. Hit **Ctrl+Shift+Space** and the panel opens already knowing which window you were in, with three questions written for it as buttons. Pick one, look at the frame it grabbed, tick the sharing line, send. Or hand it something bigger: turn a sketch into a working prototype in the studio, or let it drive a Windows app one approved click at a time. Pick **Astra** (ChatGPT) or **Fable 5.1** (Claude), go. No API key, nothing metered.
+Jarvis sits in the corner of your screen. Hit **Ctrl+Shift+Space** and the panel opens already knowing which window you were in, with three questions written for it as buttons. Pick one, look at the screenshot it took, press **Send with screenshot**. Or hand it something bigger: turn a sketch into a working prototype in the studio, or let it drive a Windows app one approved click at a time. Pick **Astra** (ChatGPT) or **Fable 5.1** (Claude), go. No API key, nothing metered.
 
 It's experimental and built around how I work. Fable can burn paid Claude usage credits. What your account can reach is up to your plan. The website is a walkthrough, the app is where the sign-in and generation actually happen.
 
-<img src="docs/images/companion.png" width="360" alt="Jarvis companion panel showing the window that was in front, three prewritten question chips, a message field, one sharing tick, and a status line reading screen and mic off">
+<img src="docs/images/companion.png" width="360" alt="Jarvis panel: a header reading screen and mic off, the question What are we looking at, the line In front: Brave, three starter rows that each say takes a screenshot of Brave, and a message box holding a screenshot chip with a button reading Send with screenshot">
 
-*The panel, captured from the packaged app with a failed-setup window in front. Nothing was captured or sent; the status line says so.*
+*The panel, captured from the packaged app with a browser window in front and a screenshot of the verifier's own fixture in the box. Nothing was sent; the button says what would go.*
 
 ![The studio open beside the panel, with a synthetic draft arriving](docs/images/streaming.png)
 
@@ -20,25 +20,25 @@ It's experimental and built around how I work. Fable can burn paid Claude usage 
 
 ## What it does
 
-- **Knows what was in front.** The panel reads the title and process of the window you came from and offers three prewritten questions for it: "Unstick me" for an error, "What does this output mean?" for a terminal, "Draft a reply" for mail. No pixels, no model call, until you press one.
-- **Reads the exact text.** **Read text** pulls the accessible text of the window you came from through the same broker as Computer mode, read-only: every character is shown with a count and whether it was cut short, and it goes only while its box is ticked. Error, terminal, spreadsheet and settings chips read text first. Nothing is armed and nothing can click.
+- **Knows what was in front.** The panel reads the title and process of the window you came from and offers three starters for it, each saying what it takes: "Unstick me · reads the text of Notepad", "What does this output mean? · takes a screenshot of WindowsTerminal", "Draft a reply" for mail. No pixels, no model call, until you press one.
+- **Reads the exact text.** Error, terminal, spreadsheet and settings starters pull the accessible text of the window you came from through the same broker as Computer mode, read-only: every character is shown in the box with a count and whether it was cut short. Nothing is armed and nothing can click.
 - **Copies, never reads.** Every reply has **Copy**. The clipboard is write-only; lint fails on any clipboard read in the page or the shell.
-- **Shows you before it sends.** One sentence next to one tick says exactly what goes ("this message, the 4 earlier messages and the attached frame"). **See exactly what goes** shows the request. The tick clears after every send, and the footer counts what went.
-- **Asks the second question for you.** Three follow-up chips under each reply. **Ctrl+Shift+E** summons, grabs the window you were in, fills the first chip, and stops at the tick.
+- **The button says what goes.** No checkbox. A screenshot or window text sits in the box as a chip, and the Send button reads **Send**, **Send with screenshot** or **Send with window text**. × removes it. The line under the button names the model and the account, and **What goes** shows the request body and every send this session. After a send the attachment leaves the box and stays on the message as evidence.
+- **Asks the second question for you.** Three follow-ups under each reply. **Ctrl+Shift+E** summons, grabs the window you were in, fills the first starter, and stops at the Send button.
 - **Build as you draw.** Open the studio, share your design window, turn on Live build, and Jarvis sends a snapshot after you pause and updates the prototype. Fable streams HTML into a live draft; Astra hands over finished messages.
 - **Keep your versions.** Up to 12 stay in Jarvis's desktop profile. Restore one, read the source, download the HTML, import an old one.
 - **Work inside Windows apps.** Computer mode lives in the panel. It reads the accessible controls of one window, proposes one action, and waits for your yes. [Computer mode guide](docs/COMPUTER.md).
 
 ## Getting started
 
-1. [Download Jarvis 0.9.0](https://github.com/ucsandman/jarvis/releases/download/v0.9.0/Jarvis-0.9.0-Windows-x64.exe) and open it. No terminal, no Node, no admin.
+1. [Download Jarvis 0.10.0](https://github.com/ucsandman/jarvis/releases/download/v0.10.0/Jarvis-0.10.0-Windows-x64.exe) and open it. No terminal, no Node, no admin.
 2. Settings opens by itself until you're signed in. Pick **Astra** or **Fable 5.1** and use the sign-in button. Codex ships inside. For Fable, **Install official Claude Code** downloads and verifies Anthropic's runtime.
-3. Press a chip or type a question, tick the sharing line, **Send**. **＋ Window** grabs the window you came from and shows the frame before anything leaves.
-4. For a prototype, press the arrow to open the studio beside the panel. **Share window**, describe the product, tick the line, **Make it real**. For hands-off updates, **Live build** has its own permission dialog.
+3. Press a starter or type a question, then **Send**. **Screenshot** grabs the window you came from and shows it in the box before anything leaves; the button then reads **Send with screenshot**.
+4. For a prototype, open the studio from Settings. **Share window**, describe the product, tick the line, **Make it real**. For hands-off updates, **Live build** has its own permission dialog.
 
 **Ctrl+Shift+Space** brings the panel back. So does the desktop or Start menu shortcut. Closing the panel leaves Jarvis in the tray; **Quit Jarvis** from the tray menu stops the server.
 
-Windows 10/11 x64 only. Chrome or Edge for screen sharing. The download is about 164 MiB. **The exe is unsigned**, so expect the unknown-publisher prompt. The [release has a SHA-256 checksum](https://github.com/ucsandman/jarvis/releases/tag/v0.9.0) and the bundled Node and Codex are publisher-verified. [Install, update, remove](docs/WINDOWS.md).
+Windows 10/11 x64 only. Chrome or Edge for screen sharing. The download is about 164 MiB. **The exe is unsigned**, so expect the unknown-publisher prompt. The [release has a SHA-256 checksum](https://github.com/ucsandman/jarvis/releases/tag/v0.10.0) and the bundled Node and Codex are publisher-verified. [Install, update, remove](docs/WINDOWS.md).
 
 The companion needs the Microsoft Edge WebView2 Runtime. Jarvis checks on launch and tells you where to get it if it's missing. Its WebView profile is separate from any browser profile you used with an older install, so old revisions don't show up on their own. Export the HTML from the old profile, then **Settings, Advanced, Import a saved HTML prototype**. Imports cap at 120,000 bytes and add a version when the 12-slot history has room.
 
@@ -46,13 +46,13 @@ The companion needs the Microsoft Edge WebView2 Runtime. Jarvis checks on launch
 
 ![Computer mode waiting for approval](docs/images/computer.png)
 
-*A real Fable proposal against a test app I own, inside the panel. Nothing happens until Approve.*
+*Computer mode as its own screen in the panel, from the browser check with a synthetic planner. Nothing happens until Approve.*
 
-1. In the panel, press **Set it up** on the Computer mode line and allow local inspection for ten minutes.
-2. Open an app or pick an open window. **Read this window** reads its controls locally.
-3. Type the task and tick the sharing line above **Plan next action**. Each plan takes a fresh reading and clears the tick. Model and effort come from Settings.
+1. Settings, **Computer mode**. Allow local inspection for ten minutes and the screen takes over the panel: the window, the task, the one action waiting for you. **Back** returns to the conversation with control still on; **Open** on the line under the box brings the screen back.
+2. Open an app or pick an open window. **Read it** reads its controls locally.
+3. Type the task and press **Plan next action**. The line under it names the window whose fresh reading goes with the task, and **What goes** shows the body. Model and effort come from Settings.
 4. Check the target, text or shortcut. **Approve** does one thing. **Reject** does nothing. Plan again to see the result.
-5. **Stop computer control**, or hit **Ctrl+Shift+F12** from anywhere. Stop doesn't undo what already ran.
+5. **Stop control** in the footer, or hit **Ctrl+Shift+F12** from anywhere. Stop doesn't undo what already ran.
 
 A click or a key in the target app can send, delete, or buy something. Read every approval. Filters on names and commands are a safety net, not a promise that the app is trustworthy. Up to 20 model steps per session, each on your subscription or credits. [Capabilities, limits and protocol](docs/COMPUTER.md).
 
@@ -79,17 +79,17 @@ Share the design window, not Jarvis, or you'll capture yourself. Animated window
 
 | What | What happens |
 | --- | --- |
-| Window text | Read text sends the accessible controls and values of one window, as shown, only while its Include box is ticked. Read-only; Computer mode stays off. |
+| Window text | A text starter puts the accessible controls and values of one window in the box, every character shown, and they go with the next Send while the chip is there. Read-only; Computer mode stays off. |
 | Clipboard | Copy writes a reply to it. Nothing reads it. |
-| Which window was in front | The shell keeps the title and process name of the last window you used, only to pick chip labels. It never reads pixels on its own and never sends the title without a frame or text. **not this one** clears it. |
-| Camera and screen | Preview stays local. A build sends one frame you ticked. Live build sends changed snapshots after its own permission. No video stream, no desktop audio. |
-| Model input | Your message or direction, the frame you ticked and the selected source go to the provider through its official CLI. The sentence next to the tick lists them; **See exactly what goes** shows the body. |
+| Which window was in front | The shell keeps the title and process name of the last window you used, only to pick starter labels. It never reads pixels on its own and never sends the title without a screenshot or text. **not this one** clears it. |
+| Camera and screen | Preview stays local. A panel message sends the screenshot in the box, if any; a build sends one frame you ticked. Live build sends changed snapshots after its own permission. No video stream, no desktop audio. |
+| Model input | Your message or direction, the screenshot in the box and the selected source go to the provider through its official CLI. The Send button names the attachment; **What goes** shows the body. |
 | Accounts | The CLI owns sign-in. Jarvis never reads credential files, never takes an API key, never falls back to another model. |
 | Drafts | Partial HTML isn't saved. Scripts are off. Draft URLs expire when the build ends. Reasoning and raw CLI logs aren't shown. |
 | Finished prototypes | Run in a locked-down iframe: no network, no nested frames, no camera or mic. Downloaded HTML runs outside that box. |
-| Computer mode | Window choice is local. Planning sends a fresh bounded accessibility tree, editable values, the task and recent actions, after its own tick. No screenshot, no audio. History is session-only. |
+| Computer mode | Window choice is local. **Plan next action** sends a fresh bounded accessibility tree, editable values, the task and recent actions; the line under the button says so. No screenshot, no audio. History is session-only. |
 | Saved work | Versions and reference images live in Jarvis's desktop profile on this machine. |
-| Sent this session | The footer count and the ledger in **See exactly what goes** list every send. They reset when Jarvis reloads. |
+| Sent this session | The ledger in **What goes** lists every send and every refusal. It resets when Jarvis reloads. |
 
 The builder makes frontend pages. Computer mode, enabled separately, drives accessible Windows controls with per-action approval. It is not general desktop automation: no canvas, no Explorer, no address bars, no terminals, no admin prompts. No shell tool, no repo editing, no backend, no deploy. Read generated output before you use it somewhere else. [Security details and reporting](SECURITY.md).
 
@@ -124,7 +124,7 @@ node scripts/verify-desktop-content.mjs
 
 Browser checks need Chrome plus Playwright or a global `@playwright/cli`. They use synthetic generation and don't touch your allowance. Live-provider checks are separate and do. `npm run lint` also checks that every served asset exists, every local reference is served, and nothing in `public/*.css` is set below 12px. CI runs install, tests, lint and build on Windows and Linux.
 
-Prewritten prompts live in `public/chips.js`. The status line, the sharing sentence, the gate and the ledger live in `public/harness.js` and are unit-tested in `tests/harness.test.mjs`.
+Prewritten prompts live in `public/chips.js`. The activity and sensor lines, the Send label, the studio's sharing sentence, the gate and the ledger live in `public/harness.js` and are unit-tested in `tests/harness.test.mjs`.
 
 Changed the mark? Run `powershell -NoProfile -File scripts/build-icon.ps1` to regenerate `desktop/jarvis.ico`.
 
@@ -136,8 +136,8 @@ Changed the mark? Run `powershell -NoProfile -File scripts/build-icon.ps1` to re
 | --- | --- |
 | Slow generation | Drop to low effort in Settings, Advanced, ask for less, or cancel. Fable streams drafts; Astra stays quiet until it's done. |
 | Model or login unavailable | Open Settings, use the sign-in or install button, then Check again. |
-| Send is greyed out | The status line says why: reconnect, sign in, or start a new allowance in Settings. |
-| The chips don't match the window | Press **not this one**. The three generic questions come back. |
+| Send is greyed out | The line under the box says why: reconnect, sign in, or start a new allowance in Settings. |
+| The starters don't match the window | Press **not this one**. The three generic questions come back. |
 | Ctrl+Shift+E does nothing | Another app owns it. Settings says so at the bottom; Ctrl+Shift+Space still works. |
 | Can't share the screen | Use Chrome or Edge, upload an image, or use the camera. |
 | Live build paused | Read the message, check the shared window and your allowance, start it again yourself. |
