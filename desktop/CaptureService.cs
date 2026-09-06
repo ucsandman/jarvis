@@ -97,7 +97,11 @@ internal sealed class CaptureService {
         if (id == DesktopId) { lock (sync) { desktop = true; picked = false; } return true; }
         long raw;
         if (!Int64.TryParse(id, out raw)) return false;
-        IntPtr window = new IntPtr(raw);
+        return SelectWindow(new IntPtr(raw));
+    }
+
+    // The same pin by handle, for the window under a click while Screen on is leased.
+    public bool SelectWindow(IntPtr window) {
         int processId;
         if (!IsWindow(window) || GetWindowThreadProcessId(window, out processId) == 0 || processId == ownProcessId) return false;
         string title = WindowTitle(window);

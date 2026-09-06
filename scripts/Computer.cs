@@ -200,7 +200,7 @@ public static class JarvisComputer {
                 switch(Str(d,"op")) {
                     case "windows": result=Windows(); break;
                     case "snapshot": result=Snapshot(Str(d,"window")); break;
-                    case "arm": lock(gate) { if(!hotkeyReady) throw new Exception("The stop shortcut is unavailable. Close the other Computer session first."); armed=true; expires=DateTime.UtcNow.AddMinutes(10); } result=new { armed=true }; break;
+                    case "arm": lock(gate) { if(!hotkeyReady) throw new Exception("Ctrl+Shift+F12 is held by another Jarvis session (Computer mode or Screen on). Stop that one first."); armed=true; expires=DateTime.UtcNow.AddMinutes(10); } result=new { armed=true }; break;
                     case "stop": lock(gate) armed=false; result=new { armed=false }; break;
                     case "status": result=new { armed=armed && DateTime.UtcNow<expires, hotkey=hotkeyReady }; break;
                     case "act": result=Act(d); break;

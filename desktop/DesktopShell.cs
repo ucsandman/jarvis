@@ -17,17 +17,22 @@ internal sealed class DesktopRuntimeMissingException : Exception {
 internal sealed class DesktopShell : Form {
     const int HotkeyId = 0x4A41;
     const int QuickAskHotkeyId = 0x4A43;
+    const int StopHotkeyId = 0x4A45;
     const int WmHotkey = 0x0312;
     const uint ModShift = 0x0004;
     const uint ModControl = 0x0002;
+    const uint ModNoRepeat = 0x4000;
     const uint VkSpace = 0x20;
     const uint VkE = 0x45;
+    const uint VkF12 = 0x7B;
     readonly string url;
     readonly string launchKey;
     readonly JavaScriptSerializer json = new JavaScriptSerializer { MaxJsonLength = 5 * 1024 * 1024 };
     readonly CaptureService capture = new CaptureService();
     readonly dynamic speech = CreateSpeech();
+    readonly FollowService follow = new FollowService();
     readonly Timer foregroundTimer = new Timer { Interval = 250 };
+    readonly Timer followTimer = new Timer { Interval = 1000 };
     readonly WebView2 web = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(17, 16, 14) };
     readonly Button dockButton = new Button {
         Dock = DockStyle.Fill, Text = String.Empty, BackColor = JarvisMark.Charcoal,
@@ -39,6 +44,9 @@ internal sealed class DesktopShell : Form {
     bool allowClose;
     bool hotkeyRegistered;
     bool quickAskRegistered;
+    bool stopHotkeyRegistered;
+    bool followSnapshots;
+    DateTime followExpires;
     int captureGeneration;
     string pendingCaptureId;
 
@@ -66,8 +74,10 @@ internal sealed class DesktopShell : Form {
         dockButton.MouseLeave += delegate { dockHover = false; dockButton.Invalidate(); };
         dockButton.Click += delegate { SummonPanel(); };
         Controls.Add(dockButton);
-        foregroundTimer.Tick += delegate { capture.RememberForeground(); };
+        foregroundTimer.Tick += delegate { capture.RememberForeground(); follow.Track(); };
         foregroundTimer.Start();
+        follow.Clicked += OnFollowClick;
+        followTimer.Tick += delegate { if (DateTime.UtcNow >= followExpires) EndFollow("expired"); };
         FormClosing += OnShellClosing;
         Shown += delegate { PositionForMode(); };
         ProfileDirectory = Path.Combine(dataRoot, "WebView2");
@@ -118,6 +128,8 @@ internal sealed class DesktopShell : Form {
     public void Shutdown() {
         allowClose = true;
         CancelCapture(null);
+        EndFollow("stopped");
+        follow.Dispose();
         foregroundTimer.Stop();
         StopSpeaking();
         if (speech != null && Marshal.IsComObject(speech)) Marshal.FinalReleaseComObject(speech);
@@ -128,19 +140,27 @@ internal sealed class DesktopShell : Form {
         base.OnHandleCreated(e);
         hotkeyRegistered = RegisterHotKey(Handle, HotkeyId, ModControl | ModShift, VkSpace);
         quickAskRegistered = RegisterHotKey(Handle, QuickAskHotkeyId, ModControl | ModShift, VkE);
+        // A mode change recreates the window and Windows drops its shortcuts with it, so a lease in progress takes its Stop back.
+        if (follow.On) stopHotkeyRegistered = RegisterHotKey(Handle, StopHotkeyId, ModControl | ModShift | ModNoRepeat, VkF12);
     }
 
     protected override void OnHandleDestroyed(EventArgs e) {
         if (hotkeyRegistered) UnregisterHotKey(Handle, HotkeyId);
         if (quickAskRegistered) UnregisterHotKey(Handle, QuickAskHotkeyId);
+        if (stopHotkeyRegistered) UnregisterHotKey(Handle, StopHotkeyId);
         hotkeyRegistered = false;
         quickAskRegistered = false;
+        stopHotkeyRegistered = false;
         base.OnHandleDestroyed(e);
     }
 
     protected override void WndProc(ref Message message) {
         if (message.Msg == WmHotkey && message.WParam.ToInt32() == HotkeyId) {
             SummonPanel();
+            return;
+        }
+        if (message.Msg == WmHotkey && message.WParam.ToInt32() == StopHotkeyId) {
+            EndFollow("hotkey");
             return;
         }
         if (message.Msg == WmHotkey && message.WParam.ToInt32() == QuickAskHotkeyId) {
@@ -213,6 +233,17 @@ internal sealed class DesktopShell : Form {
             bool selected = requested != null && requested.Length <= 32 && capture.Select(requested);
             string[] front = capture.DescribeForeground();
             Post(new Dictionary<string, object> { {"type", "target"}, {"ok", selected}, {"front", new Dictionary<string, object> { {"title", front[0]}, {"process", front[1]}, {"id", front[2]} }} });
+        } else if (type == "screen-on") {
+            // The Screen on lease: a mouse button-up hook and the border, for ten minutes, until the page, the hotkey or shutdown ends it.
+            object rawSnapshots;
+            followSnapshots = message.TryGetValue("snapshots", out rawSnapshots) && rawSnapshots is bool && (bool)rawSnapshots;
+            if (!follow.Start()) { Post(new Dictionary<string, object> { {"type", "screen"}, {"on", false}, {"reason", "unavailable"} }); return; }
+            stopHotkeyRegistered = RegisterHotKey(Handle, StopHotkeyId, ModControl | ModShift | ModNoRepeat, VkF12);
+            followExpires = DateTime.UtcNow.AddMinutes(10);
+            followTimer.Start();
+            Post(new Dictionary<string, object> { {"type", "screen"}, {"on", true}, {"snapshots", followSnapshots}, {"expires", (long)(followExpires - new DateTime(1970, 1, 1)).TotalMilliseconds}, {"hotkey", stopHotkeyRegistered} });
+        } else if (type == "screen-off") {
+            EndFollow("stopped");
         } else if (type == "speak") {
             object rawText;
             string text = message.TryGetValue("text", out rawText) ? rawText as string : null;
@@ -231,6 +262,27 @@ internal sealed class DesktopShell : Form {
             ReleaseCapture();
             SendMessage(Handle, 0x00A1, new IntPtr(2), IntPtr.Zero);
         }
+    }
+
+    void EndFollow(string reason) {
+        if (!follow.On) return;
+        follow.Stop();
+        followTimer.Stop();
+        if (stopHotkeyRegistered) UnregisterHotKey(Handle, StopHotkeyId);
+        stopHotkeyRegistered = false;
+        Post(new Dictionary<string, object> { {"type", "screen"}, {"on", false}, {"reason", reason} });
+    }
+
+    // Every click under a lease re-pins the window it landed on and names the control, never its value.
+    void OnFollowClick(FollowService.Click click) {
+        if (!capture.SelectWindow(click.Window)) return;
+        string[] front = capture.DescribeForeground();
+        var message = new Dictionary<string, object> {
+            {"type", "target"}, {"ok", true}, {"via", "click"},
+            {"front", new Dictionary<string, object> { {"title", front[0]}, {"process", front[1]}, {"id", front[2]} }}
+        };
+        if (click.ElementName != null) message["element"] = new Dictionary<string, object> { {"name", click.ElementName}, {"type", click.ElementType ?? String.Empty} };
+        Post(message);
     }
 
     void StopSpeaking() {
