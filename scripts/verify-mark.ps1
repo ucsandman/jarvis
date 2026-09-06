@@ -36,7 +36,14 @@ static class MarkTest {
             if (bmp.GetPixel(43, 32).ToArgb() != SidelookMark.Navy.ToArgb()) { Console.WriteLine("FAIL right eye pixel not navy"); failures++; }
             if (bmp.GetPixel(6, 6).ToArgb() != SidelookMark.Navy.ToArgb()) { Console.WriteLine("FAIL corner not navy"); failures++; }
         }
-        Console.WriteLine(failures == 0 ? "PASS: 14 mark assertions" : failures + " mark assertion(s) failed");
+        using (var wideBmp = new Bitmap(64, 64)) using (var wg = Graphics.FromImage(wideBmp)) {
+            // Right eye centred at x=43: radius 3.6 narrow, 4.0 wide (EyeRadius + EyeWide). Rendered both and read (40,32):
+            // narrow leaves a thin partial-coverage sliver there (not exactly Navy), wide fully covers it with solid Navy.
+            // A regression that stops EyeWide from widening the eye collapses this pixel back to the narrow (non-Navy) value.
+            SidelookMark.Draw(wg, new Rectangle(0, 0, 64, 64), new PointF(5, 0), true, true);
+            if (wideBmp.GetPixel(40, 32).ToArgb() != SidelookMark.Navy.ToArgb()) { Console.WriteLine("FAIL wide eye pixel not navy"); failures++; }
+        }
+        Console.WriteLine(failures == 0 ? "PASS: 15 mark assertions" : failures + " mark assertion(s) failed");
         return failures == 0 ? 0 : 1;
     }
 }
@@ -48,4 +55,4 @@ if ($LASTEXITCODE -ne 0) { throw 'mark test did not compile.' }
 & $exe; if ($LASTEXITCODE -ne 0) { throw 'mark test failed.' }
 $ico = Get-Item desktop/sidelook.ico -ErrorAction Stop
 if ($ico.Length -lt 20000) { throw "sidelook.ico is only $($ico.Length) bytes; run scripts/build-icon.ps1." }; $checks++
-Write-Output "PASS: $checks source checks, 14 compiled assertions, sidelook.ico $($ico.Length) bytes."
+Write-Output "PASS: $checks source checks, 15 compiled assertions, sidelook.ico $($ico.Length) bytes."

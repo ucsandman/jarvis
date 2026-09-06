@@ -112,7 +112,7 @@ internal sealed class FollowService : IDisposable {
             Region outer = new Region(new Rectangle(0, 0, rect.Width, rect.Height));
             outer.Exclude(new Rectangle(2, 2, rect.Width - 4, rect.Height - 4));
             Region = outer;
-            BackColor = Color.FromArgb(111, 227, 193);
+            BackColor = Color.FromArgb(111, 227, 193); // the old mint accent, kept until the palette task replaces it with SidelookMark.Accent
             if (!Visible) Show();
         }
     }
