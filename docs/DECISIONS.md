@@ -89,3 +89,15 @@ The maintainer approved a six-state mock (`.artifacts/studio-mock.html`) and the
 ## Read the window back after Approve (2026-09-06)
 
 Approve runs one action, then the broker takes one bounded local reading of the same window and returns it with the result. The page shows "Windows accepted" and "Observed" as two lines, because acceptance and outcome are different facts; a reading that fails says verification was unavailable, never "done", and never causes a second action. A launch is not inspected on its own, so choosing the new window stays with the person. The reading rides in the recent actions the next manual plan sends; no model step runs from it. Diagnostic IDs and the full tree sit behind a Details button rather than a `<details>` element, because the panel's verifier asserts it has no details arrows.
+
+## Local models are the one non-subscription path (2026-09-06)
+
+The maintainer approved open-weight models served by LM Studio or Ollama on the user's own computer, reached only through the official Codex CLI's open-source provider (`--oss --local-provider`). Nothing is metered, no key exists, nothing leaves the machine. The server lists what the runtime holds and the page chooses from that list, so the rule that the page never names an arbitrary model or CLI argument still holds; a runtime that is down or a model that is gone fails closed, and there is no switching between a local model and a subscription model. Three product facts follow from measurements, not preference: an LM Studio model is loaded ahead at a 32,768 context with a GPU share computed from the card; low effort turns reasoning off; and because LM Studio does not enforce Codex's output schema, the schema rides in the instructions, a prose reply gets one retry, and the conversation accepts words as its reply while a build fails closed. Ollama is wired identically and ships untested until an install exists.
+
+## Bench is a header button; the studio fits its monitor (2026-09-06)
+
+Opening the studio was a line inside Settings, two presses away; it is now **Bench ↗** in the panel header. The studio opens at 85% of the working area of the monitor Sidelook lives on, capped at 1480x900 and floored at 760x520, and remembers a dragged size in `studio-size.json` beside the dock position. It reflows rather than clipping: at 1180 the chat column becomes a toolbar Chat toggle and an overlay, at 900 the rail stacks above the stage and the toolbar wraps. The browser check loads six widths and fails on any horizontal overflow.
+
+## Three words under the conversation (2026-09-06)
+
+New chat, Clear context and Compact sit in one row under the messages, with a meter line beneath: how full the 24,000-character history budget is, what the last send cost in tokens and what the chat has cost, cached input counted beside each number rather than inside it. Clear context keeps the messages on screen and sends none of them; Compact is one send that trades the earlier messages for a summary. The old Clear conversation in Settings is gone; the row is where the person is looking.

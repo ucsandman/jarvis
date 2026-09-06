@@ -1,5 +1,18 @@
 # Implementation lessons
 
+## 2026-09-06: Local models, the Bench button, chat controls (0.17.0)
+
+- The Codex-to-LM-Studio proof used a two-line instruction and returned JSON; the companion's real prompt ("plain text without Markdown") returned prose, because LM Studio does not enforce Codex's `--output-schema`. A transport proof runs on the product's captured system prompt, schema and stdin, never a stand-in. Fix: the schema rides in the instructions, the one JSON object is read out of the reply, a prose reply gets one retry, and the conversation reads words as its reply.
+- LM Studio's just-in-time load uses a 4,096 context; Codex's own prompt is 12,710 tokens, so the first request failed at once. The model is now loaded ahead at 32,768 through `lms load`.
+- Every layer on the 8 GB card (LM Studio's default) swapped the 32k cache through the driver: prefill 150 s, 5 tokens/s. A 0.5 to 0.7 share fit. The share is computed from nvidia-smi and the model size; without nvidia-smi LM Studio decides.
+- Qwen3's reasoning cost 150 to 300 tokens a turn at that speed. Codex effort `none` maps to LM Studio's reasoning-off and took a warm turn from 30 to 50 s to 8 s; local low effort now means reasoning off.
+- An end-to-end script sent three chats with no model named because the local list was empty, and `/api/chat` defaults to Astra, so three real turns (about 52,000 tokens) went to the ChatGPT subscription. Scripts that exercise the API stop when the model they meant is absent. The API default itself is unchanged and is the maintainer's call.
+- The 5 GB model file vanished mid-session while LM Studio's index still listed it: a second Claude Code session was clearing disk space. Before blaming a runtime for a missing file, check for a concurrent cleanup session.
+- `verify:site` had failed since the 0.16.0 analytics tag: the local server answered the Vercel insights script with two 404s and the console check caught them. The local server now serves an empty script at that path.
+- A Python heredoc replacement wrote a JavaScript regex literal with real newlines in it and a second Python pass consumed the CR; a `node -e` string with a template literal lost its backticks to bash. Edits that carry escape sequences or backticks go through the Edit tool or a Node script file, never an inline shell string.
+- `npm test` crashes one whole test file (server, recovery) about one full run in five, with no assertion text, on the release tree and on clean main alike; the same file passes alone. Counted, not fixed: the suite runs its files in parallel and the crash looks like a port or timer race. Two clean runs in a row is the bar before a ship.
+- The first `verify:browser` run on the merged tree failed on the sample sketch's `img.decode()`; a rerun passed and clean main passed. Not reproduced; noted as a flake to count.
+
 ## 2026-09-06: Sidelook (0.16.0)
 
 - A scoped sed (`jarvis-workbench` -> `sidelook`) renamed the IndexedDB database in `public/storage.js`; the name gate then required the new name and no test observes the database, so it passed every check and would have emptied every user's saved versions after the profile move. The whole-branch review caught it; reverted to the legacy name on a marked line. A rename of anything that names data already on disk is a migration, not a string.

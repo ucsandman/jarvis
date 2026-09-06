@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.17.0: Local models, the Bench button, and three words under the conversation
 
 - Three words under the conversation: New chat, Clear context, Compact. New chat is the old Clear conversation from Settings, moved where you need it. Clear context leaves the messages on screen and sends none of them with the next message. Compact is one send that trades the earlier messages for a summary under 150 words, and a line saying what it saved.
 - A meter line under them: how full the 24,000 characters the next send can carry is, what the last send cost in tokens, and what this chat has cost. Cached input is counted beside each number, never inside it. The percent turns warm past 80.
