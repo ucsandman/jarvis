@@ -135,3 +135,14 @@ test('the GPU share comes from the card and the model, and low effort turns a lo
   assert.ok(low.includes('model_reasoning_effort="none"'));assert.ok(medium.includes('model_reasoning_effort="medium"'));
   assert.ok(inferenceArgs('s','r',null,null,{model:'astra',effort:'low'}).includes('model_reasoning_effort="low"'));
 });
+
+test('the conversation hands the transport a prose reader; builds do not',async()=>{
+  const {Assistant}=await import('../lib/assistant.mjs');
+  const seen=[];
+  const vision=new Vision({inference:async data=>{seen.push(data);return {model:'x',effort:data.effort,result:{reply:'ok',suggestion:'none',followUps:[]}};}});
+  await new Assistant({vision}).chat({instruction:'Hi',model:'astra',effort:'low'});
+  assert.equal(typeof seen[0].prose,'function');
+  assert.deepEqual(seen[0].prose('  A plain answer.  '),{reply:'A plain answer.',suggestion:'none',followUps:[]});
+  await vision.generate('s',[{text:'p'}],{type:'object'},undefined,{model:'astra',effort:'low'});
+  assert.equal(seen[1].prose,undefined);
+});

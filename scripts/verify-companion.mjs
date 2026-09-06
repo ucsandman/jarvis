@@ -162,7 +162,7 @@ try{
   checks.push(`the meter reads "${meter}"`);
   const sends=requests.length;
   await $('compact').click();await idle();
-  assert.equal(requests.length,sends+1,'Compact is one send');assert.equal(requests.at(-1).instruction,'Summarize the earlier messages of this conversation in under 150 words so the conversation can continue from the summary alone. Plain text, no markdown.');
+  assert.equal(requests.length,sends+1,'Compact is one send');assert.equal(requests.at(-1).instruction,'Summarize the earlier messages of this conversation in under 150 words so the conversation can continue from the summary alone, as the reply, without markdown.');
   assert.equal(requests.at(-1).history.length,4,'the summary is made from the messages it replaces');
   assert.equal(await page.locator('.companion-message').count(),6,'the summary is not a message; the divider says what happened');
   assert.match(await page.locator('#companion-messages .companion-divider').last().innerText(),/^Compacted: \d[\d,]* to \d[\d,]* characters$/);

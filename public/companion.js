@@ -25,7 +25,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   const settings=document.getElementById('settings'),preview=document.getElementById('send-preview'),tone=document.getElementById('rewrite-tone');
   let history=[],frame=null,text=null,controller=null,dictation=null,capturing=false,reading=false,captureEpoch=0,captureRequest=null,front=null,chips=[],pendingRoute=null,quickAsk=false,copyButton=null;
   // What the next send would carry, against the server's own limit in lib/assistant.mjs: 12 messages of 2,000 characters.
-  const CONTEXT_BUDGET=24000,COMPACT='Summarize the earlier messages of this conversation in under 150 words so the conversation can continue from the summary alone. Plain text, no markdown.';
+  const CONTEXT_BUDGET=24000,COMPACT='Summarize the earlier messages of this conversation in under 150 words so the conversation can continue from the summary alone, as the reply, without markdown.';
   // The tokens the model reported: the last send, and this chat's running total. Cached input is counted beside each, never inside it. null means nothing has gone yet.
   let lastTokens=null,lastCached=0,chatTokens=0,chatCached=0,meterKey='';
   // boxHeight is a height the user dragged the box to with the grip; null means the box fits its text. postedHeight is the last panel height sent to the shell.
