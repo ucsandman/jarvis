@@ -11,7 +11,8 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   const settings=document.getElementById('settings'),preview=document.getElementById('send-preview'),tone=document.getElementById('rewrite-tone');
   let history=[],frame=null,text=null,controller=null,dictation=null,capturing=false,reading=false,captureEpoch=0,captureRequest=null,front=null,chips=[],pendingRoute=null,quickAsk=false,copyButton=null;
   // followRequest is the requestId of a follow-driven capture, so the fact "this was a follow capture" travels with the request and survives stop()/endFollow rather than living in a bare flag.
-  const follow=new Follow();let followTimer=null,offNote='',followRequest=null;
+  // followTimer is the one deadline timer (capture due or lease end); followClock is the once-a-second countdown text. Neither runs the full render.
+  const follow=new Follow();let followTimer=null,followClock=null,offNote='',followRequest=null;
   const post=value=>native?.postMessage(value);
   const error=message=>{$('error').textContent=message;$('error').hidden=!message;};
   const clock=value=>new Date(value).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
@@ -163,6 +164,8 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   }
   function stop() {
     controller?.abort();dictation?.abort();post({type:'cancel-capture',requestId:captureRequest});captureEpoch++;capturing=false;captureRequest=null;pendingRoute=null;quickAsk=false;
+    // A follow capture cancelled here never answers, so the reducer must not wait for it; the lease itself stays on.
+    if(followRequest){followRequest=null;follow.failed();armFollow();}
     post({type:'stop-speaking'});window.speechSynthesis?.cancel();stopWork();render();
   }
   // The exact body submit() posts, and a description of it for the preview. Only the screenshot's bytes are elided from the preview.
@@ -250,15 +253,29 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   function openLease(){if(!native){error('Following clicks needs the Windows app.');return;}document.getElementById('screen-lease-note').textContent='';if(!lease.open)lease.showModal();}
   function startFollow(snapshots){lease.close();offNote='';post({type:'screen-on',snapshots});}
   function stopFollow(){post({type:'screen-off'});}
-  // The page's clock for the lease: countdown once a second, capture when the reducer says so.
+  // The page's clock for the lease. One timer waits for the next deadline the reducer names (a capture due after the quiet gap, or the lease end);
+  // a separate once-a-second clock rewrites only the countdown text. A deadline that lands while the page is busy stays due and is taken by the next free tick.
+  function armFollow(){
+    clearTimeout(followTimer);followTimer=null;
+    const wait=follow.next();
+    if(wait!==null)followTimer=setTimeout(followTick,wait);
+  }
   function followTick(){
-    const verb=follow.tick();
+    followTimer=null;
+    const verb=follow.tick(Date.now(),capturing || reading || !!controller);
     if(verb==='expired'){endFollow('expired');return;}
-    if(verb==='capture' && !capturing && !reading && !controller){capture(true);followRequest=captureRequest;}
-    render();
+    if(verb==='busy')return;
+    if(verb==='capture'){capture(true);followRequest=captureRequest;}
+    armFollow();render();
+  }
+  function renderCountdown(){
+    if(!follow.state.on)return;
+    if(followTimer===null)armFollow();
+    const sensor=sensorLine({...view(),remaining:follow.remaining()}),text=sensor[0].toUpperCase()+sensor.slice(1);
+    if($('status').textContent!==text)$('status').textContent=text;
   }
   function endFollow(reason){
-    follow.stop();clearInterval(followTimer);followTimer=null;
+    follow.stop();clearTimeout(followTimer);followTimer=null;clearInterval(followClock);followClock=null;
     offNote=reason==='expired'?'Screen off · followed for 10 minutes':'Screen off · stopped early';
     renderDeck();render();
   }
@@ -329,14 +346,14 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     if(data.type==='target'){
       if(data.via==='click'){
         const verb=follow.click({front:readFront(data.front),element:data.element && typeof data.element.name==='string'?{name:data.element.name.slice(0,100),type:String(data.element.type||'').slice(0,40)}:null});
-        front=readFront(data.front);closePicker();if(verb==='deck')renderDeck(true);else renderDeck();render();return;
+        front=readFront(data.front);closePicker();armFollow();if(verb==='deck')renderDeck(true);else renderDeck();render();return;
       }
       if(data.ok!==true){error('That window is no longer open. Pick another.');post({type:'windows'});return;}
       front=readFront(data.front);closePicker();renderDeck(true);render();
     }
     // The shell reports the lease's state: on with the countdown and hotkey flag, off with why, or unavailable if its mouse hook never installed (no lease started, so nothing to stop).
     if(data.type==='screen'){
-      if(data.on===true){follow.start({snapshots:data.snapshots===true,expires:Number(data.expires)||Date.now()+600000});clearInterval(followTimer);followTimer=setInterval(followTick,250);if(data.hotkey===false)offNote='Ctrl+Shift+F12 is held by Computer mode · stop from the header line';render();}
+      if(data.on===true){follow.start({snapshots:data.snapshots===true,expires:Number(data.expires)||Date.now()+600000});armFollow();clearInterval(followClock);followClock=setInterval(renderCountdown,1000);if(data.hotkey===false)offNote='Ctrl+Shift+F12 is held by Computer mode · stop from the header line';render();}
       else if(data.reason==='unavailable'){if(lease.open)document.getElementById('screen-lease-note').textContent='Following is unavailable right now.';else error('Following is unavailable right now.');}
       else endFollow(data.reason==='expired'?'expired':'stopped');
     }
@@ -354,13 +371,14 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
         if(wasFollow){ok=follow.captured(await thumbnail(data.image));if(ok)setFrame(value);}
         else {setFrame(value);ok=true;}
       } else if(!wasFollow) error('The captured image could not be used.');
-      capturing=false;render();if(!wasFollow)afterCapture(ok);
+      else follow.failed();
+      capturing=false;armFollow();render();if(!wasFollow)afterCapture(ok);
     }
     // A follow capture that fails (the window moved or closed) is not the user's mistake, so it shows no error and does not run afterCapture.
     if(data.type==='capture-error'&&capturing&&data.requestId===captureRequest){
       capturing=false;captureRequest=null;const wasFollow=data.requestId===followRequest;followRequest=null;
       if(wasFollow)follow.failed();else error(data.error || 'Choose a window, then summon Jarvis again.');
-      render();if(!wasFollow)afterCapture(false);
+      armFollow();render();if(!wasFollow)afterCapture(false);
     }
     if(data.type==='speech-error')error(data.error || 'Local speech is unavailable.');
   });

@@ -19,7 +19,7 @@ page.on('pageerror',error=>errors.push(error.message));
 page.on('request',request=>{if (/\/api\/(build|observe)$/.test(request.url())) requests.push({path:new URL(request.url()).pathname,body:request.postDataJSON()});});
 const idle = () => page.waitForFunction(()=>!document.getElementById('build').disabled);
 const ready = number => page.waitForFunction(n=>document.getElementById('version-label').textContent===`VERSION ${String(n).padStart(2,'0')}`,number);
-const tick = () => page.locator('#build-consent').check();
+const chip = () => page.locator('#frame-chip');
 try {
   await mkdir('.artifacts',{recursive:true});
   await page.goto(base); await idle();
@@ -35,18 +35,34 @@ try {
   await frame.getByRole('searchbox',{name:'Search tasks'}).fill('');
   assert.equal(requests.length,0); checks.push('example add, move, search with zero model requests; build visible above fold');
   await page.screenshot({path:'.artifacts/onboarding-desktop.png',fullPage:true});
+  // Readiness is not the preview's hostage: with /api/preview held for 1.5 s, Ready lands long before the iframe, and an effort change probes nothing.
+  await page.route('**/api/preview',async route=>{await new Promise(r=>setTimeout(r,1500));await route.continue();});
+  const sessions=[];page.on('request',request=>{if(/\/api\/session$/.test(request.url()))sessions.push(request.url());});
+  const t0=Date.now();await page.reload();
+  await page.locator('#provider-status').filter({hasText:/^Astra · medium$/}).waitFor();const readyMs=Date.now()-t0;
+  assert.equal(await page.locator('#preview').isHidden(),true,'the preview is still loading when Ready lands');
+  await ready(1);const previewMs=Date.now()-t0;assert.ok(readyMs<previewMs-1000,`ready at ${readyMs} ms, preview at ${previewMs} ms`);
+  await page.unroute('**/api/preview');
+  const probes=sessions.length;await page.locator('#settings-open').click();await page.locator('#advanced').evaluate(el=>{el.open=true;});await page.locator('#effort-choice').selectOption('high');
+  assert.equal(await page.locator('#provider-status').innerText(),'Astra · high');assert.equal(sessions.length,probes,'an effort-only change makes no session request');
+  await page.locator('#model-choice').selectOption('fable');await page.locator('#provider-status').filter({hasText:/^Fable 5\.1 · high$/}).waitFor();assert.equal(sessions.length,probes+1,'a model change checks the provider once');
+  await page.locator('#model-choice').selectOption('astra');await page.locator('#effort-choice').selectOption('medium');await page.locator('#provider-status').filter({hasText:/^Astra · medium$/}).waitFor();await page.locator('#settings-close').click();await idle();
+  checks.push(`ready at ${readyMs} ms with the preview held 1500 ms (preview at ${previewMs} ms); an effort-only change made no session request, a model change made one`);
   await page.locator('#new-session').click();await page.locator('#confirm-reset').click();
-  await page.locator('#example').click(); await page.locator('#build').click();
-  assert.match(await page.locator('#error-text').innerText(),/Tick the sharing line/);assert.equal(requests.length,0);
-  await tick();await page.locator('#build').click();await ready(1);await idle();
+  // The button is the consent: no tick. The sample attaches itself (choosing it is the act), the button says the frame goes, and an empty direction refuses without a request.
+  await page.locator('#example').click();await chip().waitFor();assert.equal(await page.locator('#build-label').innerText(),'Build with frame');
+  assert.equal(await page.locator('#composer input[type=checkbox]').count(),0,'no tick in the composer');
+  const sketchDirection=await page.locator('#direction').inputValue();await page.locator('#direction').fill('');await page.locator('#build').click();
+  assert.match(await page.locator('#error-text').innerText(),/Tell Jarvis what should work first/);assert.equal(requests.length,0);
+  await page.locator('#direction').fill(sketchDirection);await page.locator('#build').click();await ready(1);await idle();
   assert.deepEqual(requests.map(r=>r.path),['/api/build']);
-  assert.ok(requests[0].body.image);assert.equal(await page.locator('#include-frame').isChecked(),false);assert.equal(await page.locator('#build-consent').isChecked(),false);
-  checks.push('the tick gates sharing and clears per send; visual build uses one turn; frame remains visible');
-  await page.locator('#direction').fill('Make the heading smaller');await tick();await page.locator('#build').click();await ready(2);await idle();
+  assert.ok(requests[0].body.image);assert.equal(await chip().isHidden(),true,'the frame leaves the box after it went');assert.equal(await page.locator('#build-label').innerText(),'Revise Version 01');
+  checks.push('the button says what goes and is the consent; the frame leaves the box after it went; visual build uses one turn; frame remains visible');
+  await page.locator('#direction').fill('Make the heading smaller');await page.locator('#build').click();await ready(2);await idle();
   assert.equal(requests[1].body.image,null);assert.ok(requests[1].body.previous);
   assert.ok(await page.locator('#reference').isVisible());checks.push('typed revision sends no old image and retains evidence');
   await page.route('**/api/preview',route=>route.fulfill({status:503,json:{error:'Preview temporarily unavailable'}}));
-  await page.locator('#direction').fill('Change the spacing');await tick();await page.locator('#build').click();
+  await page.locator('#direction').fill('Change the spacing');await page.locator('#build').click();
   await page.waitForFunction(()=>document.querySelectorAll('.revision').length===3&&!document.getElementById('build').disabled);
   assert.equal(await page.locator('#download').isDisabled(),false);assert.ok(await page.locator('#retry-preview').isVisible());
   await page.reload();await idle();assert.equal(await page.locator('.revision').count(),3);
@@ -67,7 +83,11 @@ try {
   await page.unroute('**/api/session');await page.locator('#login').click();await idle();await page.locator('#settings-close').click();
   checks.push('missing login offers explicit sign-in and recheck; sign-in action recovers');
   await page.locator('#connect').click();await page.getByText('Camera on · local only',{exact:true}).waitFor();
-  assert.ok(await page.locator('#include-frame').isChecked());
+  // Sharing attaches nothing; Use this frame takes one still into the box, and × takes it out again.
+  assert.equal(await chip().isHidden(),true,'a live camera attaches nothing by itself');assert.equal(await page.locator('#build-label').innerText(),'Revise Version 03');
+  await page.waitForFunction(()=>document.getElementById('camera').videoWidth>0);await page.locator('#use-frame').click();await chip().waitFor();
+  assert.match(await page.locator('#frame-chip-label').innerText(),/^Camera frame · /);assert.equal(await page.locator('#build-label').innerText(),'Revise Version 03 with frame');
+  await page.locator('#frame-remove').click();assert.equal(await chip().isHidden(),true);assert.equal(await page.locator('#use-frame').innerText(),'Attach this frame');
   await page.locator('#camera-off').click();
   assert.equal(await page.locator('#camera').evaluate(v=>v.srcObject),null);checks.push('synthetic camera starts locally and stops');
   await page.setViewportSize({width:390,height:844});
@@ -77,7 +97,7 @@ try {
   let release;
   const pending=new Promise(resolve=>{release=resolve;});
   await page.route('**/api/build',async route=>{await pending;await route.fulfill({json:{result:{title:'Canceled result',html,reply:'',changes:[]}}}).catch(()=>{});});
-  await page.locator('#direction').fill('A canceled change');await tick();await page.locator('#build').click();
+  await page.locator('#direction').fill('A canceled change');await page.locator('#build').click();
   await page.locator('#cancel').click();release();await idle();
   assert.equal(await page.locator('.revision').count(),3);checks.push('canceled generation is not accepted');
   assert.deepEqual(errors,[]);

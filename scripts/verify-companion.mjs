@@ -107,7 +107,7 @@ try{
   await page.waitForFunction(()=>document.querySelectorAll('#companion-targets .starter').length===2,null,{timeout:3000});
   await targets.nth(1).click();await page.waitForFunction(()=>document.getElementById('companion-front-title').textContent==='Looking at: Design reference window');assert.equal(await $('targets').isHidden(),true);
   assert.equal(nativeOps.filter(op=>op==='arm').length,0);checks.push('change lists the desktop and every window, a pick re-fits the starters and captures that target, a closed window is refused and relisted');
-  await page.getByRole('button',{name:'Build this in the studio'}).click();assert.ok(await page.locator('.app-shell').isVisible());assert.equal(await page.locator('#direction').inputValue(),'Help me build a prototype');assert.equal(await page.locator('#include-frame').isChecked(),false);assert.equal(requests.length,5);checks.push('build handoff fills the studio composer without generation');
+  await page.getByRole('button',{name:'Build this in the studio'}).click();assert.ok(await page.locator('.app-shell').isVisible());assert.equal(await page.locator('#direction').inputValue(),'Help me build a prototype');assert.equal(await page.locator('#frame-chip').isHidden(),true,'no screenshot went with that message, so none is attached');assert.equal(await page.locator('#build-label').innerText(),'Build');assert.equal(requests.length,5);checks.push('build handoff fills the studio composer without generation');
   await $('back').click();await $('input').fill('Help with setup');await $('send').click();await idle();await page.getByRole('button',{name:'Let Jarvis do this'}).click();
   assert.equal(await page.locator('#computer-task').inputValue(),'Help with setup');assert.equal(await page.locator('#computer-lease').evaluate(d=>d.open),true,'the lease asks before anything is armed');assert.equal(await page.locator('#computer-permission').isChecked(),false);assert.equal(await page.locator('.app-shell').isVisible(),false);
   await page.locator('#computer-lease [data-close]').click();assert.equal(nativeOps.filter(op=>op==='arm').length,0);checks.push('computer handoff opens the lease dialog with the task and retains explicit permissions');
@@ -127,6 +127,9 @@ try{
   assert.equal(await page.locator('#screen-lease .dialog-actions button').count(),3,'Not now, follow, follow with screenshots');
   await page.locator('#screen-follow').click();await page.waitForFunction(()=>/^Screen on · following clicks · \d+:\d\d$/.test(document.getElementById('companion-status').textContent));
   assert.equal(await page.locator('#companion-dot').getAttribute('class'),'on');
+  // Idle cost while following: the countdown rewrites one text node once a second and nothing else in the panel moves (72 mutations per 2 s at 0.13.0, when a 250 ms timer ran the full render).
+  const idleMutations=await page.evaluate(()=>new Promise(resolve=>{let mutations=0;new MutationObserver(records=>{mutations+=records.length;}).observe(document.getElementById('companion'),{subtree:true,childList:true,characterData:true,attributes:true});setTimeout(()=>resolve(mutations),2000);}));
+  assert.ok(idleMutations<=4,`idle following made ${idleMutations} DOM mutations in 2 s; expected at most 4`);
   const before=await captures();
   await clickOn({title:'Inbox – Gmail',process:'brave',id:'2001'},{name:'Send',type:'button'});
   await page.waitForFunction(()=>document.getElementById('companion-front-title').textContent==='Looking at: Inbox – Gmail · Send button');
@@ -136,7 +139,7 @@ try{
   await page.waitForTimeout(3200);assert.equal(await captures(),before,'following alone never captures');
   await $('sense').click();await page.waitForFunction(()=>document.getElementById('companion-status').textContent==='Screen & mic off');
   assert.equal(await $('note').innerText(),'Screen off · stopped early');
-  checks.push('the header line leases following, shows the clicked control, refits once per window, stops from the same line');
+  checks.push(`the header line leases following, shows the clicked control, refits once per window, stops from the same line; idle following made ${idleMutations} DOM mutations in 2 s`);
   await $('sense').click();await page.locator('#screen-snapshots').click();await page.waitForFunction(()=>/fresh screenshots/.test(document.getElementById('companion-status').textContent));
   await clickOn({title:'Letter – Word',process:'WINWORD',id:'2002'},null);
   await page.waitForTimeout(2500);assert.equal(await captures(),before,'not before the quiet gap');

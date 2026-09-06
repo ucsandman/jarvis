@@ -16,7 +16,7 @@ export const assets = new Map([
   ['/', ['index.html','text/html']], ['/style.css',['style.css','text/css']],
   ['/companion.js',['companion.js','text/javascript']], ['/companion.css',['companion.css','text/css']],
   ['/chips.js',['chips.js','text/javascript']], ['/harness.js',['harness.js','text/javascript']], ['/models.js',['models.js','text/javascript']],
-  ['/computer.js',['computer.js','text/javascript']], ['/live.js',['live.js','text/javascript']], ['/follow.js',['follow.js','text/javascript']], ['/app.js',['app.js','text/javascript']], ['/storage.js',['storage.js','text/javascript']],
+  ['/computer.js',['computer.js','text/javascript']], ['/live.js',['live.js','text/javascript']], ['/follow.js',['follow.js','text/javascript']], ['/session.js',['session.js','text/javascript']], ['/app.js',['app.js','text/javascript']], ['/storage.js',['storage.js','text/javascript']],
   ['/mark.svg',['mark.svg','image/svg+xml']], ['/reference.svg',['reference.svg','image/svg+xml']],
   ['/demo.html',['demo.html','text/html']]
 ]);

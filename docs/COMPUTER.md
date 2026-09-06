@@ -41,7 +41,7 @@ Everything is reviewed because a UI click or key can send, purchase, delete or r
 | `inspect` | `owner`, `window` | Local bounded accessibility snapshot |
 | `launch` | `owner`, fixed `app` | Explicit app-open result |
 | `propose` | `owner`, `window`, `task`, `model`, `effort`, `consent: true` | One proposal, its exact sent snapshot and step count |
-| `approve` | `owner`, proposal `id`, `consent: true` | One native result; the ID is consumed before execution |
+| `approve` | `owner`, proposal `id`, `consent: true` | One native result plus `observation`: one bounded local reading of the same window taken after Windows accepted the action (`available`, `summary`, the target control, what changed, the reading), or `available: false` with why. Never a second action, never a model call, never for a launch. The ID is consumed before execution |
 | `reject` | `owner` | Discards the pending proposal |
 | `status` | Normal local session authentication | Armed state and step count |
 | `stop` | Normal local session authentication | Revokes control across tabs |
@@ -58,8 +58,8 @@ In the packaged app, fixed app-open requests go to the desktop launcher through 
 
 ## Verification
 
-- Unit tests cover owning-tab authorization, consent, single-use approvals, expiry, unsupported actions, emergency-stop state and cancellation during inference.
-- Browser verification covers Set it up from Settings, the lease dialog, the screen replacing the conversation with no tick anywhere on it, model and effort from Settings, reading, approve and reject, Back and Open with the lease kept, Stop and mobile rendering with a synthetic planner.
+- Unit tests cover owning-tab authorization, consent, single-use approvals, expiry, unsupported actions, emergency-stop state, cancellation during inference, and the read-back after Approve: one reading of the same window, a reading that fails without replaying the action, no reading after a launch, and summaries that state the target value or the diff without claiming success.
+- Browser verification covers Set it up from Settings, the lease dialog, the screen replacing the conversation with no tick or details arrow anywhere on it, model and effort from Settings, reading, the plain-words review with references behind Details, approve with the local read-back shown apart from "Windows accepted", an unavailable read-back without replay, reject, Back and Open with the lease kept, Stop and mobile rendering with a synthetic planner.
 - Native verification opens its own compiled WinForms fixture, replaces text, clicks a button, checks the title, rejects stale context, value and targets, and fires the real global shortcut.
 - A real Fable/low browser-to-native test completed three model steps and two reviewed actions in about 25 seconds. That was a synthetic fixture, not a promise about speed or compatibility in every app.
 

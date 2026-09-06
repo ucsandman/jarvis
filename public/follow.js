@@ -15,12 +15,20 @@ export class Follow {
     if(this.state.snapshots && this.mutedWindow!==front.id){if(this.inFlight)this.pending=true;else this.state.captureDue=now+QUIET_MS;}
     return changed?'deck':'idle';
   }
-  // Called on a timer. 'capture' means: ask the shell for the pinned window now.
-  tick(now=Date.now()){
+  // Called when a deadline lands. 'capture' means: ask the shell for the pinned window now. 'busy' means the capture is due but the page
+  // is mid-flight (a send, a read, a manual screenshot); the deadline stays so the next tick takes it, and nothing is scheduled twice.
+  tick(now=Date.now(),busy=false){
     if(!this.state.on) return 'idle';
     if(now>=this.state.expires){this.stop();return 'expired';}
     if(!this.state.snapshots || this.inFlight || !this.state.captureDue || now<this.state.captureDue) return 'skip';
+    if(busy) return 'busy';
     this.state.captureDue=0;this.inFlight=true;return 'capture';
+  }
+  // Milliseconds until the next thing that needs a tick: the capture deadline or the lease's end. Null when nothing is due.
+  next(now=Date.now()){
+    if(!this.state.on) return null;
+    const due=this.state.snapshots && !this.inFlight && this.state.captureDue?this.state.captureDue:Infinity;
+    return Math.max(0,Math.min(due,this.state.expires)-now);
   }
   // The shell answered. True when the chip should take this frame; false when the window looks the same.
   captured(pixels,now=Date.now()){

@@ -26,8 +26,7 @@ try {
   console.log('PASS: generated app adds and filters real tasks in the restricted preview.');
   await page.getByRole('button',{ name:'Clear image',exact:true }).click();
   await page.locator('#direction').fill('Preserve the entire Daylight task board and all existing functionality. Add a clearly visible compact 25-minute focus timer above the board with Start, Pause, and Reset buttons and a mm:ss countdown. Call it Focus timer. Do not remove search, adding tasks, or the three columns.');
-  await page.locator('#build-consent').check();
-  await page.getByRole('button',{ name:'Make it real' }).click();
+  await page.locator('#build').click();
   await page.locator('#version-label').filter({ hasText:'VERSION 02' }).waitFor({ timeout:315000 });
   assert.match(await app.locator('body').innerText(),/focus timer/i);
   assert.match(await app.locator('body').innerText(),/DAYLIGHT/i);

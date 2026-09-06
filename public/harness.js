@@ -23,6 +23,8 @@ export const sensorLine=(v={})=>v.screenOn?`screen on · ${v.dictating?'mic on (
   :v.dictating?'mic on (local)':v.stream?v.captureKind==='screen'?'screen shared (local preview)':'camera on (local preview)':'screen & mic off';
 // The panel's Send button says what goes. Attached means it goes; there is no tick.
 export const sendLabel=(v={})=>v.frame && v.text?'Send with screenshot and text':v.frame?'Send with screenshot':v.text?'Send with window text':'Send';
+// The studio's button says the same: the verb (a first build, or a revision of the selected version) and whether the attached frame goes.
+export const buildLabel=(v={})=>`${v.version?`Revise ${v.version}`:'Build'}${v.frame?' with frame':''}`;
 // activity[ · attachment] · sensor, for the studio's status line.
 export function statusLine(v={}) {
   const activity=activityLine(v),sensor=sensorLine(v);
@@ -52,20 +54,13 @@ export function consentLine(v={}) {
   return `Send ${list(items)} to ${to}.`;
 }
 
-// Refusal text, or null when the press may go out. Order: the words, the studio's tick, the connection, the allowance.
-// In the panel and in Computer mode the button is the consent: Send says what goes, Plan next action names the window whose reading goes.
+// Refusal text, or null when the press may go out. Order: the words, the connection, the allowance.
+// On every surface the button is the consent: Send and Build say what goes, Plan next action names the window whose reading goes. No tick anywhere.
 export function gate(v={}) {
   if(v.surface==='build' && v.direction!==undefined && !String(v.direction).trim()) return 'Tell Jarvis what should work first.';
-  if(v.surface==='build' && !v.ticked) return 'Tick the sharing line under your direction before building.';
   if(!v.configured || !v.token) return 'Open Settings and connect your subscription first.';
   if(v.remaining===0) return 'Your local allowance is used up. Open Settings, then Start new allowance.';
   return null;
-}
-
-// A tick authorizes one send. It clears after every request that goes out, and so does the frame's Include box when the frame went.
-export function spend(gateEl,includeEl,usedFrame) {
-  if(gateEl) gateEl.checked=false;
-  if(usedFrame && includeEl) includeEl.checked=false;
 }
 
 export function record(entry) {
@@ -76,10 +71,9 @@ export const sentCount=(entries=ledger)=>entries.filter(entry=>entry.ok!==false)
 
 export function renderGate(root,view) {
   if(!root) return;
-  const line=root.querySelector('.consent-line'),billing=root.querySelector('.billing'),tick=root.querySelector('input[type=checkbox]');
+  const line=root.querySelector('.consent-line'),billing=root.querySelector('.billing');
   if(line) line.textContent=consentLine(view);
   if(billing) {const text=billingLine(view.model);billing.textContent=text || '';billing.hidden=!text;}
-  if(tick) {tick.hidden=!!view.live;if(view.live) tick.checked=false;}
 }
 
 export function renderPreview(dialog,manifest,entries=ledger) {

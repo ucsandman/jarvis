@@ -63,3 +63,11 @@ The maintainer asked why "Screen & mic off" was a label rather than a switch, an
 Built page-side and shell-side only. No server, broker or model change; the existing `capture` message and chip carry the screenshot, and `public/follow.js` is a pure reducer under test. Only mouse button-up events are observed, only during the lease; element names are bounded and values are never read.
 
 Not built, on purpose: automatic sends with a budget (the button still says what goes), a keyboard hook, coordinate clicks, and the Act tier. Release B makes Computer mode follow the click with a highlight-and-Enter approval and the user's own input as the interrupt, one approval per action.
+
+## The studio has no tick either (2026-09-06)
+
+The maintainer approved a six-state mock (`.artifacts/studio-mock.html`) and the studio composer took the panel's contract: a frame is a chip in the box, × removes it, the button says what goes ("Build with frame", "Revise Version 02"), and the line under the box names the destination and the selected source. Sharing a window or camera attaches nothing; "Use this frame" takes one still, because a live preview is context and a still in the box is a decision. Upload, the sample sketch and the panel's handoff attach the image they carry, since choosing it is the act. The server contract is unchanged: `/api/build` still needs `consent: true`, which only the button press sends. The harness `gate` lost its tick branch and `spend` went away; the studio clears its own chip after a send that carried it.
+
+## Read the window back after Approve (2026-09-06)
+
+Approve runs one action, then the broker takes one bounded local reading of the same window and returns it with the result. The page shows "Windows accepted" and "Observed" as two lines, because acceptance and outcome are different facts; a reading that fails says verification was unavailable, never "done", and never causes a second action. A launch is not inspected on its own, so choosing the new window stays with the person. The reading rides in the recent actions the next manual plan sends; no model step runs from it. Diagnostic IDs and the full tree sit behind a Details button rather than a `<details>` element, because the panel's verifier asserts it has no details arrows.

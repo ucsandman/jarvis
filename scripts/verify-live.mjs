@@ -35,11 +35,11 @@ try {
   await page.locator('#live-start').click();assert.match(await page.locator('#live-consent-detail').innerText(),/paid Claude usage credits/);
   await page.getByRole('button',{name:'Keep it local',exact:true}).click();assert.equal(requests.length,0);
   await page.locator('#live-start').click();await page.locator('#live-confirm').click();
-  assert.match(await page.locator('#build-consent-line').innerText(),/^Live build on/);assert.equal(await page.locator('#build-consent').isHidden(),true,'the tick gives way to the lease sentence');
+  assert.match(await page.locator('#build-consent-line').innerText(),/^Live build on/);assert.equal(await page.locator('#frame-chip').isHidden(),true,'sharing attached nothing; Live build takes its own stills under the lease sentence');
   await page.waitForFunction(()=>document.querySelector('#live-count').textContent==='1 / 10 builds');
   await page.waitForFunction(()=>!document.querySelector('#build-overlay').hidden);
   assert.equal(requests.length,1);assert.ok(requests[0].image);assert.equal(requests[0].model,'fable');
-  assert.match(await page.locator('#build-message').innerText(),/Fable is grinding/);
+  assert.match(await page.locator('#build-message').innerText(),/Fable 5\.1 is grinding/);
   assert.equal(await page.locator('#model-choice').isDisabled(),true);
   await page.locator('#sent-evidence').evaluate(el=>{el.open=true;});
   assert.match(await page.locator('#sent-image').getAttribute('src'),/^data:image\/jpeg;base64,/);

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {Computer} from '../lib/computer.mjs';
+import {Computer,observed} from '../lib/computer.mjs';
 import {createApp} from '../server.mjs';
 
 const proposed={kind:'click',element:'1.2',text:'',key:'',app:'',reason:'Press the fixture button.'};
@@ -60,6 +60,53 @@ test('read is read-only: it never arms, grants no owner, and reports truncation 
   const {readable}=await import('../lib/computer.mjs');
   const big=readable({title:'T',limited:true,elements:Array.from({length:3},(_,i)=>({type:'Edit',name:`Field ${i}`,value:'x'.repeat(9000)}))});
   assert.equal(big.truncated,true);assert.equal(big.characters,20000);assert.equal(big.controls,3);
+});
+test('approve reads the same window once afterwards and reports what it saw, never a second act',async()=>{
+  const {computer:c,acts,native}=fixture();const ops=[];const call=native.call.bind(native);
+  native.call=async d=>{ops.push(d.op);if(d.op==='snapshot' && acts.length)return {title:'Fixture',elements:[{id:'1.2',name:'Calculate',type:'Button',enabled:true},{id:'1.3',name:'Result',type:'Text',value:'42',enabled:true}]};return call(d);};
+  const owner=await enable(c);const {proposal}=await c.handle(request(owner));ops.length=0;
+  const done=await c.handle({op:'approve',owner,id:proposal.id,consent:true});
+  assert.deepEqual(ops,['status','act','snapshot'],'one act, then one reading of the same window');
+  assert.equal(done.observation.available,true);assert.equal(done.observation.added,1);assert.equal(done.observation.summary,'Observed: 1 new · Result = 42.');
+  assert.equal(done.observation.reading.elements.length,2);assert.equal(acts.length,1);
+  assert.equal(c.history.at(-1).result,'Windows accepted the action. Observed: 1 new · Result = 42.');
+});
+test('an observation that fails says so and never replays the action; a launch is never inspected on its own',async()=>{
+  const {computer:c,acts,native}=fixture();const ops=[];const call=native.call.bind(native);
+  native.call=async d=>{ops.push(d.op);if(d.op==='snapshot' && acts.length)throw new Error('window gone');return call(d);};
+  const owner=await enable(c);const {proposal}=await c.handle(request(owner));ops.length=0;
+  const done=await c.handle({op:'approve',owner,id:proposal.id,consent:true});
+  assert.deepEqual(ops,['status','act','snapshot']);assert.equal(acts.length,1,'no retry');
+  assert.equal(done.observation.available,false);assert.match(done.observation.summary,/could not be read after the action/);
+  assert.match(c.history.at(-1).result,/^Windows accepted the action\. The window could not be read/);
+  const l=fixture(async()=>({result:{...proposed,kind:'launch',element:'',app:'notepad'}}));const lops=[];const lcall=l.native.call.bind(l.native);l.native.call=async d=>{lops.push(d.op);return lcall(d);};
+  const lowner=await enable(l.computer);const {proposal:lp}=await l.computer.handle(request(lowner));lops.length=0;
+  const opened=await l.computer.handle({op:'approve',owner:lowner,id:lp.id,consent:true});
+  assert.deepEqual(lops,['status','act'],'no reading after a launch');assert.equal(opened.observation.available,false);assert.match(opened.observation.summary,/choose it yourself/);
+});
+test('a reading that hangs is reported as unread within its own bound, shorter than an action, with no replay',async()=>{
+  const {computer:c,acts,native}=fixture();c.observeTimeout=40;const call=native.call.bind(native);let hung=0;
+  native.call=async d=>{if(d.op==='snapshot' && acts.length){hung++;return new Promise(()=>{});}return call(d);};
+  const owner=await enable(c);const {proposal}=await c.handle(request(owner));
+  const started=Date.now();const done=await c.handle({op:'approve',owner,id:proposal.id,consent:true});
+  assert.ok(Date.now()-started<1000,'the approve answered within the reading bound, not the 20 s action bound');
+  assert.equal(done.observation.available,false);assert.match(done.observation.summary,/took too long to read/);assert.equal(acts.length,1);assert.equal(hung,1);
+  assert.equal(c.busy,false,'the broker is free for the next manual step');
+});
+test('observed() states the target value for type, the diff for the rest, and never claims success',()=>{
+  const before={title:'Notepad',elements:[{id:'e1',name:'Text editor',type:'Edit',value:'',enabled:true}]};
+  const typed=observed({kind:'type',element:'e1',text:'hello',title:'Notepad'},before,{title:'Notepad',elements:[{id:'e1',name:'Text editor',type:'Edit',value:'hello',enabled:true}]});
+  assert.equal(typed.summary,'Observed: Text editor now reads "hello".');assert.equal(typed.target.value,'hello');
+  const partial=observed({kind:'type',element:'e1',text:'hello',title:'Notepad'},before,{title:'Notepad',elements:[{id:'e1',name:'Text editor',type:'Edit',value:'hel',enabled:true}]});
+  assert.match(partial.summary,/reads "hel", not the requested text/);
+  const same=observed({kind:'click',element:'e1',title:'Notepad'},before,before);
+  assert.equal(same.summary,'Observed: no change in the accessible controls. Check the app yourself.');assert.equal(same.changed.length,0);
+  const moved=observed({kind:'click',element:'e1',title:'Notepad'},before,{title:'Save As',elements:[]});
+  assert.equal(moved.sameWindow,false);assert.match(moved.summary,/window is now "Save As"/);
+  const changed=observed({kind:'key',element:'e1',key:'enter',title:'Notepad'},before,{title:'Notepad',elements:[{id:'e1',name:'Text editor',type:'Edit',value:'x'.repeat(300),enabled:true}]});
+  assert.match(changed.summary,/^Observed: 1 control changed · Text editor: was "", now "x{60}…"\.$/);
+  assert.equal(changed.reading.elements[0].value.length,201,'values in the reading are bounded');
+  assert.ok(!/success|done/i.test(typed.summary+same.summary+changed.summary));
 });
 test('desktop route rejects foreign origins and missing session token',async()=>{
   const {computer}=fixture();const app=createApp({computer});await new Promise(r=>app.listen(0,'127.0.0.1',r));

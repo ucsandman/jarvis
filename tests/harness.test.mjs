@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { statusLine, activityLine, sensorLine, sendLabel, consentLine, gate, spend, record, ledger, sentCount } from '../public/harness.js';
+import { statusLine, activityLine, sensorLine, sendLabel, buildLabel, consentLine, gate, record, ledger, sentCount } from '../public/harness.js';
 import { families, chipsFor, captureFor, UNKNOWN_CHIPS } from '../public/chips.js';
 
 test('status line never claims the sensors are off while something is on', () => {
@@ -32,9 +32,10 @@ test('consent sentence names exactly what goes', () => {
   assert.equal(consentLine({surface:'computer',model:'astra'}),'Send this task and a fresh reading of the chosen window to Astra (your ChatGPT subscription).');
 });
 
-test('gate refuses in order: words, the studio tick, connection, allowance; the panel and Computer mode have no tick', () => {
-  assert.equal(gate({surface:'build',direction:'  ',ticked:true,configured:true,token:'t'}),'Tell Jarvis what should work first.');
-  assert.equal(gate({surface:'build',direction:'Build it',ticked:false,configured:true,token:'t'}),'Tick the sharing line under your direction before building.');
+test('gate refuses in order: words, connection, allowance; no surface has a tick, the button is the consent', () => {
+  assert.equal(gate({surface:'build',direction:'  ',configured:true,token:'t'}),'Tell Jarvis what should work first.');
+  assert.equal(gate({surface:'build',direction:'Build it',configured:true,token:'t',remaining:5}),null,'words plus a connection is enough; nothing to tick');
+  assert.equal(gate({surface:'build',direction:'Build it',ticked:false,configured:true,token:'t',remaining:5}),null,'a stale ticked flag changes nothing');
   assert.equal(gate({surface:'chat',configured:true,token:'t',remaining:5}),null);
   assert.equal(gate({surface:'computer',configured:true,token:'t',remaining:5}),null);
   assert.equal(gate({surface:'chat',configured:false,token:'t'}),'Open Settings and connect your subscription first.');
@@ -58,10 +59,11 @@ test('the Send button says what goes, and the header sensor line is computed apa
   assert.equal(`${activityLine({token:'t',configured:true})} · ${sensorLine({})}`,statusLine({token:'t',configured:true}));
 });
 
-test('spend clears the tick and the include box only when the frame went', () => {
-  const tick={checked:true},include={checked:true};
-  spend(tick,include,false); assert.equal(tick.checked,false); assert.equal(include.checked,true);
-  tick.checked=true; spend(tick,include,true); assert.equal(tick.checked,false); assert.equal(include.checked,false);
+test('the Build button says the verb and whether the attached frame goes', () => {
+  assert.equal(buildLabel({}),'Build');
+  assert.equal(buildLabel({frame:true}),'Build with frame');
+  assert.equal(buildLabel({version:'Version 02'}),'Revise Version 02');
+  assert.equal(buildLabel({version:'Version 02',frame:true}),'Revise Version 02 with frame');
 });
 
 test('ledger counts responses in session order', () => {

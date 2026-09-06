@@ -41,11 +41,11 @@
     <main class="studio">
       <section class="rail" aria-label="Direction and reference">
         <div class="chip-row" id="rail-chips" aria-label="Prewritten directions"></div>
-        <div class="frame-strip frame-strip-plain"><label><input type="checkbox" id="include-frame"> Include this frame</label><span id="frame-choice-note">No frame yet</span></div>
         <form id="composer" class="composer">
+          <div class="frame-chip" id="frame-chip" hidden><img id="frame-chip-image" alt="Exact frame attached to the next build"><span><b id="frame-chip-label"></b><small>Goes with this build</small></span><button type="button" id="frame-remove" aria-label="Remove frame">×</button></div>
           <div class="composer-row"><button type="button" class="mic-button" id="mic" aria-label="Dictate direction" aria-pressed="false"><svg><use href="#i-mic"/></svg></button><label class="sr-only" for="direction">Tell Jarvis what to build or change</label><textarea id="direction" rows="2" maxlength="4000" placeholder="Tell me what to build, or what to change…"></textarea></div>
-          <div class="send-gate" id="build-gate"><label><input id="build-consent" type="checkbox"> <span class="consent-line" id="build-consent-line">Send this direction to Astra (your ChatGPT subscription).</span></label><button type="button" class="quiet" id="build-preview">See exactly what goes</button><p class="billing" id="build-billing" hidden></p></div>
-          <div class="composer-actions"><span id="activity">Ready</span><button class="button amber build-button" id="build" type="submit">Make it real <svg><use href="#i-arrow"/></svg></button></div>
+          <div class="send-gate" id="build-gate"><span class="consent-line" id="build-consent-line">Send this direction to Astra (your ChatGPT subscription).</span><button type="button" class="quiet" id="build-preview">See exactly what goes</button><p class="billing" id="build-billing" hidden></p></div>
+          <div class="composer-actions"><span id="activity">Ready</span><button class="button amber build-button" id="build" type="submit"><span id="build-label">Build</span> <svg><use href="#i-arrow"/></svg></button></div>
         </form>
         <div class="error-banner" id="error" role="alert" hidden><span id="error-text"></span><button class="quiet" id="reconnect">Reconnect</button><button id="dismiss-error" aria-label="Dismiss error">×</button></div>
 
@@ -62,6 +62,7 @@
           </div>
           <span class="frame-label" id="frame-label" hidden></span>
           <div class="frame-tools" id="frame-tools" hidden><button class="small-button" id="resume">Back to live view</button><button class="small-button" id="clear-reference">Clear image</button></div>
+          <div class="frame-tools frame-attach" id="frame-attach" hidden><button class="small-button attach-button" id="use-frame">Use this frame</button></div>
           <div class="scan-line" aria-hidden="true"></div>
         </div>
         <p class="source-status" id="source-status">Camera off</p>
@@ -153,7 +154,8 @@
             <div class="computer-goes" id="computer-gate"><span class="consent-line" id="computer-consent-line"></span><p class="billing" id="computer-billing" hidden></p></div>
             <p id="computer-status" role="status" aria-live="polite" hidden></p>
           </div>
-          <section id="computer-review" class="computer-step computer-live" hidden aria-label="Review the next action"><div class="computer-lbl" id="computer-step-label">3 · Waiting for you</div><h3 id="computer-action-title"></h3><p id="computer-reason"></p><pre id="computer-action-detail"></pre><div class="computer-row"><button type="button" class="button amber" id="computer-approve">Approve</button><button type="button" class="quiet" id="computer-reject">Reject</button><span id="computer-expiry"></span></div></section>
+          <section id="computer-review" class="computer-step computer-live" hidden aria-label="Review the next action"><div class="computer-lbl" id="computer-step-label">3 · Waiting for you</div><h3 id="computer-action-title"></h3><p id="computer-reason"></p><pre id="computer-action-detail"></pre><button type="button" class="quiet computer-reveal" id="computer-details" aria-expanded="false" aria-controls="computer-diagnostics">Details</button><pre id="computer-diagnostics" hidden></pre><div class="computer-row"><button type="button" class="button amber" id="computer-approve">Approve</button><button type="button" class="quiet" id="computer-reject">Reject</button><span id="computer-expiry"></span></div></section>
+          <section id="computer-outcome" class="computer-step" hidden aria-label="After the action"><div class="computer-lbl">After the action</div><p id="computer-outcome-accepted"></p><p id="computer-outcome-text"></p><button type="button" class="quiet computer-reveal" id="computer-outcome-details" aria-expanded="false" aria-controls="computer-outcome-tree" hidden>Details</button><pre id="computer-outcome-tree" hidden></pre></section>
           <section id="computer-read" hidden aria-label="What Jarvis read"><div class="computer-lbl">What Jarvis read</div><pre id="computer-snapshot"></pre></section>
           <section id="computer-done" hidden aria-label="Actions done"><div class="computer-lbl">Done · <span id="computer-count">0 actions</span></div><ol id="computer-history"></ol></section>
         </div>
@@ -193,11 +195,11 @@
       <h3>What leaves this device</h3>
       <ol class="leaves">
         <li>Nothing is captured until you press ＋ Window, Read text, Share window or Camera. Jarvis never watches the screen and never listens on its own.</li>
-        <li>Read text reads the accessible text of the window you came from, shows every character with a count and whether it was cut short, and goes only while its Include box is ticked. Reading never clicks anything and never turns Computer mode on.</li>
+        <li>Read text reads the accessible text of the window you came from, shows every character with a count and whether it was cut short, and goes only while it is attached in the box. Reading never clicks anything and never turns Computer mode on.</li>
         <li>Copy puts a reply on your clipboard. Jarvis never reads the clipboard.</li>
-        <li>A frame goes only while its Include box is ticked, and the box clears after every send. The sharing tick clears after every send too.</li>
+        <li>A frame goes only while it is attached in the box, in the panel and in the studio alike. Sharing a window or camera attaches nothing; Use this frame does. The button says what goes, and the frame leaves the box after it went.</li>
         <li>Your message, up to 12 recent messages from this session, and the frame go to the model you picked: an OpenAI model through Codex on your ChatGPT subscription, or an Anthropic model through Claude Code on your Claude subscription. There is no API key and no fallback model.</li>
-        <li>Computer mode sends the chosen window's accessible text, your task and recent actions when you press Plan next action, after its own tick. No screenshot, no audio. You approve every action, and Ctrl+Shift+F12 stops it from any app.</li>
+        <li>Computer mode sends the chosen window's accessible text, your task and recent actions (each with the one-line reading Jarvis took after it) when you press Plan next action. The read-back after an approved action stays on this device until then. No screenshot, no audio. You approve every action, and Ctrl+Shift+F12 stops it from any app.</li>
         <li>Prototypes and their reference images are saved on this device, up to 12 versions. New project clears them. Generated pages run with no network access.</li>
         <li>Live build sends changed snapshots automatically after its own permission, up to 10 per start, and never resumes after a reload.</li>
       </ol>

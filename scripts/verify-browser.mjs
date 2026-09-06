@@ -32,11 +32,13 @@ try {
   assert.match(await page.locator('#frame-label').innerText(),/Sample sketch/);
   let cloudRequests = 0; const bodies = [];
   page.on('request',r => { if (/\/api\/(build|observe)$/.test(r.url())) { cloudRequests++; bodies.push(r.postDataJSON()); } });
-  assert.equal(await page.locator('#build-consent').isChecked(),false);
-  await page.getByRole('button',{ name:'Make it real' }).click();
-  assert.match(await page.locator('#error-text').innerText(),/Tick the sharing line/);
-  assert.equal(cloudRequests,0);
-  checks.push('sample labeled and an unticked sharing line makes zero cloud requests');
+  await page.locator('#frame-chip').waitFor();assert.equal(await page.locator('#build-label').innerText(),'Build with frame');
+  assert.equal(await page.locator('#composer input[type=checkbox]').count(),0,'no tick in the composer');
+  const sketchDirection=await page.locator('#direction').inputValue();await page.locator('#direction').fill('');
+  await page.locator('#build').click();
+  assert.match(await page.locator('#error-text').innerText(),/Tell Jarvis what should work first/);
+  assert.equal(cloudRequests,0);await page.locator('#direction').fill(sketchDirection);
+  checks.push('sample labeled and attached; the button says the frame goes; an empty direction makes zero cloud requests');
 
   // Use the actual result of verify:vision to test the rendered output, without another paid call.
   const generated = JSON.parse(await readFile('.artifacts/generated.json','utf8'));
@@ -45,22 +47,20 @@ try {
   assert.equal(observed.model,'gpt-6-astra');
   await page.route('**/api/observe',route => route.fulfill({ json:observed }));
   await page.route('**/api/build',route => route.fulfill({ json:generated }));
-  await page.locator('#build-consent').check();
-  await page.getByRole('button',{ name:'Make it real' }).click();
+  await page.locator('#build').click();
   await page.locator('#version-label').filter({ hasText:'VERSION 01' }).waitFor();
   assert.equal(cloudRequests,1); assert.equal(typeof bodies[0].image,'string');
-  assert.equal(await page.locator('#build-consent').isChecked(),false,'the tick clears after the build');
-  assert.equal(await page.locator('#include-frame').isChecked(),false,'the include box clears when the frame went');
+  assert.equal(await page.locator('#frame-chip').isHidden(),true,'the frame leaves the box after it went');
+  assert.equal(await page.locator('#build-label').innerText(),'Revise Version 01','the button names the version the next direction revises');
   const frame = page.frameLocator('#preview');
   await frame.locator('body').waitFor();
   assert.match(await frame.locator('body').innerText(),/DAYLIGHT/i);
   checks.push('generated app renders inside sandbox (recorded real provider response); tick and include clear');
   await page.locator('#direction').fill('Make the heading smaller');
-  await page.locator('#build-consent').check();
-  await page.getByRole('button',{ name:'Make it real' }).click();
+  await page.locator('#build').click();
   await page.locator('#version-label').filter({ hasText:'VERSION 02' }).waitFor();
   assert.equal(cloudRequests,2); assert.equal(bodies[1].image,null);
-  checks.push('the frame rides only when its box is ticked');
+  checks.push('the frame rides only while it is attached in the box');
   await page.getByRole('button',{ name:'Mobile preview',exact:true }).click();
   assert.equal(Math.round((await page.locator('#preview').boundingBox()).width),375);
   await page.getByRole('button',{ name:'Desktop preview',exact:true }).click();
