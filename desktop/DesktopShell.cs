@@ -46,9 +46,9 @@ internal sealed class DesktopShell : Form {
     readonly string anchorFile;
     Point dockPress;
     bool dockDragging;
-    readonly WebView2 web = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(20, 23, 25) };
+    readonly WebView2 web = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(23, 29, 45) };
     readonly Button dockButton = new Button {
-        Dock = DockStyle.Fill, Text = String.Empty, BackColor = JarvisMark.Charcoal,
+        Dock = DockStyle.Fill, Text = String.Empty, BackColor = SidelookMark.Navy,
         FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, TabStop = false, AccessibleName = "Open Jarvis"
     };
     bool dockHover;
@@ -73,16 +73,16 @@ internal sealed class DesktopShell : Form {
         url = appUrl;
         launchKey = key;
         Text = "Jarvis";
-        Icon = JarvisMark.AppIcon();
-        BackColor = JarvisMark.Charcoal;
+        Icon = SidelookMark.AppIcon();
+        BackColor = SidelookMark.Navy;
         ShowInTaskbar = false;
         StartPosition = FormStartPosition.Manual;
         Controls.Add(web);
         dockButton.FlatAppearance.BorderSize = 0;
-        dockButton.FlatAppearance.MouseOverBackColor = JarvisMark.Charcoal;
-        dockButton.FlatAppearance.MouseDownBackColor = JarvisMark.Charcoal;
+        dockButton.FlatAppearance.MouseOverBackColor = SidelookMark.Navy;
+        dockButton.FlatAppearance.MouseDownBackColor = SidelookMark.Navy;
         dockButton.Paint += delegate(object sender, PaintEventArgs args) {
-            JarvisMark.Draw(args.Graphics, dockButton.ClientRectangle, dockHover ? JarvisMark.AmberHover : JarvisMark.Amber, false);
+            SidelookMark.Draw(args.Graphics, dockButton.ClientRectangle, new PointF(SidelookMark.EyeTravel, 0), false, dockHover);
         };
         dockButton.MouseEnter += delegate { dockHover = true; dockButton.Invalidate(); };
         dockButton.MouseLeave += delegate { dockHover = false; dockButton.Invalidate(); };
@@ -218,9 +218,9 @@ internal sealed class DesktopShell : Form {
         base.OnResize(e);
         // The dock is a rounded square and the panel a rounded rectangle with nothing behind them; the workbench keeps its normal window shape.
         if (dockButton != null && mode == "dock" && Width > 0 && Height > 0) {
-            using (var path = JarvisMark.RoundedSquare(new Rectangle(0, 0, Width, Height), Math.Min(Width, Height) * 14f / 64f)) Region = new Region(path);
+            using (var path = SidelookMark.RoundedSquare(new Rectangle(0, 0, Width, Height), Math.Min(Width, Height) * 14f / 64f)) Region = new Region(path);
         } else if (mode == "panel" && Width > 0 && Height > 0) {
-            using (var path = JarvisMark.RoundedSquare(new Rectangle(0, 0, Width, Height), 12f)) Region = new Region(path);
+            using (var path = SidelookMark.RoundedSquare(new Rectangle(0, 0, Width, Height), 12f)) Region = new Region(path);
         } else if (Region != null) Region = null;
     }
 

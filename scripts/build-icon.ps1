@@ -1,12 +1,14 @@
-# Renders desktop/jarvis.ico from the mark geometry shared with public/mark.svg and desktop/JarvisMark.cs.
+# Renders desktop/sidelook.ico from the mark geometry shared with public/mark.svg and desktop/SidelookMark.cs.
 # Run once after changing the mark: powershell -NoProfile -File scripts/build-icon.ps1
 $ErrorActionPreference = 'Stop'
 Add-Type -AssemblyName System.Drawing
 $root = Split-Path -Parent $PSScriptRoot
-$output = Join-Path $root 'desktop/jarvis.ico'
+$output = Join-Path $root 'desktop/sidelook.ico'
 $sizes = @(16, 20, 24, 32, 40, 48, 64, 128, 256)
-$charcoal = [System.Drawing.Color]::FromArgb(20, 23, 25)
-$amber = [System.Drawing.Color]::FromArgb(111, 227, 193)
+$navy = [System.Drawing.Color]::FromArgb(23, 29, 45)
+$hub = [System.Drawing.Color]::White
+# 64 grid: hexagon 32,10 51,21 51,43 32,54 13,43 13,21; eyes r 3.6 at (31,32) (43,32), the static sidelong look.
+$hexagon = @(@(32,10), @(51,21), @(51,43), @(32,54), @(13,43), @(13,21))
 
 function Render([int]$size) {
     $bitmap = New-Object System.Drawing.Bitmap $size, $size, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
@@ -21,11 +23,11 @@ function Render([int]$size) {
     $path.AddArc($size - $d, $size - $d, $d, $d, 0, 90)
     $path.AddArc(0, $size - $d, $d, $d, 90, 90)
     $path.CloseFigure()
-    $g.FillPath((New-Object System.Drawing.SolidBrush $charcoal), $path)
-    $ring = 18 * $unit; $stroke = [Math]::Max(2.0, 6 * $unit); $pupil = 6.5 * $unit
-    $pen = New-Object System.Drawing.Pen $amber, ([single]$stroke)
-    $g.DrawEllipse($pen, [single](32 * $unit - $ring), [single](32 * $unit - $ring), [single]($ring * 2), [single]($ring * 2))
-    $g.FillEllipse((New-Object System.Drawing.SolidBrush $amber), [single](36 * $unit - $pupil), [single](28 * $unit - $pupil), [single]($pupil * 2), [single]($pupil * 2))
+    $g.FillPath((New-Object System.Drawing.SolidBrush $navy), $path)
+    $points = [System.Drawing.PointF[]]($hexagon | ForEach-Object { New-Object System.Drawing.PointF ([single]($_[0] * $unit)), ([single]($_[1] * $unit)) })
+    $g.FillPolygon((New-Object System.Drawing.SolidBrush $hub), $points)
+    $eye = 3.6 * $unit
+    foreach ($cx in @(31, 43)) { $g.FillEllipse((New-Object System.Drawing.SolidBrush $navy), [single]($cx * $unit - $eye), [single](32 * $unit - $eye), [single]($eye * 2), [single]($eye * 2)) }
     $g.Dispose()
     return $bitmap
 }

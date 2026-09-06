@@ -24,7 +24,8 @@
     "verify:computer-native": "node scripts/verify-computer-native.mjs",
     "verify:assistant": "node scripts/verify-assistant.mjs",
     "verify:companion": "node scripts/verify-companion.mjs",
-    "verify:states": "node scripts/verify-states.mjs"
+    "verify:states": "node scripts/verify-states.mjs",
+    "verify:mark": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify-mark.ps1"
   },
   "license": "MIT"
 }
