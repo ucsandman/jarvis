@@ -11,6 +11,8 @@ if ($svg -notmatch 'fill="#171D2D"') { throw 'mark.svg background is not Navy #1
 $ps = Get-Content scripts/build-icon.ps1 -Raw
 if ($ps -notmatch [regex]::Escape($hex)) { throw 'build-icon.ps1 hexagon differs from the canonical points.' }; $checks++
 if ($ps -notmatch 'sidelook\.ico') { throw 'build-icon.ps1 does not write desktop/sidelook.ico.' }; $checks++
+if ($ps -notmatch [regex]::Escape('@(31, 43)')) { throw 'build-icon.ps1 eye centres are not (31,32) (43,32).' }; $checks++
+if ($ps -notmatch [regex]::Escape('3.6 * $unit')) { throw 'build-icon.ps1 eye radius is not 3.6 units.' }; $checks++
 $js = Get-Content public/eyes.js -Raw
 if ($js -notmatch 'EYE_TRAVEL=5' -or $js -notmatch 'EYE_REACH=120') { throw 'eyes.js constants differ from the spec.' }; $checks++
 
@@ -56,8 +58,15 @@ static class MarkTest {
         Directory.CreateDirectory(Path.Combine(legacy2, "WebView2")); Directory.CreateDirectory(Path.Combine(legacy2, "versions")); File.WriteAllText(Path.Combine(legacy2, "WebView2", "state.txt"), "kept"); File.WriteAllText(Path.Combine(legacy2, "dock.json"), "{}");
         using (var hold = new FileStream(Path.Combine(legacy2, "versions", "lock.bin"), FileMode.Create, FileAccess.Write, FileShare.None)) ProfileMigration.Apply(legacy2, fresh2);
         if (!File.Exists(Path.Combine(fresh2, "WebView2", "state.txt")) || !File.Exists(Path.Combine(fresh2, "dock.json")) || !Directory.Exists(legacy2)) { Console.WriteLine("FAIL copy fallback"); failures++; }
+        // A locked file inside the WebView2 folder itself: the copy cannot finish, so nothing is left in the new root and the next start retries.
+        string legacy3 = Path.Combine(temp, "OldProfile3"), fresh3 = Path.Combine(temp, "NewProfile3");
+        Directory.CreateDirectory(Path.Combine(legacy3, "WebView2")); File.WriteAllText(Path.Combine(legacy3, "WebView2", "state.txt"), "kept"); File.WriteAllText(Path.Combine(legacy3, "dock.json"), "{}");
+        using (var busy = new FileStream(Path.Combine(legacy3, "WebView2", "held.bin"), FileMode.Create, FileAccess.Write, FileShare.None)) ProfileMigration.Apply(legacy3, fresh3);
+        if (Directory.Exists(Path.Combine(fresh3, "WebView2")) || Directory.Exists(Path.Combine(fresh3, "WebView2.incoming"))) { Console.WriteLine("FAIL retry: a half-copied profile was left in the new root"); failures++; }
+        ProfileMigration.Apply(legacy3, fresh3);
+        if (!File.Exists(Path.Combine(fresh3, "WebView2", "state.txt")) || !File.Exists(Path.Combine(fresh3, "WebView2", "held.bin"))) { Console.WriteLine("FAIL retry: the next start did not bring the profile over"); failures++; }
         Directory.Delete(temp, true);
-        Console.WriteLine(failures == 0 ? "PASS: 20 compiled assertions (15 mark, 5 migration)" : failures + " compiled assertion(s) failed");
+        Console.WriteLine(failures == 0 ? "PASS: 22 compiled assertions (15 mark, 7 migration)" : failures + " compiled assertion(s) failed");
         return failures == 0 ? 0 : 1;
     }
 }
@@ -69,4 +78,4 @@ if ($LASTEXITCODE -ne 0) { throw 'mark test did not compile.' }
 & $exe; if ($LASTEXITCODE -ne 0) { throw 'mark test failed.' }
 $ico = Get-Item desktop/sidelook.ico -ErrorAction Stop
 if ($ico.Length -lt 20000) { throw "sidelook.ico is only $($ico.Length) bytes; run scripts/build-icon.ps1." }; $checks++
-Write-Output "PASS: $checks source checks, 20 compiled assertions, sidelook.ico $($ico.Length) bytes."
+Write-Output "PASS: $checks source checks, 22 compiled assertions, sidelook.ico $($ico.Length) bytes."

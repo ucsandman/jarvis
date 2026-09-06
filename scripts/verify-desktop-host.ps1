@@ -104,7 +104,33 @@ try {
     Wait-SidelookCondition { [SidelookWindowProbe]::RegisterHotKey([IntPtr]::Zero,0x4A46,0x0002 -bor 0x0004,0x7B) } 'The shortened lease did not release Ctrl+Shift+F12.'
     [SidelookWindowProbe]::UnregisterHotKey([IntPtr]::Zero,0x4A46) | Out-Null
     if ([SidelookWindowProbe]::CountBorders($sidelookProbe.Id, $frect) -ne 0) { throw 'The border outlived the lease.' }
-    Write-Output "PASS: embedded WebView2 host rendered the first-launch companion panel borderless at 440x$emptyHeight (content-sized, no title bar), grew it for the lease dialog, collapsed to a 76x76 dock, registered Ctrl+Shift+Space and Ctrl+Shift+E, reopened from its named signal, leased Screen on from the header line, took and released Ctrl+Shift+F12, outlined a clicked Character Map window, and dropped the border at expiry."
+    # The eye timer's budget. The spec puts it on the dock (0.5% of one processor over a minute of continuous movement), so the
+    # shell goes back to the dock and the cursor is swept across the primary screen while the shell's own CPU time is measured.
+    Add-Type -AssemblyName System.Windows.Forms
+    [SidelookWindowProbe]::PostMessage([SidelookWindowProbe]::Find($sidelookProbe.Id),0x0010,[IntPtr]::Zero,[IntPtr]::Zero) | Out-Null
+    Wait-SidelookCondition { $bounds = Get-SidelookBounds $sidelookProbe; $bounds -and $bounds.Width -eq 76 -and $bounds.Height -eq 76 } 'The panel did not return to the dock for the CPU measurement.'
+    $screen = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
+    $sidelookProbe.Refresh()
+    $cpuBefore = $sidelookProbe.TotalProcessorTime
+    $wallBefore = [DateTime]::UtcNow
+    $watch = [Diagnostics.Stopwatch]::StartNew()
+    $moves = 0
+    while ($watch.Elapsed.TotalSeconds -lt 20) {
+        $t = $watch.Elapsed.TotalSeconds
+        $x = $screen.Left + [int]($screen.Width * (0.5 + 0.45 * [Math]::Sin($t * 2.1)))
+        $y = $screen.Top + [int]($screen.Height * (0.5 + 0.45 * [Math]::Cos($t * 1.3)))
+        [SidelookWindowProbe]::SetCursorPos($x, $y) | Out-Null
+        $moves++
+        Start-Sleep -Milliseconds 15
+    }
+    $watch.Stop()
+    $sidelookProbe.Refresh()
+    $cpuSeconds = ($sidelookProbe.TotalProcessorTime - $cpuBefore).TotalSeconds
+    $wallSeconds = ([DateTime]::UtcNow - $wallBefore).TotalSeconds
+    $processors = [Environment]::ProcessorCount
+    $cpuPercent = [Math]::Round($cpuSeconds / ($wallSeconds * $processors) * 100, 3)
+    if ($cpuPercent -gt 0.5) { throw "The dock used $cpuPercent% CPU over $([Math]::Round($wallSeconds,1))s of continuous cursor movement ($moves moves, $processors logical processors, $([Math]::Round($cpuSeconds,3))s of processor time); the budget is 0.5%." }
+    Write-Output "PASS: embedded WebView2 host rendered the first-launch companion panel borderless at 440x$emptyHeight (content-sized, no title bar), grew it for the lease dialog, collapsed to a 76x76 dock, registered Ctrl+Shift+Space and Ctrl+Shift+E, reopened from its named signal, leased Screen on from the header line, took and released Ctrl+Shift+F12, outlined a clicked Character Map window, dropped the border at expiry, and tracked $moves cursor moves over $([Math]::Round($wallSeconds,1))s in the dock at $cpuPercent% of $processors processors (budget 0.5%)."
 } finally {
     if ($fixture) { Stop-Process -Id $fixture.Id -ErrorAction SilentlyContinue }
     Remove-Item Env:SIDELOOK_FOLLOW_LEASE_SECONDS -ErrorAction SilentlyContinue

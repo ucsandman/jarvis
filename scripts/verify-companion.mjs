@@ -53,6 +53,16 @@ try{
   const wanted=await page.evaluate(()=>window.nativeMessages.filter(m=>m.type==='resize' && m.height).at(-1)?.height);assert.ok(wanted>=300 && wanted<=460,`the page asked the shell for ${wanted}px; expected the empty panel between 300 and 460`);
   await page.setViewportSize({width:440,height:wanted});await page.screenshot({path:'.artifacts/companion-desktop.png'});await page.setViewportSize({width:440,height:700});
   checks.push(`desktop panel renders without inference, capture, read, checkbox, arrow or scroll; tile, plain starters, one-line box; asks the shell for ${wanted}px`);
+  // The live eyes in the header: the shell posts the cursor while it is outside the window, and the page turns both eyes toward it.
+  const eyeCentres=()=>page.locator('#companion .mark-live .eye').evaluateAll(nodes=>nodes.map(node=>Number(node.getAttribute('cx'))));
+  await page.evaluate(()=>window.nativeListener({data:{type:'cursor',x:5000,y:500,left:0,top:0}}));
+  const away=await eyeCentres();
+  assert.ok(away[0]>26 && away[1]>38,`the eyes did not turn toward a cursor off to the right: ${away.join(', ')}`);
+  const onMark=await page.locator('#companion .mark-live').evaluate(svg=>{const r=svg.getBoundingClientRect();return {x:Math.round(r.left+r.width/2),y:Math.round(r.top+r.height/2)};});
+  await page.evaluate(point=>window.nativeListener({data:{type:'cursor',x:point.x,y:point.y,left:0,top:0}}),onMark);
+  const home=await eyeCentres();
+  assert.deepEqual(home,[26,38],`the eyes did not come home with the cursor on the mark: ${home.join(', ')}`);
+  checks.push(`the header mark's eyes turned to ${away.map(v=>v.toFixed(2)).join(' and ')} for a cursor outside the window and came home to 26 and 38 on the mark`);
   // The box grows a line per line and shrinks back; the grip sets a height that sticks until the box is emptied.
   await $('input').fill('one\ntwo\nthree');assert.equal(await $('input').evaluate(el=>el.offsetHeight),63,'three lines, three lines tall');
   await $('input').fill('one\ntwo\nthree\nfour\nfive\nsix\nseven\neight\nnine\nten');assert.equal(await $('input').evaluate(el=>el.offsetHeight),168,'eight lines at most, then it scrolls inside');assert.equal(await $('input').evaluate(el=>getComputedStyle(el).overflowY),'auto');

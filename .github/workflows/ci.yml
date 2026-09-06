@@ -35,3 +35,6 @@ jobs:
       - name: Compile and verify Windows control filters
         if: runner.os == 'Windows'
         run: powershell.exe -NoProfile -File scripts/verify-computer-filters.ps1
+      - name: Verify the mark and the profile migration
+        if: runner.os == 'Windows'
+        run: powershell.exe -NoProfile -File scripts/verify-mark.ps1

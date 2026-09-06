@@ -7,8 +7,9 @@ $output = Join-Path $root 'desktop/sidelook.ico'
 $sizes = @(16, 20, 24, 32, 40, 48, 64, 128, 256)
 $navy = [System.Drawing.Color]::FromArgb(23, 29, 45)
 $hub = [System.Drawing.Color]::White
-# 64 grid: hexagon 32,10 51,21 51,43 32,54 13,43 13,21; eyes r 3.6 at (31,32) (43,32), the static sidelong look.
-$hexagon = @(@(32,10), @(51,21), @(51,43), @(32,54), @(13,43), @(13,21))
+# 64 grid: the hexagon, then eyes r 3.6 at (31,32) (43,32), the static sidelong look. The points exist once, as data, so verify:mark reads them and not a comment.
+$hexPoints = '32,10 51,21 51,43 32,54 13,43 13,21'
+$hexagon = $hexPoints -split ' ' | ForEach-Object { ,($_ -split ',' | ForEach-Object { [int]$_ }) }
 
 function Render([int]$size) {
     $bitmap = New-Object System.Drawing.Bitmap $size, $size, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)
