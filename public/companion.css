@@ -19,7 +19,7 @@ body:not([data-native]) .companion-edges{display:none}
 /* Three buttons don't fit one row at 440px; the lease's own actions stack instead of the generic row in style.css. */
 #screen-lease .dialog-actions{flex-direction:column}
 #companion-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}#companion-dot.on{background:var(--accent);animation:companion-pulse 1.4s ease-out infinite}
-@keyframes companion-pulse{0%{box-shadow:0 0 0 0 #6fe3c199}100%{box-shadow:0 0 0 8px #6fe3c100}}
+@keyframes companion-pulse{0%{box-shadow:0 0 0 0 #2DD4A899}100%{box-shadow:0 0 0 8px #2DD4A800}}
 #companion .companion-header>button:not(.companion-brand):not(.companion-sense){width:32px;min-height:32px;padding:0;font-size:17px;color:var(--muted)}#companion .companion-header>button:not(.companion-brand):not(.companion-sense):hover:not(:disabled){color:var(--ink)}
 
 /* The conversation. It scrolls only once the panel has hit the top of the working area. */

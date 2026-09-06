@@ -41,7 +41,7 @@
 }
 @layer components {
   .status-dot { display:inline-block; width:6px; height:6px; border-radius:50%; background:#727d9d; flex-shrink:0; }
-  .status-dot.ready { background:var(--green); box-shadow:0 0 0 3px #7fc9b110; }
+  .status-dot.ready { background:var(--green); box-shadow:0 0 0 3px #10B98110; }
   .quiet { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:6px 0; background:none; color:var(--muted); font-size:12px; }
   .quiet:hover { color:var(--ink); }
   .quiet svg { width:15px; height:15px; }
@@ -98,12 +98,12 @@
   .viewfinder-corners i:nth-child(2) { top:0; right:0; border-width:1px 1px 0 0; }
   .viewfinder-corners i:nth-child(3) { bottom:0; left:0; border-width:0 0 1px 1px; }
   .viewfinder-corners i:nth-child(4) { bottom:0; right:0; border-width:0 1px 1px 0; }
-  .frame-label { position:absolute; top:20px; left:22px; font-size:12px; background:#141719e8; color:var(--accent); padding:5px 8px; border-radius:3px; max-width:calc(100% - 44px); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .frame-label { position:absolute; top:20px; left:22px; font-size:12px; background:#171D2De8; color:var(--accent); padding:5px 8px; border-radius:3px; max-width:calc(100% - 44px); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .frame-tools { position:absolute; bottom:22px; left:22px; right:22px; display:flex; justify-content:space-between; gap:8px; }
-  .small-button { background:#202324ee; color:var(--ink); border:1px solid #444c61; border-radius:4px; padding:6px 10px; font-size:12px; }
+  .small-button { background:#1c1f28ee; color:var(--ink); border:1px solid #444c61; border-radius:4px; padding:6px 10px; font-size:12px; }
   .small-button:hover { background:#353c4d; }
   .annotations { position:absolute; pointer-events:none; }
-  .annotation { position:absolute; border:1px solid #6fe3c1c9; border-radius:3px; background:#6fe3c110; }
+  .annotation { position:absolute; border:1px solid #2DD4A8c9; border-radius:3px; background:#2DD4A810; }
   .annotation span { display:block; position:absolute; left:-1px; top:-18px; background:var(--accent); color:#20232d; font-size:12px; padding:1px 5px; white-space:nowrap; max-width:180px; overflow:hidden; }
   .source-status { color:var(--muted); font-size:12px; margin:8px 0 0; }
   .source-controls { display:flex; align-items:center; gap:18px; padding:6px 0 12px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
@@ -154,7 +154,7 @@
   .revisions { display:flex; gap:8px; overflow:auto; padding:10px 1px 7px; min-height:49px; scrollbar-width:thin; }
   .revision-empty { font-size:12px; color:#8b94ae; }
   .revision { min-width:125px; text-align:left; border:1px solid #313746; background:none; border-radius:4px; padding:8px 10px; }
-  .revision[aria-current=true] { border-color:#10B981; background:#6fe3c109; }
+  .revision[aria-current=true] { border-color:#10B981; background:#2DD4A809; }
   .revision span { font-size:12px; display:block; max-width:150px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
   .revision small { font-size:12px; color:#8f99b2; }
 
@@ -172,7 +172,7 @@
   .error-banner #error-text { flex:1; min-width:180px; }
   .error-banner button { background:none; color:inherit; font-size:22px; }
   .error-banner .quiet { font-size:12px; }
-  .scan-line { display:none; position:absolute; left:0; right:0; top:0; height:1px; background:#2DD4A8; box-shadow:0 0 25px #6fe3c180; pointer-events:none; }
+  .scan-line { display:none; position:absolute; left:0; right:0; top:0; height:1px; background:#2DD4A8; box-shadow:0 0 25px #2DD4A880; pointer-events:none; }
   .viewfinder.scanning .scan-line { display:block; animation:scan 2.5s ease-in-out infinite; }
 
   .build-overlay { position:relative; display:grid; grid-template-columns:30px 1fr auto; gap:6px 16px; text-align:left; align-items:center; padding:18px; margin-bottom:14px; border:1px solid #56607c; background:#20242f; color:#e0e2e9; }
@@ -204,7 +204,7 @@
   .sent-evidence img { width:100%; max-height:240px; object-fit:contain; background:#12172A; }
 
   dialog { max-width:530px; width:calc(100% - 32px); background:#1e222c; color:var(--ink); padding:32px; border:1px solid #4d566e; border-radius:8px; box-shadow:0 20px 100px #0006; }
-  dialog::backdrop { background:#0f1214d4; }
+  dialog::backdrop { background:#0e1015d4; }
   dialog h2 { font:24px/1.2 Georgia,serif; letter-spacing:-.5px; margin-bottom:14px; }
   dialog h3 { font-size:14px; font-weight:600; margin:18px 0 8px; }
   dialog p { color:#b7bdcd; margin:12px 0; font-size:13px; }
