@@ -10,6 +10,7 @@ using System.Windows.Forms;
 internal static class SidelookMark {
     public static readonly Color Navy = Color.FromArgb(23, 29, 45);
     public static readonly Color Hub = Color.White;
+    public static readonly Color Accent = Color.FromArgb(45, 212, 168); // the teal, used by the follow border
     public const float EyeTravel = 5f, EyeReach = 120f, EyeRadius = 3.6f, EyeWide = 0.4f;
     static readonly PointF[] Home = { new PointF(26, 32), new PointF(38, 32) };
     static readonly PointF[] Hexagon = { new PointF(32, 10), new PointF(51, 21), new PointF(51, 43), new PointF(32, 54), new PointF(13, 43), new PointF(13, 21) };
