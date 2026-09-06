@@ -10,6 +10,9 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   const $=id=>document.getElementById('companion-'+id);
   const settings=document.getElementById('settings'),preview=document.getElementById('send-preview'),tone=document.getElementById('rewrite-tone');
   let history=[],frame=null,text=null,controller=null,dictation=null,capturing=false,reading=false,captureEpoch=0,captureRequest=null,front=null,chips=[],pendingRoute=null,quickAsk=false,copyButton=null;
+  // boxHeight is a height the user dragged the box to with the grip; null means the box fits its text. postedHeight is the last panel height sent to the shell.
+  let boxHeight=null,postedHeight=0;
+  if(native)document.body.dataset.native='';
   // followRequest is the requestId of a follow-driven capture, so the fact "this was a follow capture" travels with the request and survives stop()/endFollow rather than living in a bare flag.
   // followTimer is the one deadline timer (capture due or lease end); followClock is the once-a-second countdown text. Neither runs the full render.
   const follow=new Follow();let followTimer=null,followClock=null,offNote='',followRequest=null;
@@ -28,7 +31,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   const currentFamilies=()=>front?families(front.process,front.title):['unknown'];
   const DESKTOP='desktop';
   const appName=()=>{if(front?.id===DESKTOP)return 'the desktop';const name=String(front?.process || '').replace(/\.exe$/i,'');return name?name[0].toUpperCase()+name.slice(1):'the window';};
-  const readFront=value=>value && typeof value==='object' && typeof value.title==='string' && value.title.trim()?{title:value.title.trim().slice(0,200),process:String(value.process || '').slice(0,100),id:String(value.id || '').slice(0,32)}:null;
+  const readFront=value=>value && typeof value==='object' && typeof value.title==='string' && value.title.trim()?{title:value.title.trim().slice(0,200),process:String(value.process || '').slice(0,100),id:String(value.id || '').slice(0,32),icon:typeof value.icon==='string' && value.icon.length<=65536 && /^data:image\/png;base64,[A-Za-z0-9+/=]+$/.test(value.icon)?value.icon:''}:null;
   const view=()=>{const s=getState();return {dictating:!!dictation || !!s.recognition,thinking:!!controller,capturing:capturing || reading,busy:s.busy,elapsed:s.elapsed,planning:s.planning,live:s.live,liveCount:s.liveCount,setupBusy:s.setupBusy,checking:s.checking,token:s.token,configured:s.configured,remaining:s.remaining,computerOn:s.computerOn,frameAttached:!!frame,textAttached:!!text,stream:s.stream,captureKind:s.captureKind,screenOn:follow.state.on,snapshots:follow.state.snapshots};};
   const running=v=>!!(v.dictating || v.thinking || v.capturing || v.busy || v.planning || v.live || v.setupBusy);
   // The attachment chips describe themselves from state, so the caption can never disagree with what goes.
@@ -41,7 +44,8 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     for(const id of ['clear','import','capture','remove','text-remove'])$(id).disabled=locked || capturing || reading;
     host.querySelectorAll('.starter,.companion-followups button').forEach(button=>button.disabled=locked || capturing || reading);
     $('send').disabled=locked || s.checking || !s.configured || !s.token || s.remaining===0;
-    $('send').textContent=`${sendLabel({frame:!!frame,text:!!text})} ↑`;
+    // The button says what goes. With only words in the box it is the arrow alone; an attachment puts its name on the button.
+    const label=sendLabel({frame:!!frame,text:!!text});$('send').textContent=label==='Send'?'↑':`${label} ↑`;$('send').setAttribute('aria-label',label);
     $('input').disabled=!!controller;
     $('mic').disabled=!!controller || s.busy || s.setupBusy || s.live || !s.dictation || !s.token;
     // The lease countdown goes only to sensorLine, in its own object; activityLine keeps reading the numeric allowance from v so "Allowance used" still shows while following.
@@ -52,10 +56,32 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     $('note').textContent=offNote;$('note').hidden=!offNote;
     $('running').hidden=!busy;$('goes').hidden=busy;
     $('activity').textContent=activity;
-    $('goes-text').textContent=activity==='Ready'?`To ${MODEL_LABEL[s.model]} on your ${ACCOUNT[s.model]} subscription${usesCredits(s.model)?' · may use paid credits':''}`:activity;
+    // The model in ink, the credits warning beside it when it applies; the account is in Settings and What goes.
+    if(activity==='Ready'){const model=document.createElement('b');model.textContent=MODEL_LABEL[s.model];$('goes-text').replaceChildren(model,usesCredits(s.model)?' · may use paid credits':'');}
+    else $('goes-text').textContent=activity;
     $('computer').hidden=!s.computerOn;
     renderStrips();
     $('hide').hidden=!native;$('drag').disabled=!native;
+    fitPanel();
+  }
+  // The box fits its text: one line at rest, a line more per line typed, eight lines at most, then it scrolls inside. A height dragged with the grip sticks until the box is emptied.
+  function fitBox() {
+    const input=$('input');
+    if(boxHeight){input.style.height=`${boxHeight}px`;input.style.overflowY='auto';return;}
+    input.style.height='auto';const wanted=Math.min(input.scrollHeight,168);input.style.height=`${wanted}px`;input.style.overflowY=input.scrollHeight>168?'auto':'hidden';
+  }
+  // The panel is as tall as its content. The page measures what it would need and tells the shell, which pins the bottom edge and moves the top; an open dialog counts too.
+  function fitPanel() {
+    if(!native || document.body.dataset.surface!=='companion')return;
+    const dialog=[...document.querySelectorAll('dialog[open]')][0];
+    const computerOn=host.classList.contains('computer');
+    // The scroll area flexes to the window, so its own height says nothing; its children do.
+    const scroll=document.querySelector('.companion-scroll'),inner=[...scroll.children].reduce((sum,el)=>sum+el.offsetHeight,0)+14;
+    const body=computerOn?document.getElementById('computer-mode').scrollHeight:inner+document.querySelector('.companion-compose').offsetHeight;
+    let height=Math.ceil(document.querySelector('.companion-header').offsetHeight+body+2);
+    if(dialog)height=Math.max(height,dialog.scrollHeight+64);
+    if(height===postedHeight)return;
+    postedHeight=height;post({type:'resize',height});
   }
   // Numbered or bulleted replies become lists; everything else stays a paragraph. No Markdown parser.
   function renderText(container,body) {
@@ -84,21 +110,30 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     if(!navigator.clipboard?.writeText){copied(false,'This browser has no clipboard access. Select the reply and copy it yourself.');return;}
     navigator.clipboard.writeText(body).then(()=>copied(true),()=>copied(false,'The browser refused the clipboard. Select the reply and copy it yourself.'));
   }
-  // Evidence stays on the message it went with: a small label that opens the exact screenshot or text.
-  function evidenceToggle(label,node) {
-    const button=document.createElement('button');button.type='button';button.className='companion-evidence';button.textContent=label;button.setAttribute('aria-expanded','false');
+  // Evidence stays on the message it went with: a thumbnail in the bubble, named for screen readers, that opens the exact screenshot or text.
+  function evidenceToggle(label,thumb,node) {
+    const button=document.createElement('button');button.type='button';button.className='companion-evidence';button.append(thumb);button.setAttribute('aria-label',label);button.title=label;button.setAttribute('aria-expanded','false');
     node.hidden=true;button.onclick=()=>{node.hidden=!node.hidden;button.setAttribute('aria-expanded',String(!node.hidden));};
     return [button,node];
   }
+  // No name labels: yours is a bubble on the right, Jarvis's is plain text.
   function addMessage(role,body,evidence,sentText) {
     const li=document.createElement('li');li.className='companion-message '+role;
-    if(role==='assistant'){const label=document.createElement('span');label.textContent='Jarvis';li.append(label);}
-    renderText(li,body);
-    if(evidence){const img=document.createElement('img');img.src=evidence.image;img.alt='Exact screenshot sent with this message';li.append(...evidenceToggle(`Screenshot sent · ${evidence.label}`,img));}
-    if(sentText){const pre=document.createElement('pre');pre.textContent=sentText.text;li.append(...evidenceToggle(`Text sent · ${sentText.title} · ${sentText.controls} controls${sentText.truncated?' · cut short':''}`,pre));}
-    if(role==='assistant'){const copy=document.createElement('button');copy.type='button';copy.className='quiet companion-copy';copy.textContent='Copy';copy.onclick=()=>copyText(body,copy);li.append(copy);}
+    if(role==='user'){
+      const bubble=document.createElement('div');bubble.className='companion-bubble';
+      if(evidence){const thumb=document.createElement('img');thumb.src=evidence.image;thumb.alt='';const img=document.createElement('img');img.src=evidence.image;img.alt='Exact screenshot sent with this message';const [button,full]=evidenceToggle(`Screenshot sent · ${evidence.label}`,thumb,img);bubble.append(button);li.append(full);}
+      if(sentText){const thumb=document.createElement('span');thumb.textContent='Aa';const pre=document.createElement('pre');pre.textContent=sentText.text;const [button,full]=evidenceToggle(`Text sent · ${sentText.title} · ${sentText.controls} controls${sentText.truncated?' · cut short':''}`,thumb,pre);bubble.append(button);li.append(full);}
+      const p=document.createElement('p');p.textContent=body;bubble.append(p);li.prepend(bubble);
+    } else {
+      renderText(li,body);
+      const copy=document.createElement('button');copy.type='button';copy.className='quiet companion-copy';copy.textContent='Copy';copy.onclick=()=>copyText(body,copy);li.append(copy);
+    }
     $('messages').append(li);while($('messages').children.length>24)$('messages').firstElementChild.remove();
-    $('welcome').hidden=true;$('deck').hidden=true;li.scrollIntoView({block:'end',behavior:'smooth'});return li;
+    slimDeck(true);li.scrollIntoView({block:'end',behavior:'smooth'});return li;
+  }
+  // Once there is a conversation the tile is one line above the box and the starters go; a new window in front brings them back.
+  function slimDeck(slim) {
+    $('deck').classList.toggle('slim',slim);$('deck').hidden=slim && !front;renderTile();
   }
   function renderFollowUps(reply,items) {
     const list=(items || []).filter(item=>typeof item==='string' && item.trim()).slice(0,3);
@@ -199,9 +234,8 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
       if(request.signal.aborted){outcome='stopped';return;}
       outcome='sent';record({surface:'chat',ok:true,frame:!!evidence,text:!!read,model:s.model,effort:s.effort,remaining:result.remaining});
       history.push({role:'user',text:instruction.slice(0,2000)},{role:'assistant',text:result.result.reply.slice(0,2000)});history=history.slice(-12);
-      const reply=addMessage('assistant',result.result.reply);$('input').value='';
+      const reply=addMessage('assistant',result.result.reply);$('input').value='';boxHeight=null;fitBox();
       if(evidence)setFrame(null);if(read)setText(null);
-      if(read){const provenance=document.createElement('p');provenance.className='companion-provenance';provenance.textContent=`Read from: ${read.title} · ${read.controls} controls${read.truncated?' · cut short':''}`;reply.append(provenance);}
       if(['build','computer'].includes(result.result.suggestion)){
         const button=document.createElement('button');button.type='button';button.className='companion-workflow';button.textContent=result.result.suggestion==='build'?'Build this in the studio':'Let Jarvis do this';
         // The studio gets the screenshot that went with this message, the one shown on it, and asks its own permission before any build.
@@ -232,7 +266,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   const chipPrompt=chip=>chip.prompt.replace('{tone}',TONES[tone.value] || TONES.plainer);
   async function useChip(chip) {
     if(controller || capturing || reading)return;
-    error('');$('input').value=chipPrompt(chip);
+    error('');$('input').value=chipPrompt(chip);fitBox();
     if(chip.route==='build'){pendingRoute='build';capture();return;}
     const take=captureFor(chip,currentFamilies());
     if(take==='text'){
@@ -246,9 +280,9 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   // The picker: every open window plus the whole desktop, from the shell, titles only. It replaces the starters until something is picked.
   function openPicker() {
     if(!native || capturing || reading || controller)return;
-    $('targets').replaceChildren();$('front-change').setAttribute('aria-expanded','true');post({type:'windows'});
+    $('targets').replaceChildren();$('front').setAttribute('aria-expanded','true');post({type:'windows'});
   }
-  function closePicker() {$('targets').hidden=true;$('chips').hidden=false;$('front-change').setAttribute('aria-expanded','false');}
+  function closePicker() {$('targets').hidden=true;$('chips').hidden=false;$('front').setAttribute('aria-expanded','false');}
   const lease=document.getElementById('screen-lease');
   function openLease(){if(!native){error('Following clicks needs the Windows app.');return;}document.getElementById('screen-lease-note').textContent='';if(!lease.open)lease.showModal();}
   function startFollow(snapshots){lease.close();offNote='';post({type:'screen-on',snapshots});}
@@ -292,21 +326,31 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
       button.onclick=()=>{error('');post({type:'select-target',target:row.id});};
       return button;
     }));
-    $('chips').hidden=true;$('targets').hidden=false;$('deck').hidden=false;$('targets').firstElementChild?.focus();
+    $('chips').hidden=true;$('targets').hidden=false;$('deck').hidden=false;$('deck').classList.remove('slim');$('targets').firstElementChild?.focus();
+  }
+  // The tile is the window Jarvis will look at: its app icon, its title, the app's name, and under a lease the control under the cursor. Pressing it opens the picker.
+  function renderTile() {
+    const tile=$('front');tile.hidden=!front || !native;
+    if(!front)return;
+    const app=front.id===DESKTOP?'':appName(),element=follow.state.element?.name?`${follow.state.element.name} ${follow.state.element.type || ''}`.trim():'';
+    $('front-icon').hidden=!front.icon;if(front.icon)$('front-icon').src=front.icon;else $('front-icon').removeAttribute('src');
+    $('front-letter').textContent=front.id===DESKTOP?'⧉':(app[0] || '?');
+    const title=$('front-title');title.replaceChildren();
+    if($('deck').classList.contains('slim') && app){const em=document.createElement('em');em.textContent=app;title.append(em,` · ${front.title}`);}
+    else title.textContent=front.title;
+    $('front-app').textContent=[app,element].filter(Boolean).join(' · ');
   }
   // The starters show while the conversation is empty, and again when Jarvis is summoned from a different window mid-conversation.
   function renderDeck(show=false) {
     const fams=currentFamilies();
     chips=front?chipsFor(fams,front.title):UNKNOWN_CHIPS;
-    $('front').hidden=!front && !native;$('front-title').textContent=front?`Looking at: ${front.title}${follow.state.element?.name?` · ${follow.state.element.name} ${follow.state.element.type || ''}`.trimEnd():''}`:'Looking at: nothing yet';$('front-change').hidden=!native;
-    $('ask').textContent=front?'What are we looking at?':'What are we working on?';
-    if(show)$('deck').hidden=false;
+    if(show)slimDeck(false);
+    renderTile();
+    $('input').placeholder=front?'Ask about this window…':'Ask Jarvis…';
     $('chips').replaceChildren(...chips.map(chip=>{
-      const take=captureFor(chip,fams);
       const button=document.createElement('button');button.type='button';button.className='starter';button.dataset.chip=chip.id;button.title=chipPrompt(chip);
       const label=document.createElement('strong');label.textContent=chip.label;
-      const takes=document.createElement('small');takes.textContent=chip.route==='build'?`takes a screenshot of ${appName()} and opens the studio`:take==='frame'?`takes a screenshot of ${appName()}`:take==='text'?`reads the text of ${appName()}`:'just asks';
-      const wrap=document.createElement('span');wrap.append(label,takes);
+      const wrap=document.createElement('span');wrap.append(label);
       button.append(wrap);button.onclick=()=>useChip(chip);
       return button;
     }));
@@ -314,6 +358,23 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   }
   $('form').onsubmit=e=>{e.preventDefault();submit();};
   $('input').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();submit();}};
+  $('input').addEventListener('input',()=>{if(!$('input').value)boxHeight=null;fitBox();});
+  // The grip: drag the box taller than its eight lines. The height sticks until the box is emptied.
+  $('grip').onpointerdown=e=>{
+    e.preventDefault();const startY=e.clientY,startHeight=$('input').offsetHeight;$('grip').setPointerCapture(e.pointerId);
+    const move=ev=>{boxHeight=Math.max(21,Math.min(480,startHeight+ev.clientY-startY));fitBox();};
+    const up=()=>{$('grip').removeEventListener('pointermove',move);$('grip').removeEventListener('pointerup',up);$('grip').removeEventListener('pointercancel',up);};
+    $('grip').addEventListener('pointermove',move);$('grip').addEventListener('pointerup',up);$('grip').addEventListener('pointercancel',up);
+  };
+  // The borderless panel's edges: the page names the edge and the shell runs the native resize.
+  for(const edge of host.querySelectorAll('.companion-edges i'))edge.onpointerdown=e=>{e.preventDefault();post({type:'drag',edge:edge.dataset.edge});};
+  // Anything that changes the content's height tells the shell: messages, the deck, the box, the error line, a dialog opening or closing.
+  if(native && typeof ResizeObserver==='function'){
+    const watch=new ResizeObserver(()=>fitPanel());
+    for(const id of ['messages','deck','form','error','note'])watch.observe($(id));
+    watch.observe(document.getElementById('computer-mode'));
+    new MutationObserver(()=>fitPanel()).observe(document.body,{attributeFilter:['open'],subtree:true});
+  }
   $('capture').onclick=()=>capture();$('remove').onclick=()=>{setFrame(null);follow.chipRemoved();};$('mic').onclick=dictate;$('stop').onclick=stop;
   $('text-remove').onclick=()=>setText(null);
   $('settings').onclick=()=>{if(!settings.open)settings.showModal();};
@@ -322,9 +383,9 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   $('expand').onclick=()=>{if(settings.open)settings.close();showSurface('studio');};$('back').onclick=()=>showSurface('companion');
   $('computer').onclick=()=>openWorkflow('computer','');
   $('hide').onclick=()=>{stop();showSurface('dock');};$('drag').onpointerdown=()=>post({type:'drag'});
-  $('front-change').onclick=()=>{if($('targets').hidden)openPicker();else closePicker();};
+  $('front').onclick=()=>{if($('targets').hidden)openPicker();else closePicker();};
   document.getElementById('model-choice').addEventListener('change',render);
-  $('clear').onclick=()=>{history=[];$('messages').replaceChildren();$('welcome').hidden=false;$('deck').hidden=false;setFrame(null);setText(null);error('');};
+  $('clear').onclick=()=>{history=[];$('messages').replaceChildren();slimDeck(false);renderTile();setFrame(null);setText(null);error('');$('input').value='';boxHeight=null;fitBox();};
   $('spoken').onchange=()=>{if(!$('spoken').checked){post({type:'stop-speaking'});window.speechSynthesis?.cancel();}};
   $('voice').onchange=()=>{if(!$('voice').checked)dictation?.abort();};
   $('sense').onclick=()=>{if(follow.state.on)stopFollow();else openLease();};document.getElementById('screen-follow').onclick=()=>startFollow(false);document.getElementById('screen-snapshots').onclick=()=>startFollow(true);
@@ -360,7 +421,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     // Ctrl+Shift+E: never while something is in flight, and never over a message the user is still writing.
     if(data.type==='quick-ask'){
       if(controller || capturing || reading || dictation)return;
-      if(!$('input').value.trim())$('input').value=chipPrompt(chips[0] || UNKNOWN_CHIPS[0]);
+      if(!$('input').value.trim()){$('input').value=chipPrompt(chips[0] || UNKNOWN_CHIPS[0]);fitBox();}
       quickAsk=true;capture();
     }
     if(data.type==='copied')copied(data.ok===true,data.error);
@@ -385,6 +446,6 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   document.addEventListener('jarvis-state',render);
   window.addEventListener('pagehide',()=>{controller?.abort();dictation?.abort();post({type:'cancel-capture',requestId:captureRequest});post({type:'stop-speaking'});post({type:'screen-off'});});
   document.addEventListener('visibilitychange',()=>{if(document.hidden)dictation?.abort();});
-  showSurface(native || new URLSearchParams(location.search).has('companion')?'companion':'studio',false);renderDeck();render();
+  showSurface(native || new URLSearchParams(location.search).has('companion')?'companion':'studio',false);renderDeck();fitBox();render();
   return {showPreview};
 }

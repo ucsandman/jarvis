@@ -1,5 +1,14 @@
 # Implementation lessons
 
+## 2026-09-06: The panel, quiet (0.15.0)
+
+- The first height the page posted was 700: `.companion-scroll` is `flex:1`, so its `scrollHeight` is whatever the window gave it, never what the content wants. The content's height is the sum of the scroll area's children plus its padding. A flex child that fills the viewport cannot measure its own content.
+- The tile's icon stretched to fill the row in the mock because `.tile>span{flex:1}` matched the icon span too. A flex rule on a bare element selector inside a row hits every child; name the one that should grow.
+- The 0.9.0 mock lesson held again: six states mocked and approved before code, and the implementation passed the companion verifier on the third run, the two failures being a measurement (above) and a missing re-render of the tile when the deck went slim.
+- A bash `-c` string cannot carry CSS with `content:''` or `'Segoe UI'` inside a node `-e` argument: the quotes end the shell string. A file in the scratchpad run with `node file.mjs` is the only reliable way to apply a multi-line replacement that contains quotes.
+- The first palette retint keyed the amber family on saturation and hue alone, so the ivory ink (`#eeeae0`, saturation .29, hue 43) and the cream paper became mint and every dialog background became the ready green. The fix was a lightness gate: anything above L .86 is an off-white whatever its hue. A rule-based recolor needs its output tokens printed and read before the verifier runs; the misfire was visible in the printed map, not in any test.
+- Reverting that misfire could not use `git checkout` on two of the files because they carried this session's uncommitted edits; they were rebuilt from `git show HEAD:` plus the session's own apply scripts. A generated file should be regenerated from a script kept in the scratchpad, not edited in place, so a bad pass can be undone.
+
 ## 2026-09-05: Identity and copy pass
 
 - The site verifier passed against a stale `docs/images/companion.png` after the companion copy changed, because it checks the asset exists, not what it shows. Regenerate the companion capture from the packaged app whenever companion copy or the mark changes, then rebuild the social image and the site.

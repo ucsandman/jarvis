@@ -3,12 +3,12 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Windows.Forms;
 
-// The Jarvis mark: a thick amber ring with an offset pupil on a rounded charcoal square.
+// The Jarvis mark: a thick mint ring with an offset pupil on a rounded charcoal square.
 // Same geometry as public/mark.svg and scripts/build-icon.ps1 (64 grid: ring r18 w6 at 32,32; pupil r6.5 at 36,28).
 internal static class JarvisMark {
-    public static readonly Color Charcoal = Color.FromArgb(25, 28, 27);
-    public static readonly Color Amber = Color.FromArgb(228, 186, 122);
-    public static readonly Color AmberHover = Color.FromArgb(240, 203, 147);
+    public static readonly Color Charcoal = Color.FromArgb(20, 23, 25);
+    public static readonly Color Amber = Color.FromArgb(111, 227, 193);
+    public static readonly Color AmberHover = Color.FromArgb(142, 236, 207);
 
     public static GraphicsPath RoundedSquare(Rectangle bounds, float radius) {
         var path = new GraphicsPath();

@@ -96,7 +96,7 @@ internal sealed class FollowService : IDisposable {
         border.Outline(Rectangle.FromLTRB(rect.Left, rect.Top, rect.Right, rect.Bottom));
     }
 
-    // A 2px amber frame: layered, topmost, click-through, never activated, never in the taskbar or Alt+Tab.
+    // A 2px mint frame: layered, topmost, click-through, never activated, never in the taskbar or Alt+Tab.
     sealed class Border : Form {
         const int WsExLayered = 0x80000, WsExTransparent = 0x20, WsExToolWindowStyle = 0x80, WsExNoActivate = 0x8000000;
         public Border() {

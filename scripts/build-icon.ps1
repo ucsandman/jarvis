@@ -5,8 +5,8 @@ Add-Type -AssemblyName System.Drawing
 $root = Split-Path -Parent $PSScriptRoot
 $output = Join-Path $root 'desktop/jarvis.ico'
 $sizes = @(16, 20, 24, 32, 40, 48, 64, 128, 256)
-$charcoal = [System.Drawing.Color]::FromArgb(25, 28, 27)
-$amber = [System.Drawing.Color]::FromArgb(228, 186, 122)
+$charcoal = [System.Drawing.Color]::FromArgb(20, 23, 25)
+$amber = [System.Drawing.Color]::FromArgb(111, 227, 193)
 
 function Render([int]$size) {
     $bitmap = New-Object System.Drawing.Bitmap $size, $size, ([System.Drawing.Imaging.PixelFormat]::Format32bppArgb)

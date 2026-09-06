@@ -146,6 +146,31 @@ internal sealed class CaptureService {
         catch { return String.Empty; }
     }
 
+    // The icon of the app in front, as a small PNG data URL for the panel's tile. Empty for the desktop, an elevated process, or anything without one.
+    readonly Dictionary<int, string> icons = new Dictionary<int, string>();
+    public string DescribeIcon() {
+        int processId;
+        lock (sync) {
+            if (desktop || target == IntPtr.Zero || DateTime.UtcNow - targetSeenAt > MaxTargetAge) return String.Empty;
+            processId = targetProcessId;
+        }
+        string cached;
+        lock (icons) { if (icons.TryGetValue(processId, out cached)) return cached; }
+        string data = String.Empty;
+        try {
+            string path;
+            using (Process process = Process.GetProcessById(processId)) path = process.MainModule.FileName;
+            using (Icon icon = Icon.ExtractAssociatedIcon(path))
+            using (Bitmap bitmap = icon.ToBitmap())
+            using (var stream = new MemoryStream()) {
+                bitmap.Save(stream, ImageFormat.Png);
+                data = "data:image/png;base64," + Convert.ToBase64String(stream.ToArray());
+            }
+        } catch { data = String.Empty; }
+        lock (icons) { if (icons.Count > 64) icons.Clear(); icons[processId] = data; }
+        return data;
+    }
+
     public CaptureTarget PrepareCapture() {
         lock (sync) { if (desktop) return new CaptureTarget { Desktop = true, Title = DesktopTitle }; }
         return ValidateTarget();

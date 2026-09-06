@@ -70,7 +70,11 @@ $jarvisProbe = Start-Process -FilePath $jarvisExe -PassThru
 $fixture = $null
 try {
     Wait-JarvisCondition { $jarvisProbe.Refresh(); $jarvisProbe.MainWindowTitle -eq 'Jarvis' } 'Embedded Jarvis window did not render.'
-    Wait-JarvisCondition { $bounds = Get-JarvisBounds $jarvisProbe; $bounds -and $bounds.Width -ge 440 -and $bounds.Height -ge 700 } 'Jarvis did not open the companion panel on first launch.'
+    # The panel is borderless and as tall as its content: 440 wide, somewhere between the 240 floor and the 700 the old fixed window had.
+    Wait-JarvisCondition { $bounds = Get-JarvisBounds $jarvisProbe; $bounds -and $bounds.Width -eq 440 -and $bounds.Height -ge 240 -and $bounds.Height -lt 700 } 'Jarvis did not open a content-sized companion panel on first launch.'
+    $panelStyle = [JarvisWindowProbe]::GetWindowLongPtr([JarvisWindowProbe]::Find($jarvisProbe.Id), -16)
+    if (($panelStyle.ToInt64() -band 0xC00000) -ne 0) { throw 'The panel still has a native title bar (WS_CAPTION).' }
+    $emptyHeight = (Get-JarvisBounds $jarvisProbe).Height
     [JarvisWindowProbe]::PostMessage([JarvisWindowProbe]::Find($jarvisProbe.Id),0x0010,[IntPtr]::Zero,[IntPtr]::Zero) | Out-Null
     Wait-JarvisCondition { $bounds = Get-JarvisBounds $jarvisProbe; $bounds -and $bounds.Width -eq 76 -and $bounds.Height -eq 76 } 'Closing the companion did not return Jarvis to its dock.'
     $secondHotkey = [JarvisWindowProbe]::RegisterHotKey([IntPtr]::Zero,0x4A42,0x0002 -bor 0x0004,0x20)
@@ -80,16 +84,18 @@ try {
     $open = [Threading.EventWaitHandle]::OpenExisting('Local\JarvisDesktopOpen')
     $open.Set() | Out-Null
     $open.Dispose()
-    Wait-JarvisCondition { $bounds = Get-JarvisBounds $jarvisProbe; $bounds -and $bounds.Width -ge 440 -and $bounds.Height -ge 700 } 'Open signal did not summon the companion panel.'
+    Wait-JarvisCondition { $bounds = Get-JarvisBounds $jarvisProbe; $bounds -and $bounds.Width -eq 440 -and $bounds.Height -ge 240 -and $bounds.Height -lt 700 } 'Open signal did not summon the companion panel.'
     # Character Map is the fixture window: a plain Win32 top-level window, unlike Notepad, which is an app alias Start-Process cannot hand back.
     $fixture = Start-Process charmap -PassThru
     Wait-JarvisCondition { $fixture.Refresh(); $fixture.MainWindowHandle -ne 0 } 'Character Map fixture did not open.'
     $panel = [JarvisWindowProbe]::Find($jarvisProbe.Id)
     $client = New-Object JarvisWindowProbe+Rect; [JarvisWindowProbe]::GetClientRect($panel,[ref]$client) | Out-Null
-    # The header line is the last item before the two icon buttons: 150px in from the panel's right edge, on the 52px header's centre line.
-    [JarvisWindowProbe]::ClickClient($panel, $client.Right - 150, 26); Start-Sleep -Milliseconds 800
-    # The lease dialog is centred in the panel; "Follow my clicks" is the middle of its three stacked actions, 435-476px down a 700px client.
-    [JarvisWindowProbe]::ClickClient($panel, [int]($client.Right / 2), $client.Bottom - 244); Start-Sleep -Milliseconds 1200
+    # The header line is the last item before the two icon buttons: 150px in from the panel's right edge, on the 44px header's centre line.
+    [JarvisWindowProbe]::ClickClient($panel, $client.Right - 150, 22); Start-Sleep -Milliseconds 800
+    # An open dialog grows the panel to fit it; the dialog is centred, and "Follow my clicks" is the middle of its three stacked actions, 106px below the centre.
+    Wait-JarvisCondition { $bounds = Get-JarvisBounds $jarvisProbe; $bounds -and $bounds.Height -gt $emptyHeight } 'The panel did not grow to fit the lease dialog.'
+    [JarvisWindowProbe]::GetClientRect($panel,[ref]$client) | Out-Null
+    [JarvisWindowProbe]::ClickClient($panel, [int]($client.Right / 2), [int]($client.Bottom / 2) + 106); Start-Sleep -Milliseconds 1200
     $held = [JarvisWindowProbe]::RegisterHotKey([IntPtr]::Zero,0x4A46,0x0002 -bor 0x0004,0x7B)
     if ($held) { [JarvisWindowProbe]::UnregisterHotKey([IntPtr]::Zero,0x4A46) | Out-Null; throw 'Screen on did not take Ctrl+Shift+F12.' }
     $frect = New-Object JarvisWindowProbe+Rect; [JarvisWindowProbe]::GetWindowRect($fixture.MainWindowHandle,[ref]$frect) | Out-Null
@@ -98,7 +104,7 @@ try {
     Wait-JarvisCondition { [JarvisWindowProbe]::RegisterHotKey([IntPtr]::Zero,0x4A46,0x0002 -bor 0x0004,0x7B) } 'The shortened lease did not release Ctrl+Shift+F12.'
     [JarvisWindowProbe]::UnregisterHotKey([IntPtr]::Zero,0x4A46) | Out-Null
     if ([JarvisWindowProbe]::CountBorders($jarvisProbe.Id, $frect) -ne 0) { throw 'The border outlived the lease.' }
-    Write-Output 'PASS: embedded WebView2 host rendered the first-launch companion panel, collapsed to a 76x76 dock, registered Ctrl+Shift+Space and Ctrl+Shift+E, reopened from its named signal, leased Screen on from the header line, took and released Ctrl+Shift+F12, outlined a clicked Character Map window, and dropped the border at expiry.'
+    Write-Output "PASS: embedded WebView2 host rendered the first-launch companion panel borderless at 440x$emptyHeight (content-sized, no title bar), grew it for the lease dialog, collapsed to a 76x76 dock, registered Ctrl+Shift+Space and Ctrl+Shift+E, reopened from its named signal, leased Screen on from the header line, took and released Ctrl+Shift+F12, outlined a clicked Character Map window, and dropped the border at expiry."
 } finally {
     if ($fixture) { Stop-Process -Id $fixture.Id -ErrorAction SilentlyContinue }
     Remove-Item Env:JARVIS_FOLLOW_LEASE_SECONDS -ErrorAction SilentlyContinue

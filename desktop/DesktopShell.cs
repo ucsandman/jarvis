@@ -33,7 +33,20 @@ internal sealed class DesktopShell : Form {
     readonly FollowService follow = new FollowService();
     readonly Timer foregroundTimer = new Timer { Interval = 250 };
     readonly Timer followTimer = new Timer { Interval = 1000 };
-    readonly WebView2 web = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(17, 16, 14) };
+    // The panel is as tall as its content: the page posts its height, the shell eases there over 200 ms with the bottom edge pinned.
+    readonly Timer panelTimer = new Timer { Interval = 15 };
+    const int PanelWidth = 440;
+    const int PanelMinHeight = 240;
+    const int PanelMargin = 22;
+    int panelFrom, panelTarget;
+    DateTime panelStart;
+    bool panelSized;   // the user dragged an edge, so content stops driving the height until the next summon
+    // Where Jarvis lives on the desktop: the bottom-right corner shared by the dock, the panel and the studio. Dragging the dock moves it; it is saved beside the profile.
+    Point anchor = Point.Empty;
+    readonly string anchorFile;
+    Point dockPress;
+    bool dockDragging;
+    readonly WebView2 web = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(20, 23, 25) };
     readonly Button dockButton = new Button {
         Dock = DockStyle.Fill, Text = String.Empty, BackColor = JarvisMark.Charcoal,
         FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, TabStop = false, AccessibleName = "Open Jarvis"
@@ -54,6 +67,7 @@ internal sealed class DesktopShell : Form {
     [DllImport("user32.dll")] static extern bool UnregisterHotKey(IntPtr window, int id);
     [DllImport("user32.dll")] static extern bool ReleaseCapture();
     [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr window, int message, IntPtr wParam, IntPtr lParam);
+    [DllImport("user32.dll")] static extern bool SystemParametersInfo(uint action, uint param, ref bool value, uint flags);
 
     public DesktopShell(string dataRoot, string appUrl, string key) {
         url = appUrl;
@@ -72,12 +86,26 @@ internal sealed class DesktopShell : Form {
         };
         dockButton.MouseEnter += delegate { dockHover = true; dockButton.Invalidate(); };
         dockButton.MouseLeave += delegate { dockHover = false; dockButton.Invalidate(); };
-        dockButton.Click += delegate { SummonPanel(); };
+        // Press and release summons; press and move drags the dock, and where it lands is where Jarvis lives from then on.
+        dockButton.MouseDown += delegate(object sender, MouseEventArgs args) { if (args.Button == MouseButtons.Left) { dockPress = Cursor.Position; dockDragging = false; } };
+        dockButton.MouseMove += delegate(object sender, MouseEventArgs args) {
+            if (args.Button != MouseButtons.Left || dockDragging) return;
+            Point now = Cursor.Position;
+            if (Math.Abs(now.X - dockPress.X) < 5 && Math.Abs(now.Y - dockPress.Y) < 5) return;
+            dockDragging = true;
+            ReleaseCapture();
+            SendMessage(Handle, 0x00A1, new IntPtr(2), IntPtr.Zero);
+            RememberAnchor();
+        };
+        dockButton.MouseUp += delegate(object sender, MouseEventArgs args) { if (args.Button == MouseButtons.Left && !dockDragging) SummonPanel(); };
         Controls.Add(dockButton);
+        anchorFile = Path.Combine(dataRoot, "dock.json");
+        LoadAnchor();
         foregroundTimer.Tick += delegate { capture.RememberForeground(); follow.Track(); };
         foregroundTimer.Start();
         follow.Clicked += OnFollowClick;
         followTimer.Tick += delegate { if (DateTime.UtcNow >= followExpires) EndFollow("expired"); };
+        panelTimer.Tick += delegate { StepPanel(); };
         FormClosing += OnShellClosing;
         Shown += delegate { PositionForMode(); };
         ProfileDirectory = Path.Combine(dataRoot, "WebView2");
@@ -120,6 +148,7 @@ internal sealed class DesktopShell : Form {
         // A new summon is a new context: a window picked from the list is forgotten and the window in front is the default again.
         capture.ClearPick();
         capture.RememberForeground();
+        panelSized = false;
         SetMode("panel");
         Show();
         Activate();
@@ -173,20 +202,60 @@ internal sealed class DesktopShell : Form {
     }
 
     void PostHostReady() {
-        string[] front = capture.DescribeForeground();
         Post(new Dictionary<string, object> {
-            {"type", "host-ready"}, {"mode", mode},
-            {"front", new Dictionary<string, object> { {"title", front[0]}, {"process", front[1]}, {"id", front[2]} }},
+            {"type", "host-ready"}, {"mode", mode}, {"front", Front()},
             {"hotkeys", new Dictionary<string, object> { {"summon", hotkeyRegistered}, {"quickAsk", quickAskRegistered} }}
         });
     }
 
+    // Title, process, id and the process icon of what Jarvis is looking at. Never a pixel of the window itself.
+    Dictionary<string, object> Front() {
+        string[] front = capture.DescribeForeground();
+        return new Dictionary<string, object> { {"title", front[0]}, {"process", front[1]}, {"id", front[2]}, {"icon", capture.DescribeIcon()} };
+    }
+
     protected override void OnResize(EventArgs e) {
         base.OnResize(e);
-        // The dock is a rounded square with nothing behind it; the panel and workbench keep their normal window shape.
+        // The dock is a rounded square and the panel a rounded rectangle with nothing behind them; the workbench keeps its normal window shape.
         if (dockButton != null && mode == "dock" && Width > 0 && Height > 0) {
             using (var path = JarvisMark.RoundedSquare(new Rectangle(0, 0, Width, Height), Math.Min(Width, Height) * 14f / 64f)) Region = new Region(path);
+        } else if (mode == "panel" && Width > 0 && Height > 0) {
+            using (var path = JarvisMark.RoundedSquare(new Rectangle(0, 0, Width, Height), 12f)) Region = new Region(path);
         } else if (Region != null) Region = null;
+    }
+
+    // Content height from the page, in the panel only. Clamped to the working area; the bottom edge stays where it is and the top edge moves.
+    void FitPanel(int wanted) {
+        if (mode != "panel" || panelSized || wanted <= 0) return;
+        Rectangle area = Screen.FromControl(this).WorkingArea;
+        int height = Math.Max(PanelMinHeight, Math.Min(wanted, area.Height - PanelMargin * 2));
+        if (height == panelTarget && (panelTimer.Enabled || height == Height)) return;
+        panelTarget = height;
+        if (!AnimationsEnabled()) { panelTimer.Stop(); ApplyPanelHeight(height); return; }
+        panelFrom = Height;
+        panelStart = DateTime.UtcNow;
+        panelTimer.Start();
+    }
+
+    void StepPanel() {
+        double t = Math.Min(1, (DateTime.UtcNow - panelStart).TotalMilliseconds / 200.0);
+        double eased = 1 - Math.Pow(1 - t, 4);
+        ApplyPanelHeight((int)Math.Round(panelFrom + (panelTarget - panelFrom) * eased));
+        if (t >= 1) panelTimer.Stop();
+    }
+
+    void ApplyPanelHeight(int height) {
+        Rectangle area = Screen.FromControl(this).WorkingArea;
+        int bottom = Bottom;
+        int top = Math.Max(area.Top + PanelMargin, bottom - height);
+        SetBounds(Left, top, Width, bottom - top);
+    }
+
+    // Windows' own "animate controls and elements" switch, which is what reduced-motion means on this platform.
+    static bool AnimationsEnabled() {
+        bool enabled = true;
+        try { if (!SystemParametersInfo(0x1042, 0, ref enabled, 0)) return true; } catch { return true; }
+        return enabled;
     }
 
     void OnShellClosing(object sender, FormClosingEventArgs args) {
@@ -213,9 +282,10 @@ internal sealed class DesktopShell : Form {
         object rawType;
         string type = message.TryGetValue("type", out rawType) ? rawType as string : null;
         if (type == "resize") {
-            object rawMode;
+            object rawMode, rawHeight;
             string requested = message.TryGetValue("mode", out rawMode) ? rawMode as string : null;
             if (requested == "dock" || requested == "panel" || requested == "workbench") SetMode(requested);
+            else if (message.TryGetValue("height", out rawHeight) && (rawHeight is int || rawHeight is long || rawHeight is decimal || rawHeight is double)) FitPanel(Convert.ToInt32(rawHeight));
         } else if (type == "capture") {
             object rawRequestId;
             string requestId = message.TryGetValue("requestId", out rawRequestId) ? rawRequestId as string : null;
@@ -231,8 +301,7 @@ internal sealed class DesktopShell : Form {
             object rawTarget;
             string requested = message.TryGetValue("target", out rawTarget) ? rawTarget as string : null;
             bool selected = requested != null && requested.Length <= 32 && capture.Select(requested);
-            string[] front = capture.DescribeForeground();
-            Post(new Dictionary<string, object> { {"type", "target"}, {"ok", selected}, {"front", new Dictionary<string, object> { {"title", front[0]}, {"process", front[1]}, {"id", front[2]} }} });
+            Post(new Dictionary<string, object> { {"type", "target"}, {"ok", selected}, {"front", Front()} });
         } else if (type == "screen-on") {
             // The Screen on lease: a mouse button-up hook and the border, for ten minutes, until the page, the hotkey or shutdown ends it.
             object rawSnapshots;
@@ -259,8 +328,13 @@ internal sealed class DesktopShell : Form {
             try { Clipboard.SetText(text); PostCopied(true, null); }
             catch (Exception error) { PostCopied(false, "Windows refused the clipboard: " + error.Message); }
         } else if (type == "drag") {
+            // The header moves the window (HTCAPTION). An edge named by the page resizes it, and a panel resized by hand keeps that height until the next summon.
+            object rawEdge;
+            string edge = message.TryGetValue("edge", out rawEdge) ? rawEdge as string : null;
+            int hit = edge == "top" ? 12 : edge == "bottom" ? 15 : edge == "left" ? 10 : edge == "right" ? 11 : edge == "top-left" ? 13 : edge == "top-right" ? 14 : edge == "bottom-left" ? 16 : edge == "bottom-right" ? 17 : 2;
+            if (hit != 2) { if (mode != "panel") return; panelSized = true; panelTimer.Stop(); }
             ReleaseCapture();
-            SendMessage(Handle, 0x00A1, new IntPtr(2), IntPtr.Zero);
+            SendMessage(Handle, 0x00A1, new IntPtr(hit), IntPtr.Zero);
         }
     }
 
@@ -276,11 +350,7 @@ internal sealed class DesktopShell : Form {
     // Every click under a lease re-pins the window it landed on and names the control, never its value.
     void OnFollowClick(FollowService.Click click) {
         if (!capture.SelectWindow(click.Window)) return;
-        string[] front = capture.DescribeForeground();
-        var message = new Dictionary<string, object> {
-            {"type", "target"}, {"ok", true}, {"via", "click"},
-            {"front", new Dictionary<string, object> { {"title", front[0]}, {"process", front[1]}, {"id", front[2]} }}
-        };
+        var message = new Dictionary<string, object> { {"type", "target"}, {"ok", true}, {"via", "click"}, {"front", Front()} };
         if (click.ElementName != null) message["element"] = new Dictionary<string, object> { {"name", click.ElementName}, {"type", click.ElementType ?? String.Empty} };
         Post(message);
     }
@@ -345,11 +415,12 @@ internal sealed class DesktopShell : Form {
             dockButton.Visible = true;
             dockButton.BringToFront();
         } else if (mode == "panel") {
-            FormBorderStyle = FormBorderStyle.SizableToolWindow;
+            // No native title bar: the page's header is the drag handle and its edges post the resize. Height follows the content until an edge is dragged.
+            FormBorderStyle = FormBorderStyle.None;
             TopMost = true;
             ShowInTaskbar = true;
-            MinimumSize = new Size(380, 520);
-            ClientSize = new Size(440, 700);
+            MinimumSize = new Size(380, PanelMinHeight);
+            ClientSize = new Size(PanelWidth, panelTarget > 0 ? panelTarget : 360);
             dockButton.Visible = false;
             web.Visible = true;
         } else {
@@ -369,15 +440,40 @@ internal sealed class DesktopShell : Form {
     }
 
     void PositionForMode() {
-        Rectangle area = Screen.FromPoint(Cursor.Position).WorkingArea;
+        // The anchor is the bottom-right corner every mode shares; the default is 22px in from the corner of the monitor under the cursor.
+        Rectangle area = (anchor.IsEmpty ? Screen.FromPoint(Cursor.Position) : Screen.FromPoint(anchor)).WorkingArea;
+        Point corner = anchor.IsEmpty ? new Point(area.Right - PanelMargin, area.Bottom - PanelMargin) : new Point(Math.Max(area.Left + 76, Math.Min(anchor.X, area.Right)), Math.Max(area.Top + 76, Math.Min(anchor.Y, area.Bottom)));
+        panelTimer.Stop();
         if (mode != "dock") {
-            Size available = new Size(Math.Max(200, area.Width - 44), Math.Max(200, area.Height - 44));
+            Size available = new Size(Math.Max(200, area.Width - PanelMargin * 2), Math.Max(200, area.Height - PanelMargin * 2));
             MinimumSize = new Size(Math.Min(MinimumSize.Width, available.Width), Math.Min(MinimumSize.Height, available.Height));
             Size = new Size(Math.Min(Width, available.Width), Math.Min(Height, available.Height));
         }
-        // The panel and the studio share a pinned right edge, so opening the studio widens to the left and the column does not move.
-        if (mode == "dock") Location = new Point(area.Right - Width - 22, area.Bottom - Height - 22);
-        else Location = new Point(Math.Max(area.Left, area.Right - Width - 22), Math.Max(area.Top + 22, area.Bottom - Height - 22));
+        // The dock, the panel and the studio share the pinned corner, so opening the studio widens to the left and the column does not move.
+        if (mode == "dock") Location = new Point(corner.X - Width, corner.Y - Height);
+        else Location = new Point(Math.Max(area.Left, corner.X - Width), Math.Max(area.Top + PanelMargin, corner.Y - Height));
+    }
+
+    // The dock's bottom-right corner after a drag, kept for this session and the next.
+    void RememberAnchor() {
+        if (mode != "dock") return;
+        anchor = new Point(Right, Bottom);
+        try { File.WriteAllText(anchorFile, json.Serialize(new Dictionary<string, object> { {"right", anchor.X}, {"bottom", anchor.Y} })); } catch { }
+    }
+
+    void LoadAnchor() {
+        try {
+            if (!File.Exists(anchorFile)) return;
+            var saved = json.Deserialize<Dictionary<string, object>>(File.ReadAllText(anchorFile));
+            object right, bottom;
+            if (saved != null && saved.TryGetValue("right", out right) && saved.TryGetValue("bottom", out bottom)) anchor = new Point(Convert.ToInt32(right), Convert.ToInt32(bottom));
+        } catch { anchor = Point.Empty; }
+    }
+
+    protected override void OnMove(EventArgs e) {
+        base.OnMove(e);
+        // A dock drag moves the window under the cursor; the corner it lands on is the new anchor, saved as it goes.
+        if (dockDragging && mode == "dock") RememberAnchor();
     }
 
     void Post(Dictionary<string, object> message) {

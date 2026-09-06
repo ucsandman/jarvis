@@ -25,7 +25,7 @@ try{
   const context=browser.contexts()[0];let page;
   for(let i=0;i<100;i++){page=context.pages().find(p=>p.url().startsWith('http://127.0.0.1:4317/'));if(page)break;await new Promise(resolve=>setTimeout(resolve,100));}
   assert.ok(page,'Packaged app loaded its trusted root');page.on('pageerror',e=>errors.push(e.message));
-  await page.locator('#companion-input').waitFor();await page.locator('#companion-welcome h1').waitFor();checks.push('packaged companion DOM rendered in real WebView2');
+  await page.locator('#companion-input').waitFor();await page.locator('#companion-chips .starter').first().waitFor();checks.push('packaged companion DOM rendered in real WebView2');
   await page.screenshot({path:'.artifacts/native-companion.png'});
   await context.route('**/api/session',async route=>{
     const local=await page.request.get('http://127.0.0.1:4317/api/local-session',{headers:route.request().headers()});
@@ -74,14 +74,14 @@ $p=Get-Process -Id ${fixture.pid};$deadline=[DateTime]::UtcNow.AddSeconds(5);do{
   assert.equal((await page.locator('#companion-frame-label').innerText()).includes('Jarvis capture verification'),true,'Capture must target only the owned fixture.');
   assert.match(await page.locator('#companion-frame').getAttribute('src'),/^data:image\/jpeg;base64,/);assert.equal(await page.locator('#companion-send').innerText(),'Send with screenshot ↑');await page.screenshot({path:'.artifacts/native-capture.png'});checks.push('explicit native capture returns only named fixture, no sharing');
   // The picker against the real shell: the fixture is in the list, picking it captures it, and Whole desktop captures every monitor without the panel.
-  await page.locator('#companion-remove').click();await page.locator('#companion-front-change').click();await page.locator('#companion-targets .starter').first().waitFor();
+  await page.locator('#companion-remove').click();await page.locator('#companion-front').click();await page.locator('#companion-targets .starter').first().waitFor();
   assert.match(await page.locator('#companion-targets .starter').first().innerText(),/^Whole desktop/);
   const fixtureRow=page.locator('#companion-targets .starter').filter({hasText:'Jarvis capture verification'});assert.equal(await fixtureRow.count(),1,'the fixture is listed once');
   assert.equal(await page.locator('#companion-targets .starter').filter({hasText:/^Jarvis\n/}).count(),0,'Jarvis is not in its own list');
-  await fixtureRow.click();await page.waitForFunction(()=>document.getElementById('companion-front-title').textContent==='Looking at: Jarvis capture verification');
+  await fixtureRow.click();await page.waitForFunction(()=>document.getElementById('companion-front-title').textContent==='Jarvis capture verification');
   await page.locator('#companion-capture').click();await page.waitForFunction(()=>!document.getElementById('companion-context').hidden || !document.getElementById('companion-error').hidden);
   assert.match(await page.locator('#companion-frame-label').innerText(),/Jarvis capture verification/);await page.locator('#companion-remove').click();
-  await page.locator('#companion-front-change').click();await page.locator('#companion-targets .starter').first().click();await page.waitForFunction(()=>document.getElementById('companion-front-title').textContent==='Looking at: Whole desktop');
+  await page.locator('#companion-front').click();await page.locator('#companion-targets .starter').first().click();await page.waitForFunction(()=>document.getElementById('companion-front-title').textContent==='Whole desktop');
   await page.locator('#companion-capture').click();await page.waitForFunction(()=>!document.getElementById('companion-context').hidden || !document.getElementById('companion-error').hidden);
   if(await page.locator('#companion-context').isHidden())throw new Error('Desktop capture failed: '+await page.locator('#companion-error').innerText());
   assert.equal(await page.locator('#companion-frame-label').innerText(),'Whole desktop');
