@@ -25,12 +25,16 @@ const server=createApp({vision,computer});await new Promise(resolve=>server.list
 const {chromium}=browserTools();const browser=await chromium.launch({channel:'chrome',headless:true});
 const page=await browser.newPage({viewport:{width:440,height:700}});const errors=[],checks=[];
 page.on('pageerror',e=>errors.push(e.message));
-await page.addInitScript(()=>{window.nativeMessages=[];window.nativeListener=null;window.shellWindows=[{id:'1001',title:'Design reference window',process:'Fixture'},{id:'1002',title:'Setup failed: error 0x1',process:'Fixture'}];window.shellFront={title:'Design reference window',process:'Fixture',id:'1001'};window.chrome={webview:{postMessage(value){window.nativeMessages.push(value);if(value.type==='windows'){setTimeout(()=>window.nativeListener({data:{type:'windows',windows:window.shellWindows}}),10);}if(value.type==='select-target'){const row=value.target==='desktop'?{title:'Whole desktop',process:'',id:'desktop'}:window.shellWindows.find(w=>w.id===value.target);if(row)window.shellFront=row;setTimeout(()=>window.nativeListener({data:{type:'target',ok:!!row,front:window.shellFront}}),10);}if(value.type==='copy'){setTimeout(()=>window.nativeListener({data:{type:'copied',ok:!/refuse me/.test(value.text)}}),10);}if(value.type==='capture'){const canvas=document.createElement('canvas');canvas.width=200;canvas.height=100;const ctx=canvas.getContext('2d');ctx.fillStyle='#efede5';ctx.fillRect(0,0,200,100);ctx.fillStyle='#292e29';ctx.font='18px sans-serif';ctx.fillText('Design reference',15,55);setTimeout(()=>window.nativeListener({data:{type:'capture',requestId:value.requestId,image:canvas.toDataURL('image/jpeg'),label:'Design reference · verification fixture',capturedAt:new Date().toISOString()}}),10);}},addEventListener(type,fn){window.nativeListener=fn;}}};});
+await page.addInitScript(()=>{window.nativeMessages=[];window.nativeListener=null;window.shellWindows=[{id:'1001',title:'Design reference window',process:'Fixture'},{id:'1002',title:'Setup failed: error 0x1',process:'Fixture'}];window.shellFront={title:'Design reference window',process:'Fixture',id:'1001'};window.chrome={webview:{postMessage(value){window.nativeMessages.push(value);if(value.type==='windows'){setTimeout(()=>window.nativeListener({data:{type:'windows',windows:window.shellWindows}}),10);}if(value.type==='select-target'){const row=value.target==='desktop'?{title:'Whole desktop',process:'',id:'desktop'}:window.shellWindows.find(w=>w.id===value.target);if(row)window.shellFront=row;setTimeout(()=>window.nativeListener({data:{type:'target',ok:!!row,front:window.shellFront}}),10);}if(value.type==='copy'){setTimeout(()=>window.nativeListener({data:{type:'copied',ok:!/refuse me/.test(value.text)}}),10);}if(value.type==='capture'){const canvas=document.createElement('canvas');canvas.width=200;canvas.height=100;const ctx=canvas.getContext('2d');ctx.fillStyle='#efede5';ctx.fillRect(0,0,200,100);ctx.fillStyle='#292e29';ctx.font='18px sans-serif';ctx.fillText('Design reference',15,55);setTimeout(()=>window.nativeListener({data:{type:'capture',requestId:value.requestId,image:canvas.toDataURL('image/jpeg'),label:'Design reference · verification fixture',capturedAt:new Date().toISOString()}}),10);}
+if(value.type==='screen-on'){window.screenLease={on:true,snapshots:!!value.snapshots,expires:Date.now()+600000,hotkey:true};setTimeout(()=>window.nativeListener({data:{type:'screen',...window.screenLease}}),10);}
+if(value.type==='screen-off'){window.screenLease=null;setTimeout(()=>window.nativeListener({data:{type:'screen',on:false,reason:'stopped'}}),10);}
+},addEventListener(type,fn){window.nativeListener=fn;}}};});
 const $=id=>page.locator('#companion-'+id);
 const starters=page.locator('#companion-chips .starter');
 const idle=()=>page.waitForFunction(()=>!document.getElementById('companion-send').disabled);
 const captures=()=>page.evaluate(()=>window.nativeMessages.filter(m=>m.type==='capture').length);
 const hostReady=front=>page.evaluate(front=>window.nativeListener({data:{type:'host-ready',mode:'panel',front,hotkeys:{summon:true,quickAsk:true}}}),front);
+const clickOn=(front,element)=>page.evaluate(([front,element])=>window.nativeListener({data:{type:'target',ok:true,via:'click',front,element}}),[front,element]);
 const ledgerRows=async()=>{await $('preview').click();const rows=await page.locator('#send-ledger li').allInnerTexts();await page.locator('#send-preview [data-close]').click();return rows;};
 try{
   await mkdir('.artifacts',{recursive:true});await page.goto(`http://127.0.0.1:${server.address().port}`);await idle();
@@ -114,6 +118,37 @@ try{
   await $('input').fill('A fresh question');await $('send').click();await idle();assert.equal(requests.at(-1).history.length,0);
   await $('settings').click();const html=await readFile('public/demo.html');await $('import-file').setInputFiles({name:'My prototype.html',mimeType:'text/html',buffer:html});await page.locator('#version-label').filter({hasText:'VERSION 01'}).waitFor();assert.equal(await page.locator('#prototype-title').innerText(),'My prototype');assert.equal(await page.locator('#preview').getAttribute('sandbox'),'allow-scripts allow-forms');checks.push('HTML import preserves sandbox and saves a version');
   await $('back').click();await page.setViewportSize({width:360,height:600});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.ok(await $('send').isVisible());await page.screenshot({path:'.artifacts/companion-small.png'});checks.push('compact viewport has no horizontal overflow');
+  // The header line leases Screen on; the page follows synthetic clicks from the shell and keeps a fresh screenshot.
+  await page.setViewportSize({width:440,height:700});
+  assert.equal(await page.locator('#companion-sense').evaluate(el=>el.tagName),'BUTTON','the sensor line is a button');
+  assert.equal(await $('status').innerText(),'Screen & mic off');
+  await $('sense').click();await page.locator('#screen-lease').waitFor();
+  assert.equal(await page.locator('#screen-lease input[type=checkbox]').count(),0,'the lease has no checkbox');
+  assert.equal(await page.locator('#screen-lease .dialog-actions button').count(),3,'Not now, follow, follow with screenshots');
+  await page.locator('#screen-follow').click();await page.waitForFunction(()=>/^Screen on · following clicks · \d+:\d\d$/.test(document.getElementById('companion-status').textContent));
+  assert.equal(await page.locator('#companion-dot').getAttribute('class'),'on');
+  const before=await captures();
+  await clickOn({title:'Inbox – Gmail',process:'brave',id:'2001'},{name:'Send',type:'button'});
+  await page.waitForFunction(()=>document.getElementById('companion-front-title').textContent==='Looking at: Inbox – Gmail · Send button');
+  assert.equal(await page.locator('#companion-chips .starter').count(),3,'the deck refits to the clicked app');
+  await clickOn({title:'Inbox – Gmail',process:'brave',id:'2001'},{name:'Compose',type:'button'});
+  await page.waitForFunction(()=>document.getElementById('companion-front-title').textContent==='Looking at: Inbox – Gmail · Compose button');
+  await page.waitForTimeout(3200);assert.equal(await captures(),before,'following alone never captures');
+  await $('sense').click();await page.waitForFunction(()=>document.getElementById('companion-status').textContent==='Screen & mic off');
+  assert.equal(await $('note').innerText(),'Screen off · stopped early');
+  checks.push('the header line leases following, shows the clicked control, refits once per window, stops from the same line');
+  await $('sense').click();await page.locator('#screen-snapshots').click();await page.waitForFunction(()=>/fresh screenshots/.test(document.getElementById('companion-status').textContent));
+  await clickOn({title:'Letter – Word',process:'WINWORD',id:'2002'},null);
+  await page.waitForTimeout(2500);assert.equal(await captures(),before,'not before the quiet gap');
+  await $('context').waitFor({timeout:2000});assert.equal(await captures(),before+1,'one capture after 3 quiet seconds');
+  assert.equal(await $('send').innerText(),'Send with screenshot ↑');
+  assert.match(await $('frame-time').innerText(),/replaces itself after each pause$/);
+  await page.screenshot({path:'.artifacts/companion-screen-on.png'});
+  await $('remove').click();await clickOn({title:'Letter – Word',process:'WINWORD',id:'2002'},null);await page.waitForTimeout(3300);assert.equal(await captures(),before+1,'× mutes the same window');
+  await $('sense').click();await page.waitForFunction(()=>document.getElementById('companion-status').textContent==='Screen & mic off');
+  assert.equal(await page.locator('#companion input[type=checkbox]').count(),0,'still no checkbox in the panel');
+  assert.equal(await page.evaluate(()=>{const s=document.querySelector('.companion-scroll');return s.scrollHeight<=s.clientHeight;}),true,'still nothing scrolls at rest');
+  checks.push('fresh screenshots land in the box after a pause, never send on their own, and × mutes the window');
   await page.reload();await idle();assert.equal(await page.locator('.companion-message').count(),0);assert.equal((await ledgerRows()).length,0,'the ledger clears on reload');
   await $('settings').click();await $('expand').click();assert.equal(await page.locator('#prototype-title').innerText(),'My prototype');checks.push('conversation and ledger clear on reload; imported work persists; the studio opens from Settings');
   assert.equal(nativeOps.filter(op=>op==='arm').length,0,'no read ever armed the broker');

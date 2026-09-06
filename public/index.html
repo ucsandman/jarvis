@@ -112,7 +112,7 @@
   </div>
 
   <section id="companion" aria-label="Jarvis companion">
-    <header class="companion-header"><button id="companion-drag" class="companion-brand" aria-label="Drag Jarvis window"><img src="/mark.svg" alt="">JARVIS</button><span class="companion-sense"><i id="companion-dot" aria-hidden="true"></i><span id="companion-status" role="status">Connecting</span></span><button id="companion-settings" aria-label="Settings" title="Settings">⚙</button><button id="companion-hide" aria-label="Return to dock" title="Return to dock">−</button></header>
+    <header class="companion-header"><button id="companion-drag" class="companion-brand" aria-label="Drag Jarvis window"><img src="/mark.svg" alt="">JARVIS</button><button type="button" id="companion-sense" class="companion-sense" aria-describedby="companion-status"><i id="companion-dot" aria-hidden="true"></i><span id="companion-status" role="status">Connecting</span></button><button id="companion-settings" aria-label="Settings" title="Settings">⚙</button><button id="companion-hide" aria-label="Return to dock" title="Return to dock">−</button></header>
     <div class="companion-scroll">
       <div id="companion-welcome"><h1 id="companion-ask">What are we working on?</h1></div>
       <ol id="companion-messages" aria-label="Conversation" aria-live="polite" aria-relevant="additions"></ol>
@@ -133,6 +133,7 @@
         <label class="sr-only" for="companion-input">Message Jarvis</label><textarea id="companion-input" rows="2" maxlength="4000" placeholder="Or just ask…"></textarea>
         <div class="companion-tools"><button type="button" id="companion-capture"><svg><use href="#i-screen"/></svg>Screenshot</button><button type="button" id="companion-mic" aria-label="Dictate locally" aria-pressed="false"><svg><use href="#i-mic"/></svg>Mic</button><button type="submit" id="companion-send">Send ↑</button></div>
       </form>
+      <p id="companion-note" class="companion-note" hidden></p>
       <p class="companion-goes" id="companion-goes"><span id="companion-goes-text"></span><button type="button" class="quiet" id="companion-computer" hidden>Open</button><button type="button" class="quiet" id="companion-preview">What goes</button></p>
       <p class="companion-running" id="companion-running" hidden><i aria-hidden="true"></i><span id="companion-activity" role="status"></span><button type="button" id="companion-stop">Stop</button></p>
     </div>
@@ -222,6 +223,15 @@
     <label class="check"><input id="computer-permission" type="checkbox"> Allow local window inspection and reviewed control for 10 minutes.</label>
     <p id="computer-lease-note" role="alert" class="lease-note"></p>
     <div class="dialog-actions"><button class="button secondary" data-close="computer-lease">Not now</button><button class="button amber" id="computer-enable">Start 10 minutes</button></div>
+  </dialog>
+
+  <dialog id="screen-lease" aria-labelledby="screen-lease-title">
+    <h2 id="screen-lease-title">Let Jarvis follow your screen?</h2>
+    <p>For the next 10 minutes, whatever window you click is the one Jarvis looks at. A thin amber border marks it. Starters refit to that app.</p>
+    <p>Pixels stay on this computer until you press Send. No microphone, no keyboard, no clicking on your behalf.</p>
+    <p id="screen-lease-stop">Press the header line or Ctrl+Shift+F12 to stop early.</p>
+    <p id="screen-lease-note" role="alert" class="lease-note"></p>
+    <div class="dialog-actions"><button class="button secondary" data-close="screen-lease">Not now</button><button class="button amber" id="screen-follow">Follow my clicks</button><button class="button amber" id="screen-snapshots">Follow and keep a fresh screenshot</button></div>
   </dialog>
 
   <dialog id="live-dialog" aria-labelledby="live-title"><h2 id="live-title">Build as you work?</h2><p id="live-consent-detail"></p><p>After 3 quiet seconds, Jarvis sends a changed snapshot, your direction, and the selected prototype source. Up to 10 builds per start, one at a time. Keep private content out of the shared surface. The latest sent frame remains visible for review.</p><p>Pause stops new snapshots and cancels an unfinished build. Stop sharing also releases the screen. Provider work already received may still consume allowance or credits. A reload never restarts sharing or Live build.</p><div class="dialog-actions"><button class="button secondary" data-close="live-dialog">Keep it local</button><button class="button amber" id="live-confirm">Allow automatic builds</button></div></dialog>

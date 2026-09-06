@@ -1,5 +1,6 @@
 import {activityLine,sensorLine,sendLabel,gate,record,ledger,renderPreview,MODEL_LABEL,ACCOUNT,CLI,usesCredits} from './harness.js';
 import {families,chipsFor,captureFor,UNKNOWN_CHIPS,TONES} from './chips.js';
+import {Follow} from './follow.js';
 
 // The panel. Its markup lives in index.html; this file only queries and wires it.
 // One box, one button. Attached means it goes; the Send button says what goes; there is no tick.
@@ -8,7 +9,8 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   const host=document.getElementById('companion');
   const $=id=>document.getElementById('companion-'+id);
   const settings=document.getElementById('settings'),preview=document.getElementById('send-preview'),tone=document.getElementById('rewrite-tone');
-  let history=[],frame=null,text=null,controller=null,dictation=null,capturing=false,reading=false,captureEpoch=0,captureRequest=null,front=null,chips=[],pendingRoute=null,quickAsk=false,copyButton=null;
+  let history=[],frame=null,text=null,controller=null,dictation=null,capturing=false,reading=false,captureEpoch=0,captureRequest=null,front=null,chips=[],pendingRoute=null,quickAsk=false,copyButton=null,followCapture=false;
+  const follow=new Follow();let followTimer=null,offNote='';
   const post=value=>native?.postMessage(value);
   const error=message=>{$('error').textContent=message;$('error').hidden=!message;};
   const clock=value=>new Date(value).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
@@ -25,11 +27,12 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   const DESKTOP='desktop';
   const appName=()=>{if(front?.id===DESKTOP)return 'the desktop';const name=String(front?.process || '').replace(/\.exe$/i,'');return name?name[0].toUpperCase()+name.slice(1):'the window';};
   const readFront=value=>value && typeof value==='object' && typeof value.title==='string' && value.title.trim()?{title:value.title.trim().slice(0,200),process:String(value.process || '').slice(0,100),id:String(value.id || '').slice(0,32)}:null;
-  const view=()=>{const s=getState();return {dictating:!!dictation || !!s.recognition,thinking:!!controller,capturing:capturing || reading,busy:s.busy,elapsed:s.elapsed,planning:s.planning,live:s.live,liveCount:s.liveCount,setupBusy:s.setupBusy,checking:s.checking,token:s.token,configured:s.configured,remaining:s.remaining,computerOn:s.computerOn,frameAttached:!!frame,textAttached:!!text,stream:s.stream,captureKind:s.captureKind};};
+  // remaining is the allowance while off; sensorLine only reads it while screenOn, when it is the lease countdown instead (harness.test.mjs pairs screenOn with a string remaining).
+  const view=()=>{const s=getState();return {dictating:!!dictation || !!s.recognition,thinking:!!controller,capturing:capturing || reading,busy:s.busy,elapsed:s.elapsed,planning:s.planning,live:s.live,liveCount:s.liveCount,setupBusy:s.setupBusy,checking:s.checking,token:s.token,configured:s.configured,remaining:follow.state.on?follow.remaining():s.remaining,computerOn:s.computerOn,frameAttached:!!frame,textAttached:!!text,stream:s.stream,captureKind:s.captureKind,screenOn:follow.state.on,snapshots:follow.state.snapshots};};
   const running=v=>!!(v.dictating || v.thinking || v.capturing || v.busy || v.planning || v.live || v.setupBusy);
   // The attachment chips describe themselves from state, so the caption can never disagree with what goes.
   function renderStrips() {
-    if(frame)$('frame-time').textContent=`Captured ${clock(frame.capturedAt)} · ${kb(frame.image)}`;
+    if(frame)$('frame-time').textContent=`Captured ${clock(frame.capturedAt)} · ${kb(frame.image)}${follow.state.on && follow.state.snapshots?' · replaces itself after each pause':''}`;
     if(text)$('text-volume').textContent=`${text.controls} controls · ${text.characters.toLocaleString()} characters${text.truncated?' · cut short':''}`;
   }
   function render() {
@@ -43,6 +46,8 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     const v=view(),sensor=sensorLine(v),activity=activityLine(v),busy=running(v);
     $('status').textContent=sensor[0].toUpperCase()+sensor.slice(1);
     $('dot').className=sensor==='screen & mic off'?'':'on';
+    $('sense').title=follow.state.on?'Stop following':'Let Jarvis follow your screen';
+    $('note').textContent=offNote;$('note').hidden=!offNote;
     $('running').hidden=!busy;$('goes').hidden=busy;
     $('activity').textContent=activity;
     $('goes-text').textContent=activity==='Ready'?`To ${MODEL_LABEL[s.model]} on your ${ACCOUNT[s.model]} subscription${usesCredits(s.model)?' · may use paid credits':''}`:activity;
@@ -240,6 +245,24 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     $('targets').replaceChildren();$('front-change').setAttribute('aria-expanded','true');post({type:'windows'});
   }
   function closePicker() {$('targets').hidden=true;$('chips').hidden=false;$('front-change').setAttribute('aria-expanded','false');}
+  const lease=document.getElementById('screen-lease');
+  function openLease(){if(!native){error('Following clicks needs the Windows app.');return;}document.getElementById('screen-lease-note').textContent='';if(!lease.open)lease.showModal();}
+  function startFollow(snapshots){lease.close();offNote='';post({type:'screen-on',snapshots});}
+  function stopFollow(){post({type:'screen-off'});}
+  // The page's clock for the lease: countdown once a second, capture when the reducer says so.
+  function followTick(){
+    const verb=follow.tick();
+    if(verb==='expired'){endFollow('expired');return;}
+    if(verb==='capture' && !capturing && !reading && !controller){followCapture=true;capture(true);}
+    render();
+  }
+  function endFollow(reason){
+    follow.stop();clearInterval(followTimer);followTimer=null;followCapture=false;
+    offNote=reason==='expired'?'Screen off · followed for 10 minutes':'Screen off · stopped early';
+    renderDeck();render();
+  }
+  // Thumbnail for the reducer's "did it change" test, drawn locally from the captured frame.
+  async function thumbnail(image){const img=new Image();img.src=image;await img.decode();const c=document.createElement('canvas');c.width=160;c.height=90;c.getContext('2d').drawImage(img,0,0,160,90);return c.getContext('2d').getImageData(0,0,160,90).data;}
   function renderPicker(list) {
     const rows=[{id:DESKTOP,title:'Whole desktop',process:'',note:'every monitor, without Jarvis'},...list.map(w=>({id:String(w.id || '').slice(0,32),title:String(w.title || '').slice(0,200),process:String(w.process || '').slice(0,100),minimized:w.minimized===true})).filter(w=>w.id && w.title)];
     $('targets').replaceChildren(...rows.map(row=>{
@@ -257,7 +280,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   function renderDeck(show=false) {
     const fams=currentFamilies();
     chips=front?chipsFor(fams,front.title):UNKNOWN_CHIPS;
-    $('front').hidden=!front && !native;$('front-title').textContent=front?`Looking at: ${front.title}`:'Looking at: nothing yet';$('front-change').hidden=!native;
+    $('front').hidden=!front && !native;$('front-title').textContent=front?`Looking at: ${front.title}${follow.state.element?.name?` · ${follow.state.element.name} ${follow.state.element.type || ''}`.trimEnd():''}`:'Looking at: nothing yet';$('front-change').hidden=!native;
     $('ask').textContent=front?'What are we looking at?':'What are we working on?';
     if(show)$('deck').hidden=false;
     $('chips').replaceChildren(...chips.map(chip=>{
@@ -273,7 +296,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   }
   $('form').onsubmit=e=>{e.preventDefault();submit();};
   $('input').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();submit();}};
-  $('capture').onclick=()=>capture();$('remove').onclick=()=>setFrame(null);$('mic').onclick=dictate;$('stop').onclick=stop;
+  $('capture').onclick=()=>capture();$('remove').onclick=()=>{setFrame(null);follow.chipRemoved();};$('mic').onclick=dictate;$('stop').onclick=stop;
   $('text-remove').onclick=()=>setText(null);
   $('settings').onclick=()=>{if(!settings.open)settings.showModal();};
   $('preview').onclick=showPreview;
@@ -286,9 +309,10 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   $('clear').onclick=()=>{history=[];$('messages').replaceChildren();$('welcome').hidden=false;$('deck').hidden=false;setFrame(null);setText(null);error('');};
   $('spoken').onchange=()=>{if(!$('spoken').checked){post({type:'stop-speaking'});window.speechSynthesis?.cancel();}};
   $('voice').onchange=()=>{if(!$('voice').checked)dictation?.abort();};
+  $('sense').onclick=()=>{if(follow.state.on)stopFollow();else openLease();};document.getElementById('screen-follow').onclick=()=>startFollow(false);document.getElementById('screen-snapshots').onclick=()=>startFollow(true);
   $('import').onclick=()=>$('import-file').click();
   $('import-file').onchange=async e=>{const file=e.target.files?.[0];if(!file)return;try{if(file.size>120000)throw Error('Choose an HTML prototype under 120 KB.');await importSource(await file.text(),file.name);if(settings.open)settings.close();showSurface('studio');}catch(e){error(e.message);}finally{$('import-file').value='';}};
-  native?.addEventListener('message',event=>{
+  native?.addEventListener('message',async event=>{
     const data=event.data;if(!data || typeof data!=='object')return;
     if(data.type==='stop')stop();
     if(data.type==='host-ready'){
@@ -302,8 +326,18 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     if(data.type==='windows')renderPicker(Array.isArray(data.windows)?data.windows.slice(0,60):[]);
     // The shell confirms what it will look at from now on; the starters follow the app, and a stale row says so.
     if(data.type==='target'){
+      if(data.via==='click'){
+        const verb=follow.click({front:readFront(data.front),element:data.element && typeof data.element.name==='string'?{name:data.element.name.slice(0,100),type:String(data.element.type||'').slice(0,40)}:null});
+        front=readFront(data.front);closePicker();if(verb==='deck')renderDeck(true);else renderDeck();render();return;
+      }
       if(data.ok!==true){error('That window is no longer open. Pick another.');post({type:'windows'});return;}
       front=readFront(data.front);closePicker();renderDeck(true);render();
+    }
+    // The shell reports the lease's state: on with the countdown and hotkey flag, off with why, or unavailable if its mouse hook never installed (no lease started, so nothing to stop).
+    if(data.type==='screen'){
+      if(data.on===true){follow.start({snapshots:data.snapshots===true,expires:Number(data.expires)||Date.now()+600000});clearInterval(followTimer);followTimer=setInterval(followTick,250);if(data.hotkey===false)offNote='Ctrl+Shift+F12 is held by Computer mode · stop from the header line';render();}
+      else if(data.reason==='unavailable'){if(lease.open)document.getElementById('screen-lease-note').textContent='Following is unavailable right now.';else error('Following is unavailable right now.');}
+      else endFollow(data.reason==='expired'?'expired':'stopped');
     }
     // Ctrl+Shift+E: never while something is in flight, and never over a message the user is still writing.
     if(data.type==='quick-ask'){
@@ -312,12 +346,25 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
       quickAsk=true;capture();
     }
     if(data.type==='copied')copied(data.ok===true,data.error);
-    if(data.type==='capture'&&capturing&&data.requestId===captureRequest){captureRequest=null;let ok=false;if(typeof data.image==='string'&&data.image.length<=4500000&&/^data:image\/jpeg;base64,/.test(data.image)){setFrame({image:data.image,label:String(data.label||'Selected window').slice(0,200),capturedAt:data.capturedAt});ok=true;}else error('The captured image could not be used.');capturing=false;render();afterCapture(ok);}
-    if(data.type==='capture-error'&&capturing&&data.requestId===captureRequest){capturing=false;captureRequest=null;error(data.error || 'Choose a window, then summon Jarvis again.');render();afterCapture(false);}
+    if(data.type==='capture'&&capturing&&data.requestId===captureRequest){
+      captureRequest=null;const wasFollow=followCapture;followCapture=false;let ok=false;
+      if(typeof data.image==='string'&&data.image.length<=4500000&&/^data:image\/jpeg;base64,/.test(data.image)){
+        const value={image:data.image,label:String(data.label||'Selected window').slice(0,200),capturedAt:data.capturedAt};
+        if(wasFollow){ok=follow.captured(await thumbnail(data.image));if(ok)setFrame(value);}
+        else {setFrame(value);ok=true;}
+      } else if(!wasFollow) error('The captured image could not be used.');
+      capturing=false;render();if(!wasFollow)afterCapture(ok);
+    }
+    // A follow capture that fails (the window moved or closed) is not the user's mistake, so it shows no error and does not run afterCapture.
+    if(data.type==='capture-error'&&capturing&&data.requestId===captureRequest){
+      capturing=false;captureRequest=null;const wasFollow=followCapture;followCapture=false;
+      if(wasFollow)follow.failed();else error(data.error || 'Choose a window, then summon Jarvis again.');
+      render();if(!wasFollow)afterCapture(false);
+    }
     if(data.type==='speech-error')error(data.error || 'Local speech is unavailable.');
   });
   document.addEventListener('jarvis-state',render);
-  window.addEventListener('pagehide',()=>{controller?.abort();dictation?.abort();post({type:'cancel-capture',requestId:captureRequest});post({type:'stop-speaking'});});
+  window.addEventListener('pagehide',()=>{controller?.abort();dictation?.abort();post({type:'cancel-capture',requestId:captureRequest});post({type:'stop-speaking'});post({type:'screen-off'});});
   document.addEventListener('visibilitychange',()=>{if(document.hidden)dictation?.abort();});
   showSurface(native || new URLSearchParams(location.search).has('companion')?'companion':'studio',false);renderDeck();render();
   return {showPreview};
