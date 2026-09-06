@@ -49,6 +49,10 @@ test('the Send button says what goes, and the header sensor line is computed apa
   assert.equal(sensorLine({}),'screen & mic off');
   assert.equal(sensorLine({dictating:true}),'mic on (local)');
   assert.equal(sensorLine({stream:{},captureKind:'screen'}),'screen shared (local preview)');
+  assert.equal(sensorLine({screenOn:true,remaining:'9:42'}),'screen on · following clicks · 9:42');
+  assert.equal(sensorLine({screenOn:true,snapshots:true,remaining:'9:12'}),'screen on · fresh screenshots · 9:12');
+  assert.equal(sensorLine({screenOn:true,dictating:true,remaining:'9:42'}),'screen on · mic on (local) · 9:42');
+  assert.equal(sensorLine({screenOn:false,dictating:true}),'mic on (local)');
   assert.equal(activityLine({thinking:true,frameAttached:true}),'Thinking');
   assert.equal(activityLine({token:'t',configured:true,computerOn:true}),'Computer mode on · Ctrl+Shift+F12 stops it');
   assert.equal(`${activityLine({token:'t',configured:true})} · ${sensorLine({})}`,statusLine({token:'t',configured:true}));

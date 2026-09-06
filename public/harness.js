@@ -18,7 +18,9 @@ const clock=value=>new Date(value).toLocaleTimeString([],{hour:'numeric',minute:
 export const activityLine=(v={})=>v.dictating?'Listening':v.thinking?'Thinking':v.capturing?'Choosing a frame':v.busy?`Building · ${v.elapsed || 0}s`:v.planning?'Planning the next action'
   :v.live?`Live build on · ${v.liveCount || 0} of 10 sent`:v.setupBusy?'Setting up':v.checking?'Checking connection':!v.token?'Reconnect in Settings':!v.configured?'Sign in through Settings'
   :v.remaining===0?'Allowance used · open Settings':v.computerOn?'Computer mode on · Ctrl+Shift+F12 stops it':'Ready';
-export const sensorLine=(v={})=>v.dictating?'mic on (local)':v.stream?v.captureKind==='screen'?'screen shared (local preview)':'camera on (local preview)':'screen & mic off';
+// Sensor words come first. While the Screen on lease runs, the line says so with the countdown; dictation joins it rather than replacing it.
+export const sensorLine=(v={})=>v.screenOn?`screen on · ${v.dictating?'mic on (local)':v.snapshots?'fresh screenshots':'following clicks'}${v.remaining?` · ${v.remaining}`:''}`
+  :v.dictating?'mic on (local)':v.stream?v.captureKind==='screen'?'screen shared (local preview)':'camera on (local preview)':'screen & mic off';
 // The panel's Send button says what goes. Attached means it goes; there is no tick.
 export const sendLabel=(v={})=>v.frame && v.text?'Send with screenshot and text':v.frame?'Send with screenshot':v.text?'Send with window text':'Send';
 // activity[ · attachment] · sensor, for the studio's status line.
