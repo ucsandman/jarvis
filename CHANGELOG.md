@@ -7,6 +7,10 @@
 - The model's token counts reach the page: Codex reports its cached input, Claude reports both its cache read and its cache write. They also go in the What goes panel.
 - Local models. Whatever LM Studio or Ollama holds on this computer appears in the model list under the runtime's name, while the runtime is running. Sidelook talks to it through Codex's open-source provider, in the same read-only sandbox as a subscription model; nothing leaves the machine and nothing is metered. Setup checks that the runtime answers and the model is still there, and offers Start LM Studio server when it is not. Proven with Qwen3 8B in LM Studio on 2026-09-06; Ollama is wired the same way but has not been run yet.
 - An LM Studio model is loaded with a 32,768-token context before the first request, because Codex's own prompt is about 12,700 tokens and LM Studio's default load of 4,096 refuses it. The studio shows "Loading <model> into memory" while that happens, about ten seconds for an 8B model.
+- **Bench ↗** sits in the panel header and opens the studio. It was a line inside Settings, two presses away; that line is gone.
+- The studio opens to fit the monitor Sidelook lives on: 85% of the working area, capped at 1480x900 and floored at 760x520. Drag it to another size and it opens at that size next time, saved in `studio-size.json` beside the dock position. The panel and the dock still remember nothing.
+- The studio reflows instead of clipping. Above 1180 it is unchanged. From 900 to 1180 the chat column steps aside and a **Chat** button in the toolbar slides it over the right edge of the stage; Escape, ← Panel, or a window wide enough for the column closes it. Under 900 the rail stacks above the stage with its own scroll, the toolbar wraps and Share window and Live build shorten to Share and Live. Nothing scrolls sideways down to 760.
+- The browser check loads the studio at 1480, 1180, 1100, 900, 800 and 760, opens and closes the chat overlay at two of them, and fails on any horizontal overflow.
 
 ## 0.16.0: Sidelook
 

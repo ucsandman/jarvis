@@ -38,12 +38,19 @@ internal sealed class DesktopShell : Form {
     const int PanelWidth = 440;
     const int PanelMinHeight = 240;
     const int PanelMargin = 22;
+    const int StudioMaxWidth = 1480;
+    const int StudioMaxHeight = 900;
+    const int StudioMinWidth = 760;
+    const int StudioMinHeight = 520;
     int panelFrom, panelTarget;
     DateTime panelStart;
     bool panelSized;   // the user dragged an edge, so content stops driving the height until the next summon
     // Where Sidelook lives on the desktop: the bottom-right corner shared by the dock, the panel and the studio. Dragging the dock moves it; it is saved beside the profile.
     Point anchor = Point.Empty;
     readonly string anchorFile;
+    // The studio opens to fit the monitor Sidelook lives on, unless a drag has taught it a size. Only the studio remembers one.
+    Size studioSize = Size.Empty;
+    readonly string studioFile;
     Point dockPress;
     bool dockDragging;
     readonly WebView2 web = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(23, 29, 45) };
@@ -109,6 +116,8 @@ internal sealed class DesktopShell : Form {
         Controls.Add(dockButton);
         anchorFile = Path.Combine(dataRoot, "dock.json");
         LoadAnchor();
+        studioFile = Path.Combine(dataRoot, "studio-size.json");
+        LoadStudioSize();
         foregroundTimer.Tick += delegate { capture.RememberForeground(); follow.Track(); };
         foregroundTimer.Start();
         follow.Clicked += OnFollowClick;
@@ -511,9 +520,9 @@ internal sealed class DesktopShell : Form {
             FormBorderStyle = FormBorderStyle.Sizable;
             TopMost = false;
             ShowInTaskbar = true;
-            // The studio: the 440px column keeps its pixels on the right and the canvas opens to its left.
-            ClientSize = new Size(1480, 900);
-            MinimumSize = new Size(1180, 680);
+            // The studio: the 440px column keeps its pixels on the right and the canvas opens to its left. It opens to fit the monitor, and the page reflows below 1180 and again below 900.
+            MinimumSize = new Size(StudioMinWidth, StudioMinHeight);
+            ClientSize = StudioSize();
             dockButton.Visible = false;
             web.Visible = true;
         }
@@ -521,6 +530,15 @@ internal sealed class DesktopShell : Form {
         ResumeLayout();
         if (!Visible) Show();
         if (ready) PostHostReady();
+    }
+
+    // What the studio opens at: the size the last drag left it, or 85% of the monitor Sidelook lives on. Capped at 1480x900, floored at 760x520, never larger than the working area.
+    Size StudioSize() {
+        Rectangle area = (anchor.IsEmpty ? Screen.FromControl(this) : Screen.FromPoint(anchor)).WorkingArea;
+        Size wanted = studioSize.IsEmpty
+            ? new Size(Math.Min(StudioMaxWidth, area.Width * 85 / 100), Math.Min(StudioMaxHeight, area.Height * 85 / 100))
+            : studioSize;
+        return new Size(Math.Max(StudioMinWidth, Math.Min(wanted.Width, area.Width - PanelMargin * 2)), Math.Max(StudioMinHeight, Math.Min(wanted.Height, area.Height - PanelMargin * 2)));
     }
 
     void PositionForMode() {
@@ -552,6 +570,23 @@ internal sealed class DesktopShell : Form {
             object right, bottom;
             if (saved != null && saved.TryGetValue("right", out right) && saved.TryGetValue("bottom", out bottom)) anchor = new Point(Convert.ToInt32(right), Convert.ToInt32(bottom));
         } catch { anchor = Point.Empty; }
+    }
+
+    // The size the user dragged the studio to, kept for this session and the next. The panel's height comes from its content and the dock is fixed, so neither remembers one.
+    protected override void OnResizeEnd(EventArgs e) {
+        base.OnResizeEnd(e);
+        if (mode != "workbench" || ClientSize.Width <= 0 || ClientSize.Height <= 0) return;
+        studioSize = ClientSize;
+        try { File.WriteAllText(studioFile, json.Serialize(new Dictionary<string, object> { {"width", studioSize.Width}, {"height", studioSize.Height} })); } catch { }
+    }
+
+    void LoadStudioSize() {
+        try {
+            if (!File.Exists(studioFile)) return;
+            var saved = json.Deserialize<Dictionary<string, object>>(File.ReadAllText(studioFile));
+            object width, height;
+            if (saved != null && saved.TryGetValue("width", out width) && saved.TryGetValue("height", out height)) studioSize = new Size(Convert.ToInt32(width), Convert.ToInt32(height));
+        } catch { studioSize = Size.Empty; }
     }
 
     protected override void OnMove(EventArgs e) {

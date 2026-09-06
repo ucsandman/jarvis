@@ -210,7 +210,7 @@ try{
   assert.equal(await page.evaluate(()=>{const s=document.querySelector('.companion-scroll');return s.scrollHeight<=s.clientHeight;}),true,'still nothing scrolls at rest');
   checks.push('fresh screenshots land in the box after a pause, never send on their own, and × mutes the window');
   await page.reload();await idle();assert.equal(await page.locator('.companion-message').count(),0);assert.equal((await ledgerRows()).length,0,'the ledger clears on reload');
-  await $('settings').click();await $('expand').click();assert.equal(await page.locator('#prototype-title').innerText(),'My prototype');checks.push('conversation and ledger clear on reload; imported work persists; the studio opens from Settings');
+  await $('bench').click();assert.equal(await page.locator('#prototype-title').innerText(),'My prototype');checks.push('conversation and ledger clear on reload; imported work persists; Bench in the header opens the studio');
   assert.equal(nativeOps.filter(op=>op==='arm').length,0,'no read ever armed the broker');
   assert.deepEqual(errors,[]);await writeFile('.artifacts/companion-report.json',JSON.stringify({checks,requests:requests.length,errors},null,2));console.log(`PASS: ${checks.length} companion checks, ${requests.length} synthetic model requests, ${nativeOps.length} synthetic native reads, ${errors.length} page errors.`);
 }finally{await browser.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}

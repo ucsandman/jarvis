@@ -23,7 +23,7 @@
   .muted { color:var(--muted); font-size:12px; }
 }
 @layer layout {
-  /* One column that never moves. The studio opens to its left; below 1180px the column steps aside and ← Panel brings it back. */
+  /* One column that never moves. The studio opens to its left; below 1180px the column steps aside and Chat brings it back over the stage. */
   body[data-surface=companion] { overflow:hidden; }
   body[data-surface=companion] .app-shell { display:none; }
   body[data-surface=studio] { display:grid; grid-template-columns:minmax(0,1fr) 440px; height:100dvh; overflow:hidden; }
@@ -45,6 +45,8 @@
   .quiet { display:inline-flex; align-items:center; justify-content:center; gap:7px; padding:6px 0; background:none; color:var(--muted); font-size:12px; }
   .quiet:hover { color:var(--ink); }
   .quiet svg { width:15px; height:15px; }
+  /* Chat appears only when the window is too narrow to hold the column beside the studio. */
+  #chat-toggle { display:none; }
   .icon-button { background:transparent; color:var(--muted); display:grid; place-items:center; width:34px; height:34px; border-radius:50%; font-size:18px; }
   .icon-button:hover, .icon-button[aria-pressed=true] { background:#292e3c; color:var(--accent); }
   .icon-button.small { width:24px; height:24px; }
@@ -262,14 +264,16 @@
   .about-quote { font:italic 14px/1.5 Georgia, serif; color:var(--ink); }
 }
 @layer responsive {
-  @media(max-width:1180px) { body[data-surface=studio] { grid-template-columns:1fr; } body[data-surface=studio] #companion { display:none; } }
+  @media(max-width:1180px) { body[data-surface=studio] { grid-template-columns:1fr; } body[data-surface=studio] #companion { display:none; } #chat-toggle { display:inline-flex; } }
   @media(max-width:1100px) { .studio { grid-template-columns:minmax(300px,340px) minmax(0,1fr); } .app-shell { padding:0 24px; } .rail { padding-right:16px; } .stage { padding-left:16px; } }
   @media(max-width:900px) {
     body[data-surface=studio] { display:block; height:auto; overflow:visible; }
     body[data-surface=studio] .app-shell { display:block; height:auto; overflow:visible; }
     .toolbar { height:auto; min-height:56px; padding:8px 0; flex-wrap:wrap; }
+    .toolbar-wide { display:none; }
     .studio { display:block; overflow:visible; }
-    .rail { overflow:visible; border-right:0; border-bottom:1px solid var(--line); padding:16px 0 24px; }
+    /* One column: the rail sits above the stage and keeps its own scroll, so the prototype is never a page-length away. */
+    .rail { max-height:60vh; overflow:auto; border-right:0; border-bottom:1px solid var(--line); padding:16px 0 24px; }
     .stage { overflow:visible; padding:16px 0 40px; }
     .prototype { flex:none; min-height:0; }
     .preview-stage { flex:none; height:435px; }

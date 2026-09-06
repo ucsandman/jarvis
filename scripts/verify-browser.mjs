@@ -76,8 +76,42 @@ try {
   await page.locator('#version-label').filter({ hasText:'VERSION 02' }).waitFor();
   assert.match(await frame.locator('body').innerText(),/DAYLIGHT/i);
   checks.push('version and evidence restored from browser storage');
-  await page.setViewportSize({ width:1100,height:900 });
-  assert.equal(await page.locator('#companion').isVisible(),false,'the column steps aside below 1180');
+  // The studio at every width it can be dragged to: the column inline, the chat overlay when it cannot sit inline, one column with a scrolling rail, and never a sideways scrollbar.
+  const settle = () => page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+  const atWidth = async width => { await page.setViewportSize({ width,height:900 }); await settle(); };
+  const shot = async width => { await atWidth(width); await page.screenshot({ path:`.artifacts/studio-${width}.png`,fullPage:true }); assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),`horizontal overflow at ${width}px`); };
+  await shot(1480);
+  assert.ok(await page.locator('#companion').isVisible(),'the column stays inline at 1480');
+  assert.equal(await page.locator('#chat-toggle').isVisible(),false,'no Chat button while the column is inline');
+  await shot(1180);
+  for (const width of [1100,800]) {
+    await atWidth(width);
+    assert.equal(await page.locator('#companion').isVisible(),false,`the column steps aside at ${width}`);
+    assert.ok(await page.locator('#chat-toggle').isVisible(),`Chat is offered at ${width}`);
+    await page.locator('#chat-toggle').click();
+    assert.ok(await page.locator('#companion').isVisible(),`the chat overlay opens at ${width}`);
+    assert.equal(await page.locator('#chat-toggle').getAttribute('aria-expanded'),'true');
+    await page.screenshot({ path:`.artifacts/studio-${width}-chat.png`,fullPage:true });
+    await page.keyboard.press('Escape');
+    assert.equal(await page.locator('#companion').isVisible(),false,`Escape closes the chat overlay at ${width}`);
+    assert.equal(await page.locator('#chat-toggle').getAttribute('aria-expanded'),'false');
+  }
+  await shot(900);
+  await shot(800);
+  assert.ok(await page.evaluate(() => { const rail = document.querySelector('.rail'),stage = document.querySelector('.stage'); return rail.getBoundingClientRect().bottom <= stage.getBoundingClientRect().top + 1 && getComputedStyle(rail).overflowY === 'auto'; }),'one column at 800: the rail stacks above the stage and keeps its own scroll');
+  await shot(760);
+  // An overlay left open must not survive a window wide enough for the column to come back inline.
+  await atWidth(1100); await page.locator('#chat-toggle').click(); await atWidth(1480);
+  assert.equal(await page.evaluate(() => document.body.classList.contains('chat-open')),false,'the overlay closes when the column returns');
+  assert.equal(await page.locator('#companion-bench').isVisible(),false,'Bench is hidden while the studio is open');
+  await page.locator('#companion-back').click();
+  assert.ok(await page.locator('#companion-bench').isVisible(),'the panel header carries Bench');
+  assert.equal(await page.locator('.app-shell').isVisible(),false,'← Panel leaves the studio');
+  await page.screenshot({ path:'.artifacts/panel-bench.png',fullPage:true });
+  await page.locator('#companion-bench').click();
+  await page.locator('.app-shell').waitFor();
+  assert.equal(await page.locator('#companion-expand').count(),0,'the studio no longer hides inside Settings');
+  checks.push('Bench opens the studio from the panel header; the studio reflows at 1480, 1180, 1100, 900, 800 and 760 with no horizontal overflow, the chat overlay opens, closes on Escape, and closes again when the column returns');
   await page.setViewportSize({ width:390,height:844 });
   await page.screenshot({ path:'.artifacts/workbench-mobile.png',fullPage:true });
   assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));

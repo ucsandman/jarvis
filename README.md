@@ -41,7 +41,7 @@ It's experimental and built around how I work. Anthropic models can burn paid Cl
 1. [Download Sidelook 0.16.0](https://github.com/ucsandman/sidelook/releases/download/v0.16.0/Sidelook-0.16.0-Windows-x64.exe) and open it. No terminal, no Node, no admin.
 2. Settings opens by itself until you're signed in. Pick an OpenAI or Anthropic model and use the sign-in button. Codex ships inside. For Anthropic models, **Install official Claude Code** downloads and verifies Anthropic's runtime.
 3. Press a starter or type a question, then **↑**. **Screenshot** grabs the window you came from and shows it in the box before anything leaves; the button then reads **Send with screenshot**.
-4. For a prototype, open the studio from Settings. **Share window**, press **Use this frame** to put one still in the box, describe the product, and press **Build with frame**. The line under the box names what goes, including the selected version's source once you have one. For hands-off updates, **Live build** has its own permission dialog.
+4. For a prototype, press **Bench ↗** in the panel header to open the studio; it opens sized to your monitor and works down to 760x520. **Share window**, press **Use this frame** to put one still in the box, describe the product, and press **Build with frame**. The line under the box names what goes, including the selected version's source once you have one. For hands-off updates, **Live build** has its own permission dialog.
 
 **Ctrl+Shift+Space** brings the panel back. So does the desktop or Start menu shortcut. Closing the panel leaves Sidelook in the tray; **Quit Sidelook** from the tray menu stops the server.
 

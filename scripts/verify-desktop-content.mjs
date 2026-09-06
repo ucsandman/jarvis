@@ -35,10 +35,11 @@ try{
   await page.waitForFunction(()=>!document.getElementById('recheck').disabled);
   assert.match(await page.locator('#companion-status').innerText(),/^screen & mic off$/i);
   const edge=await page.evaluate(()=>screenX+outerWidth);
-  await page.locator('#companion-settings').click();await page.locator('#companion-expand').click();await page.locator('.app-shell').waitFor();await page.waitForFunction(()=>innerWidth>=1180);
+  await page.locator('#companion-bench').click();await page.locator('.app-shell').waitFor();await page.waitForFunction(()=>innerWidth>=760);
   assert.ok(Math.abs(await page.evaluate(()=>screenX+outerWidth)-edge)<=2,'the right edge stays pinned when the studio opens');
-  assert.ok(await page.locator('#companion').isVisible(),'the column stays beside the studio');
-  if(!await page.locator('#settings').evaluate(d=>d.open))await page.locator('#settings-open').click();await page.locator('#recheck').click();await page.waitForFunction(()=>!document.getElementById('build').disabled);await page.locator('#settings-close').click();checks.push('native expansion opens the studio beside the pinned column');
+  // The studio opens to fit the monitor, so the column is inline only when there is room for it; narrower than that, the toolbar's Chat button brings it over the stage.
+  assert.ok(await page.evaluate(()=>innerWidth<=1180||getComputedStyle(document.getElementById('companion')).display!=='none'),'the column stays beside the studio when it fits');
+  if(!await page.locator('#settings').evaluate(d=>d.open))await page.locator('#settings-open').click();await page.locator('#recheck').click();await page.waitForFunction(()=>!document.getElementById('build').disabled);await page.locator('#settings-close').click();checks.push('Bench opens the studio from the panel header, against the pinned edge');
   await page.locator('#try-demo').click();await page.locator('#version-label').filter({hasText:'VERSION 01'}).waitFor();
   const preview=page.frameLocator('#preview');await preview.getByRole('textbox',{name:'Task title',exact:true}).fill('Verified in desktop');await preview.getByRole('button',{name:'Add task',exact:true}).click();await preview.getByText('Verified in desktop',{exact:true}).waitFor();checks.push('interactive sandbox prototype works in embedded runtime');
   const downloadEvent=page.waitForEvent('download');await page.locator('#download').click();const download=await downloadEvent;assert.ok(download.suggestedFilename().endsWith('.html'));await download.saveAs(join(profile,'downloaded.html'));assert.ok((await readFile(join(profile,'downloaded.html'),'utf8')).includes('<html'));checks.push('native HTML download succeeds');
