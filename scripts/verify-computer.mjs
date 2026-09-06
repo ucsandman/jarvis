@@ -24,9 +24,9 @@ try{
   assert.equal(await page.locator('.companion-compose').isVisible(),false,'the screen replaces the conversation');assert.match(await page.locator('#computer-left').innerText(),/^(9|10):\d\d left$/);count++;
   await page.locator('#companion-settings').click();await page.locator('#model-choice').selectOption('fable');await page.locator('#settings-close').click();
   assert.match(await page.locator('#computer-consent-line').innerText(),/the chosen window to Fable 5\.1/);count++;
-  await page.locator('#computer-window').selectOption('1:2:3');assert.match(await page.locator('#computer-consent-line').innerText(),/reading of Calculator fixture/);assert.equal(await page.locator('#computer-title').innerText(),'Jarvis in Calculator fixture');
+  await page.locator('#computer-window').selectOption('1:2:3');assert.match(await page.locator('#computer-consent-line').innerText(),/reading of Calculator fixture/);assert.equal(await page.locator('#computer-title').innerText(),'Sidelook in Calculator fixture');
   await page.locator('#computer-inspect').click();await page.waitForFunction(()=>document.querySelector('#computer-snapshot').textContent.includes('Seven'));assert.ok(await page.locator('#computer-read').isVisible());count++;
-  await page.locator('#computer-next').click();await page.getByText('Say what Jarvis should do first.').waitFor();assert.equal(planned.length,0);count++;
+  await page.locator('#computer-next').click();await page.getByText('Say what Sidelook should do first.').waitFor();assert.equal(planned.length,0);count++;
   await page.locator('#computer-task').fill('Enter seven');await page.locator('#computer-next').click();await page.locator('#computer-review').waitFor();assert.equal(actions,0);
   assert.equal(await page.locator('#computer input[type=checkbox], #computer-mode input[type=checkbox]').count(),0,'no tick anywhere on the screen');assert.equal(await page.locator('#computer-mode details').count(),0,'no details arrow either');assert.deepEqual(planned,[{model:'fable',effort:'medium'}]);assert.match(await page.locator('#computer-step-label').innerText(),/^Step 1 of 20 · waiting for you$/);count++;
   // Before Approve: the consequence, the window and the target read in plain words; references and the full tree wait behind Details.

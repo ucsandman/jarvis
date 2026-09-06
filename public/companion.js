@@ -1,6 +1,20 @@
 import {activityLine,sensorLine,sendLabel,gate,record,ledger,renderPreview,MODEL_LABEL,ACCOUNT,CLI,usesCredits} from './harness.js';
 import {families,chipsFor,captureFor,UNKNOWN_CHIPS,TONES} from './chips.js';
 import {Follow} from './follow.js';
+import {eyeOffset,eyeCenters} from './eyes.js';
+
+// The mark's eyes look toward the cursor: in-page moves drive them here; when the pointer is outside the window the shell posts it (type 'cursor').
+const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
+let lastLook=0;
+function lookAt(cursor){
+  for(const svg of document.querySelectorAll('.mark-live')){
+    const r=svg.getBoundingClientRect();if(!r.width)continue;
+    const eyes=svg.querySelectorAll('.eye');
+    eyeCenters(eyeOffset({size:r.width,left:r.left,top:r.top,cursor,reducedMotion:reducedMotion.matches})).forEach(([x,y],i)=>{eyes[i].setAttribute('cx',x.toFixed(2));eyes[i].setAttribute('cy',y.toFixed(2));});
+  }
+}
+document.addEventListener('mousemove',e=>{const now=performance.now();if(now-lastLook<40)return;lastLook=now;lookAt({x:e.clientX,y:e.clientY});});
+lookAt(null);
 
 // The panel. Its markup lives in index.html; this file only queries and wires it.
 // One box, one button. Attached means it goes; the Send button says what goes; there is no tick.
@@ -20,8 +34,8 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   const error=message=>{$('error').textContent=message;$('error').hidden=!message;};
   const clock=value=>new Date(value).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
   const kb=image=>`${Math.round(image.length*3/4/1024)} KB`;
-  try {tone.value=localStorage.getItem('jarvisTone') in TONES?localStorage.getItem('jarvisTone'):'plainer';} catch {tone.value='plainer';}
-  tone.onchange=()=>{try{localStorage.setItem('jarvisTone',tone.value);}catch{}};
+  try {tone.value=localStorage.getItem('sidelookTone') in TONES?localStorage.getItem('sidelookTone'):'plainer';} catch {tone.value='plainer';}
+  tone.onchange=()=>{try{localStorage.setItem('sidelookTone',tone.value);}catch{}};
   function showSurface(next,notify=true) {
     document.body.dataset.surface=next==='studio'?'studio':'companion';
     $('expand').hidden=next==='studio';
@@ -52,7 +66,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     const v=view(),sensor=sensorLine(follow.state.on?{...v,remaining:follow.remaining()}:v),activity=activityLine(v),busy=running(v);
     $('status').textContent=sensor[0].toUpperCase()+sensor.slice(1);
     $('dot').className=sensor==='screen & mic off'?'':'on';
-    $('sense').title=follow.state.on?'Stop following':'Let Jarvis follow your screen';
+    $('sense').title=follow.state.on?'Stop following':'Let Sidelook follow your screen';
     $('note').textContent=offNote;$('note').hidden=!offNote;
     $('running').hidden=!busy;$('goes').hidden=busy;
     $('activity').textContent=activity;
@@ -116,7 +130,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     node.hidden=true;button.onclick=()=>{node.hidden=!node.hidden;button.setAttribute('aria-expanded',String(!node.hidden));};
     return [button,node];
   }
-  // No name labels: yours is a bubble on the right, Jarvis's is plain text.
+  // No name labels: yours is a bubble on the right, Sidelook's is plain text.
   function addMessage(role,body,evidence,sentText) {
     const li=document.createElement('li');li.className='companion-message '+role;
     if(role==='user'){
@@ -181,7 +195,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   // Read the accessible text of the window that was in front. Read-only on the server: it never arms Computer mode. Returns false when nothing could be read.
   async function readText() {
     if(capturing || reading || controller)return false;
-    if(!front){error('Summon Jarvis from the window you want read, then press the button again.');return false;}
+    if(!front){error('Summon Sidelook from the window you want read, then press the button again.');return false;}
     error('');reading=true;render();
     try {
       const result=await api('/api/computer',{op:'read',title:front.title,consent:true});
@@ -237,7 +251,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
       const reply=addMessage('assistant',result.result.reply);$('input').value='';boxHeight=null;fitBox();
       if(evidence)setFrame(null);if(read)setText(null);
       if(['build','computer'].includes(result.result.suggestion)){
-        const button=document.createElement('button');button.type='button';button.className='companion-workflow';button.textContent=result.result.suggestion==='build'?'Build this in the studio':'Let Jarvis do this';
+        const button=document.createElement('button');button.type='button';button.className='companion-workflow';button.textContent=result.result.suggestion==='build'?'Build this in the studio':'Let Sidelook do this';
         // The studio gets the screenshot that went with this message, the one shown on it, and asks its own permission before any build.
         button.onclick=()=>{if(result.result.suggestion==='build')showSurface('studio');openWorkflow(result.result.suggestion,instruction,evidence);};reply.append(button);
       }
@@ -316,7 +330,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   // Thumbnail for the reducer's "did it change" test, drawn locally from the captured frame.
   async function thumbnail(image){const img=new Image();img.src=image;await img.decode();const c=document.createElement('canvas');c.width=160;c.height=90;c.getContext('2d').drawImage(img,0,0,160,90);return c.getContext('2d').getImageData(0,0,160,90).data;}
   function renderPicker(list) {
-    const rows=[{id:DESKTOP,title:'Whole desktop',process:'',note:'every monitor, without Jarvis'},...list.map(w=>({id:String(w.id || '').slice(0,32),title:String(w.title || '').slice(0,200),process:String(w.process || '').slice(0,100),minimized:w.minimized===true})).filter(w=>w.id && w.title)];
+    const rows=[{id:DESKTOP,title:'Whole desktop',process:'',note:'every monitor, without Sidelook'},...list.map(w=>({id:String(w.id || '').slice(0,32),title:String(w.title || '').slice(0,200),process:String(w.process || '').slice(0,100),minimized:w.minimized===true})).filter(w=>w.id && w.title)];
     $('targets').replaceChildren(...rows.map(row=>{
       const button=document.createElement('button');button.type='button';button.className='starter';button.setAttribute('aria-current',String(front?.id===row.id));
       const label=document.createElement('strong');label.textContent=row.title;
@@ -328,7 +342,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     }));
     $('chips').hidden=true;$('targets').hidden=false;$('deck').hidden=false;$('deck').classList.remove('slim');$('targets').firstElementChild?.focus();
   }
-  // The tile is the window Jarvis will look at: its app icon, its title, the app's name, and under a lease the control under the cursor. Pressing it opens the picker.
+  // The tile is the window Sidelook will look at: its app icon, its title, the app's name, and under a lease the control under the cursor. Pressing it opens the picker.
   function renderTile() {
     const tile=$('front');tile.hidden=!front || !native;
     if(!front)return;
@@ -340,13 +354,13 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     else title.textContent=front.title;
     $('front-app').textContent=[app,element].filter(Boolean).join(' · ');
   }
-  // The starters show while the conversation is empty, and again when Jarvis is summoned from a different window mid-conversation.
+  // The starters show while the conversation is empty, and again when Sidelook is summoned from a different window mid-conversation.
   function renderDeck(show=false) {
     const fams=currentFamilies();
     chips=front?chipsFor(fams,front.title):UNKNOWN_CHIPS;
     if(show)slimDeck(false);
     renderTile();
-    $('input').placeholder=front?'Ask about this window…':'Ask Jarvis…';
+    $('input').placeholder=front?'Ask about this window…':'Ask Sidelook…';
     $('chips').replaceChildren(...chips.map(chip=>{
       const button=document.createElement('button');button.type='button';button.className='starter';button.dataset.chip=chip.id;button.title=chipPrompt(chip);
       const label=document.createElement('strong');label.textContent=chip.label;
@@ -438,12 +452,13 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     // A follow capture that fails (the window moved or closed) is not the user's mistake, so it shows no error and does not run afterCapture.
     if(data.type==='capture-error'&&capturing&&data.requestId===captureRequest){
       capturing=false;captureRequest=null;const wasFollow=data.requestId===followRequest;followRequest=null;
-      if(wasFollow)follow.failed();else error(data.error || 'Choose a window, then summon Jarvis again.');
+      if(wasFollow)follow.failed();else error(data.error || 'Choose a window, then summon Sidelook again.');
       armFollow();render();if(!wasFollow)afterCapture(false);
     }
     if(data.type==='speech-error')error(data.error || 'Local speech is unavailable.');
+    if(data.type==='cursor')lookAt({x:data.x-data.left,y:data.y-data.top});
   });
-  document.addEventListener('jarvis-state',render);
+  document.addEventListener('sidelook-state',render);
   window.addEventListener('pagehide',()=>{controller?.abort();dictation?.abort();post({type:'cancel-capture',requestId:captureRequest});post({type:'stop-speaking'});post({type:'screen-off'});});
   document.addEventListener('visibilitychange',()=>{if(document.hidden)dictation?.abort();});
   showSurface(native || new URLSearchParams(location.search).has('companion')?'companion':'studio',false);renderDeck();fitBox();render();

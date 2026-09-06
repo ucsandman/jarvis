@@ -9,7 +9,7 @@ import { Vision } from '../lib/vision.mjs';
 import { createApp } from '../server.mjs';
 
 test('discovery ignores arbitrary native binaries and accepts a custom npm prefix',async t=> {
-  const dir=await mkdtemp(join(tmpdir(),'jarvis-discovery-test-'));
+  const dir=await mkdtemp(join(tmpdir(),'sidelook-discovery-test-'));
   t.after(()=>rm(dir,{recursive:true,force:true}));
   await writeFile(join(dir,process.platform==='win32'?'codex.exe':'codex'),'not an official installation');
   const url=new URL('../lib/subscription.mjs',import.meta.url).href;
@@ -36,7 +36,7 @@ test('installation is explicit, authenticated, and never starts during inference
   t.after(()=>{release();server.closeAllConnections();server.close();});
   const base=`http://127.0.0.1:${server.address().port}`;
   const {token}=await (await fetch(base+'/api/local-session')).json();
-  const post=(path,body,session=token,origin=base)=>fetch(base+path,{method:'POST',headers:{'Content-Type':'application/json','X-Jarvis-Session':session,Origin:origin},body:JSON.stringify(body)});
+  const post=(path,body,session=token,origin=base)=>fetch(base+path,{method:'POST',headers:{'Content-Type':'application/json','X-Sidelook-Session':session,Origin:origin},body:JSON.stringify(body)});
   assert.equal((await post('/api/install-codex',{})).status,403);
   assert.equal((await post('/api/install-codex',{consent:true},'wrong')).status,403);
   assert.equal((await post('/api/install-codex',{consent:true},token,'https://outside.invalid')).status,403);

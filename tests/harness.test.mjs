@@ -33,7 +33,7 @@ test('consent sentence names exactly what goes', () => {
 });
 
 test('gate refuses in order: words, connection, allowance; no surface has a tick, the button is the consent', () => {
-  assert.equal(gate({surface:'build',direction:'  ',configured:true,token:'t'}),'Tell Jarvis what should work first.');
+  assert.equal(gate({surface:'build',direction:'  ',configured:true,token:'t'}),'Tell Sidelook what should work first.');
   assert.equal(gate({surface:'build',direction:'Build it',configured:true,token:'t',remaining:5}),null,'words plus a connection is enough; nothing to tick');
   assert.equal(gate({surface:'build',direction:'Build it',ticked:false,configured:true,token:'t',remaining:5}),null,'a stale ticked flag changes nothing');
   assert.equal(gate({surface:'chat',configured:true,token:'t',remaining:5}),null);

@@ -5,13 +5,13 @@
 *{box-sizing:border-box}body{margin:0;padding:24px;background:#f4f0e5;color:#34392e;font:14px/1.5 Georgia,serif}header{display:flex;justify-content:space-between;align-items:center;gap:12px;border-bottom:1px solid #c8cbb8;padding-bottom:16px}h1{margin:0;letter-spacing:3px;font-size:24px}small{color:#606a50}form{display:flex;gap:8px;margin:20px 0 10px}input,button,select{font:inherit;padding:10px;border:1px solid #949c82;border-radius:3px;background:#fffdf5;color:#34392e}input{min-width:0;flex:1}button{cursor:pointer;background:#dec399}button:hover{background:#d0ae76}button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #856139;outline-offset:2px}#search{width:100%;margin-bottom:20px}.board{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}h2{font-size:13px;text-transform:uppercase;letter-spacing:1px}.task{background:#fffdf5;border:1px solid #d0d1c0;padding:12px;margin-bottom:10px;overflow-wrap:anywhere}.task p{margin:0 0 10px}.task select{width:100%;padding:6px;background:#edf0e3;font-size:12px}.task button{padding:4px 8px;margin-top:8px;background:none;font-size:12px}.empty{color:#68725a;font-style:italic}.note{font-size:12px;border-top:1px solid #c8cbb8;padding-top:16px;margin-top:24px}#status{min-height:21px;color:#52653c}@media(max-width:520px){body{padding:16px}.board{grid-template-columns:1fr}header{align-items:flex-start;flex-direction:column}form{flex-wrap:wrap}form button{flex:1}}
 </style></head>
 <body>
-<header><div><small>JARVIS WORKING EXAMPLE</small><h1>DAYLIGHT</h1></div><small>Sample tasks · stored in this preview only</small></header>
+<header><div><small>SIDELOOK WORKING EXAMPLE</small><h1>DAYLIGHT</h1></div><small>Sample tasks · stored in this preview only</small></header>
 <p>A little space to make progress. Add a task, then move it through the board.</p>
 <form id="task-form"><label for="task-title" hidden>Task title</label><input id="task-title" placeholder="What needs doing?" maxlength="160" required aria-label="Task title"><button>Add task</button></form>
 <p id="status" role="status"></p>
 <input id="search" type="search" placeholder="Find a task…" aria-label="Search tasks">
 <main class="board"><section><h2>To do</h2><div id="todo"></div></section><section><h2>In progress</h2><div id="doing"></div></section><section><h2>Done</h2><div id="done"></div></section></main>
-<p class="note">This is an included example, not a new AI generation. Reopening resets these sample tasks. In Jarvis, type a change to build your own version through your subscription.</p>
+<p class="note">This is an included example, not a new AI generation. Reopening resets these sample tasks. In Sidelook, type a change to build your own version through your subscription.</p>
 <script>
 const tasks=[{id:1,title:'Sketch the first screen',stage:'todo'},{id:2,title:'Choose the most useful interaction',stage:'doing'},{id:3,title:'Make room for a new idea',stage:'done'}];
 const stages=[['todo','To do'],['doing','In progress'],['done','Done']];let nextId=4;

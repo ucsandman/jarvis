@@ -9,10 +9,10 @@ import { createSession, selectionChange } from './session.js';
 let launchKey = new URLSearchParams(location.hash.slice(1)).get('launch');
 if (launchKey) history.replaceState(null,'',location.pathname+location.search);
 try {
-  if (launchKey && /^[a-f0-9]{64}$/.test(launchKey)) sessionStorage.setItem('jarvisLaunch',launchKey);
-  else launchKey = sessionStorage.getItem('jarvisLaunch');
+  if (launchKey && /^[a-f0-9]{64}$/.test(launchKey)) sessionStorage.setItem('sidelookLaunch',launchKey);
+  else launchKey = sessionStorage.getItem('sidelookLaunch');
 } catch { /* This tab can still work when browser storage is unavailable. */ }
-const launchHeaders = () => launchKey ? {'X-Jarvis-Launch':launchKey} : {};
+const launchHeaders = () => launchKey ? {'X-Sidelook-Launch':launchKey} : {};
 
 const $ = id => document.getElementById(id);
 const state = { token:'', configured:false, stream:null, image:null, imageLabel:'', attached:false, observation:null,
@@ -21,7 +21,7 @@ const state = { token:'', configured:false, stream:null, image:null, imageLabel:
 state.live=false; state.liveCount=0; state.captureKind=null; state.liveFrames=new LiveFrames(); state.liveTimer=null;
 state.model='astra'; state.effort='medium'; state.checking=false;
 try {
-  const saved=JSON.parse(localStorage.getItem('jarvisModelPreferences') || '{}');
+  const saved=JSON.parse(localStorage.getItem('sidelookModelPreferences') || '{}');
   if (choice(saved.model)) state.model=saved.model;
   if (['low','medium','high','xhigh','max'].includes(saved.effort)) state.effort=saved.effort;
 } catch { /* Preferences are optional when browser storage is unavailable. */ }
@@ -30,7 +30,7 @@ const selectedAccount = () => ACCOUNT[state.model];
 const selectedIsClaude = () => choice(state.model).provider==='anthropic';
 const effortNotes = {low:'Faster, with lighter reasoning.',medium:'Balances speed and depth.',high:'More reasoning for complex changes.',xhigh:'Extra reasoning; expect a longer wait.',max:'Deepest reasoning; may take much longer and use more allowance.'};
 const openSettings = () => { if (!$('settings').open) $('settings').showModal(); };
-const notifyState = () => document.dispatchEvent(new Event('jarvis-state'));
+const notifyState = () => document.dispatchEvent(new Event('sidelook-state'));
 // The selector lists the whole catalog, grouped by the CLI and account each model runs on. A model that lacks an effort greys it out;
 // a saved effort the new model does not offer moves to that model's deepest level, and the note says so.
 $('model-choice').replaceChildren(...Object.entries(PROVIDERS).map(([key,provider])=>{
@@ -52,11 +52,11 @@ function renderSelection() {
   $('billing-note').textContent=billingLine(state.model) || `${selectedLabel()} uses your ${selectedAccount()} subscription.`;
   const claude=selectedIsClaude();
   $('install-title').textContent=claude?'Install official Claude Code?':'Install the official Codex CLI?';
-  $('install-detail').textContent=claude?'Downloads the verified Claude Code runtime directly from Anthropic’s official npm package into Jarvis’s per-user tools folder. No terminal or administrator access is needed. Claude Code is subject to Anthropic’s terms. No model request is made during installation.':'Downloads the official @openai/codex package through npm and installs it globally on this device. No account or model request is made during installation.';
+  $('install-detail').textContent=claude?'Downloads the verified Claude Code runtime directly from Anthropic’s official npm package into Sidelook’s per-user tools folder. No terminal or administrator access is needed. Claude Code is subject to Anthropic’s terms. No model request is made during installation.':'Downloads the official @openai/codex package through npm and installs it globally on this device. No account or model request is made during installation.';
   $('confirm-install').textContent=claude?'Install Claude Code':'Install Codex';
   $('install-terms').hidden=!claude;
   $('setup-help').href=claude?'https://code.claude.com/docs/en/authentication':'https://developers.openai.com/codex/auth';
-  $('setup-detail').textContent=claude?'Sign-in opens Anthropic’s official browser flow and updates Claude Code login on this device. Installation downloads Claude Code into Jarvis’s own tools folder. Each action starts only when you choose it.':'Sign-in opens the official browser flow and updates Codex login on this device. Installing Codex adds its official npm package globally. Each action starts only when you choose it.';
+  $('setup-detail').textContent=claude?'Sign-in opens Anthropic’s official browser flow and updates Claude Code login on this device. Installation downloads Claude Code into Sidelook’s own tools folder. Each action starts only when you choose it.':'Sign-in opens the official browser flow and updates Codex login on this device. Installing Codex adds its official npm package globally. Each action starts only when you choose it.';
 }
 const current = () => state.revisions.find(r => r.id === state.selected);
 const showError = message => { $('error-text').textContent = message; $('error').hidden = false; };
@@ -108,7 +108,7 @@ $('show-working').addEventListener('click',()=>chooseDraft(false));
 
 async function api(path, body, signal, keepalive=false) {
   if (['/api/build','/api/observe','/api/chat','/api/login','/api/install-codex'].includes(path)) body={...body,model:state.model,effort:state.effort};
-  const response = await fetch(path,{ method:'POST',signal,keepalive,headers:{ ...launchHeaders(),'Content-Type':'application/json','X-Jarvis-Session':state.token,...(path==='/api/build'?{Accept:'application/x-ndjson'}:{}) },body:JSON.stringify(body) });
+  const response = await fetch(path,{ method:'POST',signal,keepalive,headers:{ ...launchHeaders(),'Content-Type':'application/json','X-Sidelook-Session':state.token,...(path==='/api/build'?{Accept:'application/x-ndjson'}:{}) },body:JSON.stringify(body) });
   let data;
   if(response.headers.get('content-type')?.includes('application/x-ndjson')) {
     const reader=response.body.getReader(),decoder=new TextDecoder();let pending='',received=0;
@@ -425,7 +425,7 @@ async function beginBuild(automatic=false) {
   if (state.busy || state.setupBusy || state.inputBusy || state.checking) return;
   hideError();
   const direction = $('direction').value.trim();
-  if (!direction) { showError('Tell Jarvis what should work first, such as “Build a task board.”'); $('direction').focus(); return; }
+  if (!direction) { showError('Tell Sidelook what should work first, such as “Build a task board.”'); $('direction').focus(); return; }
   if (!state.configured || !state.token) { openSettings(); showError('Check the selected model in Settings, then try again.'); return; }
   if (state.remaining === 0) { openSettings(); showError('Choose Start new allowance in Settings. This does not renew your provider subscription allowance.'); return; }
   // The button is the consent: it says what goes, and the line under the box names it. Only Live build takes a still on its own, under its own permission.
@@ -561,7 +561,7 @@ $('source').addEventListener('click',() => { if (!current()) return; $('source-c
 $('download').addEventListener('click',() => {
   const revision = current(); if (!revision) return;
   const url = URL.createObjectURL(new Blob([revision.html],{ type:'text/html' }));
-  const link = document.createElement('a'); link.href = url; link.download = `${revision.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,60) || 'jarvis-prototype'}.html`;
+  const link = document.createElement('a'); link.href = url; link.download = `${revision.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,60) || 'sidelook-prototype'}.html`;
   document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url),10000);
 });
 $('new-session').addEventListener('click',() => { if (!state.busy) $('reset-dialog').showModal(); });
@@ -605,12 +605,12 @@ const renderProviderStatus = () => { $('provider-status').textContent = state.co
 const session = createSession({
   localSession: async () => {
     const local = await fetch('/api/local-session',{ signal:AbortSignal.timeout(3000),headers:launchHeaders() });
-    if (!local.ok) throw new Error('Local connection unavailable. Open Jarvis from its desktop shortcut, then choose Reconnect.');
+    if (!local.ok) throw new Error('Local connection unavailable. Open Sidelook from its desktop shortcut, then choose Reconnect.');
     return local.json();
   },
   providerSession: async ({ model,effort }) => {
-    const response = await fetch('/api/session',{ signal:AbortSignal.timeout(17000),headers:{...launchHeaders(),'X-Jarvis-Model':model,'X-Jarvis-Effort':effort} });
-    if (!response.ok) throw new Error('Could not connect to Jarvis. Reopen Jarvis, then choose Reconnect. Your saved source is available.');
+    const response = await fetch('/api/session',{ signal:AbortSignal.timeout(17000),headers:{...launchHeaders(),'X-Sidelook-Model':model,'X-Sidelook-Effort':effort} });
+    if (!response.ok) throw new Error('Could not connect to Sidelook. Reopen Sidelook, then choose Reconnect. Your saved source is available.');
     return response.json();
   },
   onLocal: connection => { state.token = connection.token; state.remaining = connection.remaining; state.dictation = connection.dictation; updateControls(); renderBudget(); },
@@ -653,7 +653,7 @@ for (const id of ['model-choice','effort-choice']) $(id).addEventListener('chang
   const change=selectionChange({model:state.model,effort:state.effort},{model:$('model-choice').value,effort:$('effort-choice').value});
   state.model=$('model-choice').value; state.effort=$('effort-choice').value; state.consent=false;
   renderSelection();
-  try {localStorage.setItem('jarvisModelPreferences',JSON.stringify({model:state.model,effort:state.effort}));} catch { }
+  try {localStorage.setItem('sidelookModelPreferences',JSON.stringify({model:state.model,effort:state.effort}));} catch { }
   if (change==='model') { hideError(); await refreshSession(); }
   else if (state.configured) renderProviderStatus();
 });
@@ -729,7 +729,7 @@ initCompanion({api,getState:()=>state,updateControls,
   stopWork:()=>{pauseLive('Paused from the companion.');state.controller?.abort();state.setupController?.abort();stopDictation();stopCamera();$('computer-stop')?.click();},
   openWorkflow:(kind,instruction='',evidence)=>{
     if(kind==='setup'){openSettings();return;}
-    // A reply's "Let Jarvis do this" carries the task; the panel's "Open" carries none and keeps whatever was typed.
+    // A reply's "Let Sidelook do this" carries the task; the panel's "Open" carries none and keeps whatever was typed.
     if(kind==='computer'){if(instruction)$('computer-task').value=instruction.slice(0,2000);computer.open();return;}
     $('direction').value=instruction;if(evidence)setImage(evidence.image,evidence.label);else{state.attached=false;renderAttachment();}$('direction').focus();
   },

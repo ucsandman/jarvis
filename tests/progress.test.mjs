@@ -40,7 +40,7 @@ test('streaming API sends early drafts, sanitizes failure, and serves non-execut
   const app=createApp({vision:{validate(){},async build(data,signal,progress){progress({type:'draft',html:'<html><body>Incomplete</body>'});await gate;throw Error('PRIVATE PROVIDER ERROR');}}});
   await new Promise(r=>app.listen(0,'127.0.0.1',r));const base=`http://127.0.0.1:${app.address().port}`;
   try {
-    const {token}=await(await fetch(base+'/api/local-session')).json();const headers={'Content-Type':'application/json','X-Jarvis-Session':token,Origin:base};
+    const {token}=await(await fetch(base+'/api/local-session')).json();const headers={'Content-Type':'application/json','X-Sidelook-Session':token,Origin:base};
     const response=await fetch(base+'/api/build',{method:'POST',headers:{...headers,Accept:'application/x-ndjson'},body:JSON.stringify({instruction:'Build',consent:true})});
     const reader=response.body.getReader();const first=new TextDecoder().decode((await reader.read()).value);assert.match(first,/Incomplete/);
     const session=first.split('\n').filter(Boolean).map(JSON.parse).find(e=>e.draftSession).draftSession;

@@ -12,7 +12,7 @@ body:not([data-native]) .companion-edges{display:none}
 
 /* Header: the mark (the drag handle), one sensor line that is never overwritten, Settings, dock. */
 .companion-header{display:flex;align-items:center;gap:6px;padding:0 8px 0 12px;height:44px;flex-shrink:0}
-#companion .companion-brand{display:flex;align-items:center;padding:6px;cursor:grab}#companion .companion-brand:disabled{opacity:1;cursor:default}.companion-brand img{width:22px;height:22px}
+#companion .companion-brand{display:flex;align-items:center;padding:6px;cursor:grab}#companion .companion-brand:disabled{opacity:1;cursor:default}.companion-brand .mark-live{width:22px;height:22px;display:block}
 .companion-sense{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:0;background:none;cursor:pointer;padding:6px 8px;border-radius:8px;font:inherit;font-size:12px}
 #companion .companion-sense:hover:not(:disabled){background:#242C40;color:var(--ink)}
 .companion-note{font-size:12px;color:var(--muted);margin:6px 0 0}
@@ -25,7 +25,7 @@ body:not([data-native]) .companion-edges{display:none}
 /* The conversation. It scrolls only once the panel has hit the top of the working area. */
 .companion-scroll{overflow:auto;flex:1;min-height:0;padding:2px 16px 8px;scrollbar-width:thin;scrollbar-color:var(--line) transparent;display:flex;flex-direction:column}
 #companion-messages{flex:0 0 auto}#companion-deck{flex:0 0 auto;margin-top:auto}
-/* The tile: the window Jarvis will look at, as an object. The whole tile is the picker. */
+/* The tile: the window Sidelook will look at, as an object. The whole tile is the picker. */
 #companion .companion-tile{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:6px 4px 10px;min-height:0;border-radius:8px}
 #companion .companion-tile:hover:not(:disabled){background:none}#companion .companion-tile:hover:not(:disabled) b{color:var(--accent)}
 .companion-tile img,.companion-tile-letter{width:28px;height:28px;border-radius:6px;flex:0 0 auto;object-fit:contain}
@@ -41,7 +41,7 @@ body:not([data-native]) .companion-edges{display:none}
 #companion .starter:hover:not(:disabled){background:none;color:var(--accent)}#companion .starter:hover:not(:disabled) small{color:var(--accent)}
 .starter>span{min-width:0;flex:1}.starter strong{display:block;font-weight:400;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.starter small{display:block;color:var(--muted);font-size:12px}
 .companion-targets .starter[aria-current=true] strong{color:var(--accent)}
-/* Messages: no name labels. Yours is a bubble on the right, Jarvis's is plain text. Evidence is the thumbnail in the bubble. */
+/* Messages: no name labels. Yours is a bubble on the right, Sidelook's is plain text. Evidence is the thumbnail in the bubble. */
 #companion-messages{list-style:none;margin:0;padding:4px 0 0}.companion-message{margin:0 0 14px;overflow-wrap:anywhere}
 .companion-message.user{display:flex;justify-content:flex-end;flex-wrap:wrap}.companion-message.user .companion-bubble{display:flex;align-items:flex-start;gap:8px;max-width:88%;background:var(--panel);border:1px solid var(--line);border-radius:10px 10px 2px 10px;padding:7px 11px;color:#d0d4de}
 .companion-message p{white-space:pre-wrap;margin:0 0 6px}.companion-message p:last-child{margin-bottom:0}.companion-message ol,.companion-message ul{margin:6px 0;padding-left:22px}.companion-message li{margin:4px 0}.companion-message.interrupted{opacity:.65}
