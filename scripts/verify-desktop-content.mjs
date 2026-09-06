@@ -12,11 +12,11 @@ const profile=resolve('.artifacts/native-content-'+Date.now());await mkdir(profi
 const powershell=join(process.env.SystemRoot,'System32/WindowsPowerShell/v1.0/powershell.exe');
 const fixtureSource=join(profile,'Fixture.cs'),fixtureExe=join(profile,'Fixture.exe');
 await writeFile(fixtureSource,`using System;using System.Drawing;using System.Windows.Forms;using System.Runtime.InteropServices;
-class Fixture{[DllImport("user32.dll")]static extern bool SetForegroundWindow(IntPtr h);[STAThread]static void Main(){Application.EnableVisualStyles();var f=new Form{Text="Jarvis capture verification",Width=540,Height=320,StartPosition=FormStartPosition.CenterScreen,BackColor=Color.Beige};f.Controls.Add(new Label{Text="A safe desktop reference",Font=new Font("Segoe UI",22),Location=new Point(25,25),AutoSize=true});f.Controls.Add(new TextBox{Text="Only this fixture should be captured.",Location=new Point(25,100),Width=430});f.Shown+=(s,e)=>SetForegroundWindow(f.Handle);Application.Run(f);}}`);
+class Fixture{[DllImport("user32.dll")]static extern bool SetForegroundWindow(IntPtr h);[STAThread]static void Main(){Application.EnableVisualStyles();var f=new Form{Text="Sidelook capture verification",Width=540,Height=320,StartPosition=FormStartPosition.CenterScreen,BackColor=Color.Beige};f.Controls.Add(new Label{Text="A safe desktop reference",Font=new Font("Segoe UI",22),Location=new Point(25,25),AutoSize=true});f.Controls.Add(new TextBox{Text="Only this fixture should be captured.",Location=new Point(25,100),Width=430});f.Shown+=(s,e)=>SetForegroundWindow(f.Handle);Application.Run(f);}}`);
 execFileSync(join(process.env.SystemRoot,'Microsoft.NET/Framework64/v4.0.30319/csc.exe'),['/nologo','/target:winexe','/reference:System.Windows.Forms.dll','/reference:System.Drawing.dll','/out:'+fixtureExe,fixtureSource],{windowsHide:true,stdio:'pipe'});
 // Official Playwright WebView2 integration: https://playwright.dev/docs/webview2
 // Debugging is scoped to this isolated verifier child, never a persisted app setting.
-const child=spawn(resolve(`.artifacts/windows-${version}/Jarvis-${version}-Windows-x64.exe`),[],{windowsHide:false,stdio:'ignore',env:{...process.env,LOCALAPPDATA:profile,WEBVIEW2_USER_DATA_FOLDER:join(profile,'webview'),WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:`--remote-debugging-port=${port} --remote-debugging-address=127.0.0.1 --use-fake-device-for-media-stream --use-fake-ui-for-media-stream --auto-select-desktop-capture-source="Jarvis capture verification"`}});
+const child=spawn(resolve(`.artifacts/windows-${version}/Sidelook-${version}-Windows-x64.exe`),[],{windowsHide:false,stdio:'ignore',env:{...process.env,LOCALAPPDATA:profile,WEBVIEW2_USER_DATA_FOLDER:join(profile,'webview'),WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS:`--remote-debugging-port=${port} --remote-debugging-address=127.0.0.1 --use-fake-device-for-media-stream --use-fake-ui-for-media-stream --auto-select-desktop-capture-source="Sidelook capture verification"`}});
 const {chromium}=browserTools();let browser,fixture;const checks=[],errors=[];
 try{
   const deadline=Date.now()+60000;
@@ -25,7 +25,7 @@ try{
   const context=browser.contexts()[0];let page;
   for(let i=0;i<100;i++){page=context.pages().find(p=>p.url().startsWith('http://127.0.0.1:4317/'));if(page)break;await new Promise(resolve=>setTimeout(resolve,100));}
   assert.ok(page,'Packaged app loaded its trusted root');page.on('pageerror',e=>errors.push(e.message));
-  await page.locator('#companion-input').waitFor();await page.locator('#companion-welcome h1').waitFor();checks.push('packaged companion DOM rendered in real WebView2');
+  await page.locator('#companion-input').waitFor();await page.locator('#companion-chips .starter').first().waitFor();checks.push('packaged companion DOM rendered in real WebView2');
   await page.screenshot({path:'.artifacts/native-companion.png'});
   await context.route('**/api/session',async route=>{
     const local=await page.request.get('http://127.0.0.1:4317/api/local-session',{headers:route.request().headers()});
@@ -71,17 +71,17 @@ $p=Get-Process -Id ${fixture.pid};$deadline=[DateTime]::UtcNow.AddSeconds(5);do{
   execFileSync(powershell,['-NoProfile','-File',focusScript],{windowsHide:true,stdio:'pipe'});await new Promise(resolve=>setTimeout(resolve,350));
   await page.locator('#companion-capture').click();await page.waitForFunction(()=>!document.getElementById('companion-context').hidden || !document.getElementById('companion-error').hidden);
   if(await page.locator('#companion-context').isHidden())throw new Error('Native capture failed: '+await page.locator('#companion-error').innerText());
-  assert.equal((await page.locator('#companion-frame-label').innerText()).includes('Jarvis capture verification'),true,'Capture must target only the owned fixture.');
+  assert.equal((await page.locator('#companion-frame-label').innerText()).includes('Sidelook capture verification'),true,'Capture must target only the owned fixture.');
   assert.match(await page.locator('#companion-frame').getAttribute('src'),/^data:image\/jpeg;base64,/);assert.equal(await page.locator('#companion-send').innerText(),'Send with screenshot ↑');await page.screenshot({path:'.artifacts/native-capture.png'});checks.push('explicit native capture returns only named fixture, no sharing');
   // The picker against the real shell: the fixture is in the list, picking it captures it, and Whole desktop captures every monitor without the panel.
-  await page.locator('#companion-remove').click();await page.locator('#companion-front-change').click();await page.locator('#companion-targets .starter').first().waitFor();
+  await page.locator('#companion-remove').click();await page.locator('#companion-front').click();await page.locator('#companion-targets .starter').first().waitFor();
   assert.match(await page.locator('#companion-targets .starter').first().innerText(),/^Whole desktop/);
-  const fixtureRow=page.locator('#companion-targets .starter').filter({hasText:'Jarvis capture verification'});assert.equal(await fixtureRow.count(),1,'the fixture is listed once');
-  assert.equal(await page.locator('#companion-targets .starter').filter({hasText:/^Jarvis\n/}).count(),0,'Jarvis is not in its own list');
-  await fixtureRow.click();await page.waitForFunction(()=>document.getElementById('companion-front-title').textContent==='Looking at: Jarvis capture verification');
+  const fixtureRow=page.locator('#companion-targets .starter').filter({hasText:'Sidelook capture verification'});assert.equal(await fixtureRow.count(),1,'the fixture is listed once');
+  assert.equal(await page.locator('#companion-targets .starter').filter({hasText:/^Sidelook\n/}).count(),0,'Sidelook is not in its own list');
+  await fixtureRow.click();await page.waitForFunction(()=>document.getElementById('companion-front-title').textContent==='Sidelook capture verification');
   await page.locator('#companion-capture').click();await page.waitForFunction(()=>!document.getElementById('companion-context').hidden || !document.getElementById('companion-error').hidden);
-  assert.match(await page.locator('#companion-frame-label').innerText(),/Jarvis capture verification/);await page.locator('#companion-remove').click();
-  await page.locator('#companion-front-change').click();await page.locator('#companion-targets .starter').first().click();await page.waitForFunction(()=>document.getElementById('companion-front-title').textContent==='Looking at: Whole desktop');
+  assert.match(await page.locator('#companion-frame-label').innerText(),/Sidelook capture verification/);await page.locator('#companion-remove').click();
+  await page.locator('#companion-front').click();await page.locator('#companion-targets .starter').first().click();await page.waitForFunction(()=>document.getElementById('companion-front-title').textContent==='Whole desktop');
   await page.locator('#companion-capture').click();await page.waitForFunction(()=>!document.getElementById('companion-context').hidden || !document.getElementById('companion-error').hidden);
   if(await page.locator('#companion-context').isHidden())throw new Error('Desktop capture failed: '+await page.locator('#companion-error').innerText());
   assert.equal(await page.locator('#companion-frame-label').innerText(),'Whole desktop');
@@ -89,12 +89,12 @@ $p=Get-Process -Id ${fixture.pid};$deadline=[DateTime]::UtcNow.AddSeconds(5);do{
   assert.equal(await page.evaluate(()=>document.visibilityState),'visible','the panel is back after a desktop capture');
   await page.screenshot({path:'.artifacts/native-desktop-capture.png'});await page.locator('#companion-remove').click();checks.push('picker lists the fixture and the whole desktop; both capture through the real shell');
   await page.locator('#companion-hide').click();await page.waitForTimeout(200);
-  execFileSync(powershell,['-NoProfile','-Command',"$s=[Threading.EventWaitHandle]::OpenExisting('Local\\JarvisDesktopOpen');$s.Set()|Out-Null;$s.Dispose()"],{windowsHide:true,stdio:'pipe'});
+  execFileSync(powershell,['-NoProfile','-Command',"$s=[Threading.EventWaitHandle]::OpenExisting('Local\\JarvisDesktopOpen');$s.Set()|Out-Null;$s.Dispose()"],{windowsHide:true,stdio:'pipe'});   // legacy name
   await page.locator('#companion-input').waitFor();assert.ok(await page.locator('#companion').isVisible());checks.push('dock collapse and summon restore conversation');
   assert.deepEqual(errors,[]);await writeFile('.artifacts/native-content-report.json',JSON.stringify({checks,errors},null,2));console.log(`PASS: ${checks.length} native content checks; ${errors.length} page errors; zero model requests.`);
 }finally{
   fixture?.kill();
-  try{execFileSync(powershell,['-NoProfile','-Command',"$s=[Threading.EventWaitHandle]::OpenExisting('Local\\JarvisDesktopQuit');$s.Set()|Out-Null;$s.Dispose()"],{windowsHide:true,stdio:'pipe'});}catch{}
+  try{execFileSync(powershell,['-NoProfile','-Command',"$s=[Threading.EventWaitHandle]::OpenExisting('Local\\JarvisDesktopQuit');$s.Set()|Out-Null;$s.Dispose()"],{windowsHide:true,stdio:'pipe'});}catch{}   // legacy name
   await browser?.close().catch(()=>{});
   if(child.exitCode===null)await Promise.race([new Promise(resolve=>child.once('exit',resolve)),new Promise(resolve=>setTimeout(resolve,10000))]);
   if(child.exitCode===null)child.kill();

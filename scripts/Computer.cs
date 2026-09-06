@@ -10,7 +10,7 @@ using System.Windows.Automation;
 using System.Windows.Forms;
 
 // A local, reviewed-action controller. No shell commands or coordinate fallback.
-public static class JarvisComputer {
+public static class SidelookComputer {
     delegate bool EnumProc(IntPtr h, IntPtr p);
     [DllImport("user32.dll")] static extern bool EnumWindows(EnumProc proc, IntPtr p);
     [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr h);
@@ -42,7 +42,7 @@ public static class JarvisComputer {
         try {
             uint pid; GetWindowThreadProcessId(h,out pid);
             using(var p=Process.GetProcessById((int)pid)) {
-                return IsWindowVisible(h) && Title(h).Length>0 && p.ProcessName!="explorer" && !denied.IsMatch(Title(h)+" "+p.ProcessName) && !Title(h).StartsWith("Jarvis",StringComparison.OrdinalIgnoreCase);
+                return IsWindowVisible(h) && Title(h).Length>0 && p.ProcessName!="explorer" && !denied.IsMatch(Title(h)+" "+p.ProcessName) && !Title(h).StartsWith("Sidelook",StringComparison.OrdinalIgnoreCase);
             }
         } catch { return false; }
     }
@@ -100,7 +100,7 @@ public static class JarvisComputer {
         return new { window=id, title=Title(h), elements=rows, limited=rows.Count>=350 };
     }
     static void Check() {
-        lock(gate) { if(!armed || DateTime.UtcNow>=expires || !hotkeyReady) throw new Exception("Computer control is stopped or expired. Enable it again in Jarvis."); }
+        lock(gate) { if(!armed || DateTime.UtcNow>=expires || !hotkeyReady) throw new Exception("Computer control is stopped or expired. Enable it again in Sidelook."); }
     }
     static void Focus(IntPtr h) {
         Check();
@@ -134,7 +134,7 @@ public static class JarvisComputer {
             var instance=Str(d,"launcherInstance");
             if(instance.Length>0) {
                 if(!Regex.IsMatch(instance,"^[a-f0-9]{32}$")) throw new Exception("Invalid launcher session.");
-                using(var signal=EventWaitHandle.OpenExisting("Local\\JarvisOpenApp-"+instance+"-"+app)) { Check();signal.Set(); }
+                using(var signal=EventWaitHandle.OpenExisting("Local\\JarvisOpenApp-"+instance+"-"+app)) { Check();signal.Set(); } // legacy name
                 return new { performed=true, message="Application launch requested. Choose its window to continue." };
             }
             var exe=System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System),apps[app]);
@@ -200,7 +200,7 @@ public static class JarvisComputer {
                 switch(Str(d,"op")) {
                     case "windows": result=Windows(); break;
                     case "snapshot": result=Snapshot(Str(d,"window")); break;
-                    case "arm": lock(gate) { if(!hotkeyReady) throw new Exception("Ctrl+Shift+F12 is held by another Jarvis session (Computer mode or Screen on). Stop that one first."); armed=true; expires=DateTime.UtcNow.AddMinutes(10); } result=new { armed=true }; break;
+                    case "arm": lock(gate) { if(!hotkeyReady) throw new Exception("Ctrl+Shift+F12 is held by another Sidelook session (Computer mode or Screen on). Stop that one first."); armed=true; expires=DateTime.UtcNow.AddMinutes(10); } result=new { armed=true }; break;
                     case "stop": lock(gate) armed=false; result=new { armed=false }; break;
                     case "status": result=new { armed=armed && DateTime.UtcNow<expires, hotkey=hotkeyReady }; break;
                     case "act": result=Act(d); break;

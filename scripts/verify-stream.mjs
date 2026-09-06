@@ -19,7 +19,7 @@ try {
   await page.locator('#settings-open').click();await page.locator('#advanced').evaluate(el=>{el.open=true;});
   await page.locator('#model-choice').selectOption('fable');await idle();
   await page.locator('#faster-effort').click();await idle();assert.equal(await page.locator('#effort-choice').inputValue(),'low');await page.locator('#settings-close').click();
-  await page.locator('#direction').fill('Build gradually');await page.locator('#build-consent').check();await page.locator('#build').click();
+  await page.locator('#direction').fill('Build gradually');await page.locator('#build').click();
   await page.waitForFunction(()=>document.querySelector('#build-phase').textContent==='Waiting for model output');
   const first='<html><head><style>body{background:#ede5d3;font:24px Georgia;padding:32px}</style></head><body><h1>First real chunk</h1><script>document.body.dataset.executed="yes"</script>';
   publish({type:'draft',html:first});
@@ -40,7 +40,7 @@ try {
   await page.locator('#cancel').click();release();await idle();
   assert.equal(await page.locator('.revision').count(),1);assert.equal(await page.locator('#draft-controls').isHidden(),true);
   assert.match(await page.frameLocator('#preview').locator('#todo').innerText(),/Keep working/);
-  await page.locator('#direction').fill('Finish this draft');await page.locator('#build-consent').check();await page.locator('#build').click();
+  await page.locator('#direction').fill('Finish this draft');await page.locator('#build').click();
   await page.waitForFunction(()=>document.querySelector('#build-phase').textContent==='Waiting for model output');
   publish({type:'draft',html:first});await page.locator('#draft-controls').waitFor({state:'visible'});release();await idle();
   assert.equal(await page.locator('.revision').count(),2);assert.equal(await page.locator('#draft-controls').isHidden(),true);

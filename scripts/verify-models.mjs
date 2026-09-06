@@ -33,7 +33,7 @@ try {
   await page.locator('#login').click();await ready();await close();
   await page.locator('#direction').fill('Build a tiny board with my selected effort');
   assert.match(await page.locator('#build-billing').innerText(),/usage credits/i);
-  await page.locator('#build-consent').check();await page.locator('#build').click();
+  await page.locator('#build').click();
   await page.waitForFunction(()=>document.querySelector('#model-choice').disabled);
   assert.equal(await page.locator('#effort-choice').isDisabled(),true);
   while(!release) await new Promise(resolve=>setTimeout(resolve,10));
@@ -47,5 +47,5 @@ try {
   await page.waitForFunction(()=>document.querySelector('#setup-summary').textContent==='Claude connected');
   await page.screenshot({path:'.artifacts/model-controls-desktop.png',fullPage:true});
   assert.deepEqual(errors,[]);
-  console.log('PASS: 13 model/effort browser assertions: preference persistence, effort payload, in-flight lock, Fable login and paid-credit line before the tick, saved version retention, mobile layout and zero page errors. Synthetic inference only.');
+  console.log('PASS: 13 model/effort browser assertions: preference persistence, effort payload, in-flight lock, Fable login and paid-credit line before the build, saved version retention, mobile layout and zero page errors. Synthetic inference only.');
 } finally {release?.();await browser.close();app.closeAllConnections();await new Promise(resolve=>app.close(resolve));}

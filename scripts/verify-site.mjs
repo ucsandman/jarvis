@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { browserTools } from './browser.mjs';
 const config = JSON.parse(await readFile('.artifacts/site/vercel.json','utf8'));
 const {version}=JSON.parse(await readFile('package.json','utf8'));
-const types = {html:'text/html',js:'text/javascript',css:'text/css',svg:'image/svg+xml',png:'image/png',xml:'application/xml',txt:'text/plain'};
+const types = {html:'text/html',js:'text/javascript',css:'text/css',svg:'image/svg+xml',png:'image/png',xml:'application/xml',txt:'text/plain',woff2:'font/woff2'};
 const server = createServer(async(req,res)=>{
   const path = new URL(req.url,'http://localhost').pathname;
   if (path.includes('..')) {res.writeHead(404).end();return;}
@@ -23,10 +23,13 @@ const page = await browser.newPage({viewport:{width:1440,height:1000}});
 const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
 try {
   assert.equal((await page.goto(base)).status(),200);
+  // The wordmark face is self-hosted; a missing or misnamed file would fall back to a system sans with nothing else failing.
+  await page.evaluate(()=>document.fonts.ready);
+  assert.ok(await page.evaluate(()=>document.fonts.check('700 22px "Plus Jakarta Sans"')),'wordmark font did not load');
   await page.getByRole('link',{name:'Walk through an example'}).click();
   const steps = ['Share a window','Choose & direct','Watch it build','Refine & keep'];
   assert.equal(await page.getByRole('tab',{name:steps[0]}).getAttribute('aria-selected'),'true');
-  assert.ok(await page.getByText('Keep your design tool open beside Jarvis.',{exact:true}).isVisible());
+  assert.ok(await page.getByText('Keep your design tool open beside Sidelook.',{exact:true}).isVisible());
   await page.getByRole('tab',{name:steps[1]}).click();
   assert.ok(await page.getByText('Say what should work, not just how it should look.',{exact:true}).isVisible());
   await page.getByRole('tab',{name:steps[1]}).press('ArrowRight');
@@ -47,8 +50,15 @@ try {
   await faq.press('Enter');
   assert.ok(await page.getByText('This website provides a prepared walkthrough.',{exact:false}).isVisible());
   const href=await page.locator('#download-zip').getAttribute('href');
-  assert.equal(href,`https://github.com/ucsandman/jarvis/releases/download/v${version}/Jarvis-${version}-Windows-x64.exe`);
-  for(const path of ['/robots.txt','/sitemap.xml','/llms.txt','/og.png','/mark.svg','/streaming.png','/computer.png']) assert.equal((await page.request.get(`${base}${path}`)).status(),200,path);
+  assert.equal(href,`https://github.com/ucsandman/sidelook/releases/download/v${version}/Sidelook-${version}-Windows-x64.exe`);
+  // Every version string on the page is the current one, and the old name is gone; 0.15.0 shipped with the old name still in an install-step filename.
+  const bodyText=await page.locator('body').innerText();
+  const stale=[...new Set(bodyText.match(/Sidelook[ -]0\.\d+\.\d+/g) || [])].filter(v=>!v.endsWith(version));
+  assert.deepEqual(stale,[],`stale version strings on the page: ${stale.join(', ')}`);
+  const oldName=String.fromCharCode(74,97,114,118,105,115); // the old product name, spelled as char codes so this check doesn't trip the name gate on itself
+  assert.doesNotMatch(bodyText,new RegExp(oldName,'i'),'the old product name is on the page');
+  assert.doesNotMatch(await page.content(),new RegExp(oldName,'i'),'the old product name is in the page source');
+  for(const path of ['/robots.txt','/sitemap.xml','/llms.txt','/og.png','/mark.svg','/streaming.png','/computer.png','/plus-jakarta-sans-700.woff2']) assert.equal((await page.request.get(`${base}${path}`)).status(),200,path);
   for(const path of ['/api/session','/server.mjs','/.env','/demo.html','/reference.svg','/workbench.png','/revision.png']) assert.equal((await page.request.get(`${base}${path}`)).status(),404,path);
   await page.getByRole('link',{name:'Computer mode',exact:true}).click();
   await page.locator('#computer img').evaluate(image=>image.decode());
@@ -75,5 +85,5 @@ try {
     await page.locator('#walkthrough').screenshot({path:`.artifacts/walkthrough-${panel}-desktop.png`});
   }
   assert.deepEqual(errors,[]);
-  console.log(`PASS: ${base}; Current walkthrough verified: 4 steps on desktop and mobile, keyboard arrows/Home/End, draft image and replay disclosure, Computer mode guide on desktop/mobile, 7 public assets, 7 removed/private routes, pinned download, no overflow or browser errors.`);
+  console.log(`PASS: ${base}; Current walkthrough verified: 4 steps on desktop and mobile, keyboard arrows/Home/End, draft image and replay disclosure, the self-hosted wordmark face loaded, Computer mode guide on desktop/mobile, 8 public assets, 7 removed/private routes, pinned download, no overflow or browser errors.`);
 } finally {await browser.close();await new Promise(resolve=>server.close(resolve));}

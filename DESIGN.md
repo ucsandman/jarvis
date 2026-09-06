@@ -1,29 +1,31 @@
 # Design
 
-Warm charcoal, ivory, muted amber. One accent, used for the thing that matters right now (the primary button, the selected tab, the mark). Dark is not a style choice here; the companion floats over other people's windows and a dark surface recedes.
+Navy and teal, the Practical Systems family palette (family values from `C:\Projects\Practical Systems\brand\brand.json`, adopted 2026-09-06). Cool neutrals tinted toward hue 224, one teal accent used for exactly three things: the primary button, the thing under the cursor, and the follow border; the mark is no longer one of them, since the node is white. Dark is not a style choice here; the companion floats over other people's windows and a dark surface recedes. It should read as an instrument, not a lamp.
 
 ## Colors
 
 | Token | Value | Use |
 | --- | --- | --- |
-| `--bg` | `#191c1b` (app) / `#20221f` (site) | Body |
-| `--panel` | `#202422` / `#191b18` | Raised surfaces, inputs |
-| `--line` | `#383e39` / `#45443b` | 1px rules and borders |
-| `--ink` | `#eeeae0` / `#eee5d5` | Body text |
-| `--muted` | `#a9aea5` / `#c1b6a5` | Secondary text. Site value passes 4.5:1 on `--bg`; app value is for labels 12px+ only |
-| `--amber` | `#e4ba7a` / `#e6bb79` | The accent. Hover: `#f0cb93` |
-| `--paper` | `#efede5` | Prototype preview background |
-| `--green` | `#a9c5a2` | Ready state only |
+| `--bg` | `#171D2D` Navy (app) / `#171D2D` (site) | Body |
+| `--panel` | `#1F2638` / `#12172A` | Raised surfaces, inputs |
+| `--line` | `#2C3549` / `#303A50` | 1px rules and borders |
+| `--ink` | `#F8FAFC` Snow | Body text |
+| `--muted` | `#A3ADBD` / `#B3BCCA` | Secondary text. 7:1+ on the app body, 4.5:1+ on the site body |
+| `--accent` | `#2DD4A8` Teal | The accent. Hover `--accent-hover` `#4EE0B8`. Text on it is `--on-accent` `#0B1F1A` |
+| `--paper` | `#F8FAFC` | Prototype preview background |
+| `--green` | `#10B981` Emerald | Ready state only |
+| `--hub` | `#FFFFFF` | The mark's hexagon |
 
-No gradients on text. No side-stripe borders (`border-left` accents). Grey text never sits on an amber surface; use `#292a20` ink on amber.
+The long tail of studio shades in `style.css` was retinted by rule (hue 200 shades moved to hue 224 at the same lightness), so every surface keeps its relative depth. No gradients on text. No side-stripe borders (`border-left` accents). Grey text never sits on the accent; use `--on-accent`. The dock button (`desktop/SidelookMark.cs`), the exe icon (`scripts/build-icon.ps1`) and the WebView backdrop carry the same two values: Navy `23,29,45` and Teal `45,212,168`.
 
 ## Mark
 
-The mark is a lens: one thick amber ring with a solid amber pupil offset up and right, on a rounded charcoal square. It reads at 16px because it is two shapes. Geometry on a 64 grid: square radius 14, ring center (32,32) radius 18 stroke 6, pupil center (36,28) radius 6.5. Sources of truth: `public/mark.svg` (web), `desktop/JarvisMark.cs` (dock button and tray fallback), `scripts/build-icon.ps1` (the multi-size `desktop/jarvis.ico` embedded in the exe). Change all three together. No letter "J" anywhere in the identity.
+One node of the Practical Systems mark. On a 64 grid: a rounded square of Navy (radius 14) when the mark needs a background (exe icon, favicon, OG card); a pointy-top white hexagon, circumradius 22, centred at (32,32), vertices (32,10) (51,21) (51,43) (32,54) (13,43) (13,21); two Navy eyes, radius 3.6, home centres (26,32) and (38,32), maximum travel 5 units in any direction. Static renders freeze the eyes 5 units right, at (31,32) and (43,32): the sidelong look is the name. The eyes follow the cursor in the dock and the page header (`public/eyes.js`, `SidelookMark.EyeOffset`); static renders look right. Sources of truth: `public/mark.svg`, `desktop/SidelookMark.cs`, `scripts/build-icon.ps1`; `npm run verify:mark` and `verify:states` check they agree.
 
 ## Typography
 
-- App: Segoe UI 14/1.55 for body, Georgia for the occasional italic display line, Bahnschrift for the wordmark. Three families, no more.
+- App: Segoe UI 14/1.55 for body, Georgia for the occasional italic display line.
+- Plus Jakarta Sans 700 for the lowercase wordmark on the site (self-hosted), Segoe UI Semibold for it in the app.
 - Site: Georgia 17/1.65 body, Segoe UI for controls, captions and labels. Headings weight 400, letter-spacing no tighter than -0.03em, `text-wrap: balance`.
 - Scale steps at least 1.25 apart. Uppercase is for short labels under four words, never for sentences, never as a per-section eyebrow.
 
@@ -33,10 +35,14 @@ Site max width 1360px with 48px gutters (24px under 900px). Section padding 56-8
 
 ## Motion
 
-Ease-out only (`cubic-bezier(.22,1,.36,1)`), 150-300ms. Motion signals state (building, listening, scanning), never decoration. Every animation has a `prefers-reduced-motion` alternative.
+Ease-out only (`cubic-bezier(.22,1,.36,1)`), 150-300ms. Motion signals state (building, listening, scanning), never decoration. Every animation has a `prefers-reduced-motion` alternative. Summon fades in over 150 ms, dismiss out over 120 ms.
+
+## The panel
+
+Borderless, 440 wide, as tall as its content: the page posts its height and the shell moves the top edge with the bottom pinned. Empty over a window it is about 380px. Header 44px: the mark (the drag handle), the sensor line, Settings, dock; no wordmark. The window Sidelook will look at is a tile (28px app icon or the app's initial on `#2B3448`, title in ink 14px/500, app name muted 12px); mid-conversation the tile is one 12px muted line above the box with the app name in ink. Starters are three lines of 14px on 1px rules, no arrows, no cards. Your messages are bubbles on the right (`--panel`, 1px `--line`, radius 10/10/2/10) with the sent frame as a 40×28 thumbnail inside; Sidelook's replies are plain text. No name labels. The box is a 12px-radius field, one 21px line at rest, eight at most before it scrolls inside, with a grip in the corner. Screenshot and Mic are 16px icons; Send is the teal ↑ alone with only words, and "Send with screenshot ↑" with a chip. The line under the box is the model in ink and "may use paid credits" when it applies, and What goes.
 
 ## Components
 
-- Buttons: `.button.amber` primary (amber on ink), `.button.secondary` (raised charcoal), `.quiet` text buttons. Labels are verb plus object.
+- Buttons: `.button.amber` primary (the class name is historical; it paints `--accent` with `--on-accent` text), `.button.secondary` (raised navy), `.quiet` text buttons. Labels are verb plus object.
 - Cards are avoided. Lists with 1px rules, definition lists and figures with captions carry the content.
 - Screenshots are evidence: captured from the real app, captioned with what they are and what they are not.

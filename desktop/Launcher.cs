@@ -15,7 +15,8 @@ using System.Windows.Forms;
 // A small Windows host for the existing Node application, not a second app runtime.
 internal static class Launcher {
     const string Url = "http://127.0.0.1:4317";
-    static string Root = Path.GetFullPath(Path.Combine(Environment.GetEnvironmentVariable("LOCALAPPDATA") ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Jarvis"));
+    static string LocalAppData = Environment.GetEnvironmentVariable("LOCALAPPDATA") ?? Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+    static string Root = Path.GetFullPath(Path.Combine(LocalAppData, "Sidelook"));
     static string VersionDir = Path.Combine(Root, "versions", BuildInfo.Version + "-" + BuildInfo.PayloadHash.Substring(0,12));
     static Process Server;
     static NotifyIcon Tray;
@@ -43,6 +44,7 @@ internal static class Launcher {
         Application.SetCompatibleTextRenderingDefault(false);
         if (args.Length == 1 && args[0] == "--verify") {
             try {
+                ProfileMigration.Apply(Path.Combine(LocalAppData, "Jarvis"), Root); // legacy profile folder from 0.15 and earlier: --verify runs before the first real start
                 Extract();
                 string node = Run("--version");
                 string codex = Run("\"" + Path.Combine(VersionDir,"runtime","node_modules","@openai","codex","bin","codex.js") + "\" --version");
@@ -51,27 +53,28 @@ internal static class Launcher {
             } catch { return 1; }
         }
         bool created;
-        Instance = new Mutex(true, "Local\\JarvisDesktopLauncher", out created);
+        Instance = new Mutex(true, "Local\\JarvisDesktopLauncher", out created); // legacy name: an older running copy holds the same mutex
         if (!created) {
-            if (!File.Exists(Path.Combine(VersionDir,"installed.txt"))) MessageBox.Show("Jarvis is already running. Choose Quit Jarvis from its tray menu, then reopen this download to install the new version.","Update Jarvis");
+            if (!File.Exists(Path.Combine(VersionDir,"installed.txt"))) MessageBox.Show("Sidelook is already running. Choose Quit from its tray menu, then reopen this download to install the new version.","Update Sidelook");
             else {
-                try { using(var signal=EventWaitHandle.OpenExisting("Local\\JarvisDesktopOpen")) signal.Set(); }
-                catch { MessageBox.Show("Jarvis is still starting. Try opening it again shortly.","Jarvis"); }
+                try { using(var signal=EventWaitHandle.OpenExisting("Local\\JarvisDesktopOpen")) signal.Set(); } // legacy name: an older running copy waits on the same signal
+                catch { MessageBox.Show("Sidelook is still starting. Try opening it again shortly.","Sidelook"); }
             }
             Instance.Dispose(); return 0;
         }
         try {
-            var loading = new Form { Text="Starting Jarvis", Icon=JarvisMark.AppIcon(), Width=440, Height=180, StartPosition=FormStartPosition.CenterScreen, FormBorderStyle=FormBorderStyle.FixedDialog, MaximizeBox=false, MinimizeBox=false, ControlBox=false };
-            var label = new Label { Text="Getting Jarvis ready on your computer...", Dock=DockStyle.Top, Height=70, Padding=new Padding(22), Font=new Font("Segoe UI",11) };
+            ProfileMigration.Apply(Path.Combine(LocalAppData, "Jarvis"), Root); // legacy profile folder from 0.15 and earlier
+            var loading = new Form { Text="Starting Sidelook", Icon=SidelookMark.AppIcon(), Width=440, Height=180, StartPosition=FormStartPosition.CenterScreen, FormBorderStyle=FormBorderStyle.FixedDialog, MaximizeBox=false, MinimizeBox=false, ControlBox=false };
+            var label = new Label { Text="Getting Sidelook ready on your computer...", Dock=DockStyle.Top, Height=70, Padding=new Padding(22), Font=new Font("Segoe UI",11) };
             loading.Controls.Add(new ProgressBar { Dock=DockStyle.Bottom, Height=18, Style=ProgressBarStyle.Marquee });
             loading.Controls.Add(label);
-            OpenSignal=new EventWaitHandle(false,EventResetMode.AutoReset,"Local\\JarvisDesktopOpen");
-            QuitSignal=new EventWaitHandle(false,EventResetMode.AutoReset,"Local\\JarvisDesktopQuit");
+            OpenSignal=new EventWaitHandle(false,EventResetMode.AutoReset,"Local\\JarvisDesktopOpen"); // legacy name: an older running copy and scripts/verify-desktop-content.mjs open the same signal
+            QuitSignal=new EventWaitHandle(false,EventResetMode.AutoReset,"Local\\JarvisDesktopQuit"); // legacy name: scripts/verify-desktop-content.mjs and the lifecycle checks open the same signal
             loading.Handle.ToString();
             // User applications start from the launcher, outside the server's kill-on-close job.
             foreach(string appName in new [] {"notepad","calculator","paint"}) {
                 string selectedApp=appName;
-                var signal=new EventWaitHandle(false,EventResetMode.AutoReset,"Local\\JarvisOpenApp-"+SessionId+"-"+selectedApp);
+                var signal=new EventWaitHandle(false,EventResetMode.AutoReset,"Local\\JarvisOpenApp-"+SessionId+"-"+selectedApp); // legacy name: scripts/Computer.cs opens the same signal
                 AppSignals.Add(signal);
                 ThreadPool.RegisterWaitForSingleObject(signal,delegate { loading.BeginInvoke((Action)(()=>OpenDesktopApp(selectedApp))); },null,-1,false);
             }
@@ -80,41 +83,41 @@ internal static class Launcher {
             loading.Shown += async delegate {
                 try {
                     await Task.Run((Action)Extract);
-                    if(!SetDllDirectory(VersionDir)) throw new Exception("Windows couldn't load Jarvis's desktop components.");
-                    if (PortInUse()) throw new Exception("Another application is using port 4317. Quit that session, then reopen Jarvis.");
+                    if(!SetDllDirectory(VersionDir)) throw new Exception("Windows couldn't load Sidelook's desktop components.");
+                    if (PortInUse()) throw new Exception("Another application is using port 4317. Quit that session, then reopen Sidelook.");
                     if (!Ready()) {
                         Job=CreateJobObject(IntPtr.Zero,null);
                         var limits=new ExtendedLimits(); limits.Basic.Flags=0x2000;
-                        if(Job==IntPtr.Zero || !SetInformationJobObject(Job,9,ref limits,(uint)Marshal.SizeOf(limits))) throw new Exception("Windows couldn't create Jarvis's process group.");
+                        if(Job==IntPtr.Zero || !SetInformationJobObject(Job,9,ref limits,(uint)Marshal.SizeOf(limits))) throw new Exception("Windows couldn't create Sidelook's process group.");
                         var start = new ProcessStartInfo(Path.Combine(VersionDir,"runtime","node.exe"), "server.mjs --desktop-instance=" + SessionId) { WorkingDirectory=VersionDir, UseShellExecute=false, CreateNoWindow=true };
                         // The CLI's native helpers can find the bundled Node runtime without a global install.
                         start.EnvironmentVariables["PATH"] = Path.Combine(VersionDir,"runtime") + ";" + Environment.GetEnvironmentVariable("PATH");
-                        start.EnvironmentVariables["JARVIS_DESKTOP_KEY"] = LaunchKey;
+                        start.EnvironmentVariables["SIDELOOK_DESKTOP_KEY"] = LaunchKey;
                         Server = Process.Start(start);
-                        if(!AssignProcessToJobObject(Job,Server.Handle)) throw new Exception("Windows couldn't attach Jarvis to its process group.");
+                        if(!AssignProcessToJobObject(Job,Server.Handle)) throw new Exception("Windows couldn't attach Sidelook to its process group.");
                         var deadline=DateTime.UtcNow.AddSeconds(20);
                         while (!Ready()) {
-                            if (Server.HasExited) throw new Exception("Jarvis couldn't start. Another program may be using port 4317. Close that program and open Jarvis again.");
-                            if (DateTime.UtcNow>deadline) throw new Exception("Jarvis took too long to start. Quit and reopen Jarvis to try again.");
+                            if (Server.HasExited) throw new Exception("Sidelook couldn't start. Another program may be using port 4317. Close that program and open Sidelook again.");
+                            if (DateTime.UtcNow>deadline) throw new Exception("Sidelook took too long to start. Quit and reopen Sidelook to try again.");
                             await Task.Delay(250);
                         }
                     }
                     Shortcuts();
                     var menu=new ContextMenuStrip();
-                    menu.Items.Add("Open Jarvis",null,delegate { Open(); });
-                    menu.Items.Add("Quit Jarvis",null,delegate { Application.Exit(); });
-                    Tray=new NotifyIcon { Icon=JarvisMark.AppIcon(), Text="Jarvis", ContextMenuStrip=menu, Visible=true };
+                    menu.Items.Add("Open Sidelook",null,delegate { Open(); });
+                    menu.Items.Add("Quit Sidelook",null,delegate { Application.Exit(); });
+                    Tray=new NotifyIcon { Icon=SidelookMark.AppIcon(), Text="Sidelook", ContextMenuStrip=menu, Visible=true };
                     Tray.DoubleClick += delegate { Open(); };
                     Window=new DesktopShell(Root,Url,LaunchKey);
                     Window.ShowDock();
                     await Window.InitializeAsync();
-                    if(!Window.HotkeyAvailable) MessageBox.Show("Ctrl+Shift+Space is already in use. Use the Jarvis dock or tray menu to open the companion.","Jarvis shortcut unavailable",MessageBoxButtons.OK,MessageBoxIcon.Information);
+                    if(!Window.HotkeyAvailable) MessageBox.Show("Ctrl+Shift+Space is already in use. Use the Sidelook dock or tray menu to open the companion.","Sidelook shortcut unavailable",MessageBoxButtons.OK,MessageBoxIcon.Information);
                     AppReady=true; loading.Hide(); Window.SummonPanel();
                 } catch (Exception error) {
                     if (error is DesktopRuntimeMissingException) {
-                        if (MessageBox.Show("Jarvis needs Microsoft Edge WebView2 Runtime. Open Microsoft's official download page?","Jarvis needs WebView2",MessageBoxButtons.YesNo,MessageBoxIcon.Information)==DialogResult.Yes)
+                        if (MessageBox.Show("Sidelook needs Microsoft Edge WebView2 Runtime. Open Microsoft's official download page?","Sidelook needs WebView2",MessageBoxButtons.YesNo,MessageBoxIcon.Information)==DialogResult.Yes)
                             Process.Start(new ProcessStartInfo("https://developer.microsoft.com/en-us/microsoft-edge/webview2/#download-section") {UseShellExecute=true});
-                    } else MessageBox.Show(error.Message,"Jarvis couldn't start",MessageBoxButtons.OK,MessageBoxIcon.Error);
+                    } else MessageBox.Show(error.Message,"Sidelook couldn't start",MessageBoxButtons.OK,MessageBoxIcon.Error);
                     Application.Exit();
                 }
             };
@@ -145,7 +148,7 @@ internal static class Launcher {
                 Process.Start(new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows),"explorer.exe"),"shell:AppsFolder\\"+registered) {UseShellExecute=false});
             }
         }
-        catch { MessageBox.Show("Windows could not open that application. Open it yourself and refresh the window list.","Jarvis"); }
+        catch { MessageBox.Show("Windows could not open that application. Open it yourself and refresh the window list.","Sidelook"); }
     }
 
     static bool Ready() {
@@ -153,7 +156,7 @@ internal static class Launcher {
             var request=(HttpWebRequest)WebRequest.Create(Url+"/api/health");
             request.Timeout=500; request.Proxy=null;
             using(var response=request.GetResponse()) using(var reader=new StreamReader(response.GetResponseStream())) {
-                string body=reader.ReadToEnd(); return body.Contains("\"app\":\"jarvis-workbench\"") && body.Contains("\"ready\":true") && body.Contains("\"instanceId\":\""+SessionId+"\"");
+                string body=reader.ReadToEnd(); return body.Contains("\"app\":\"sidelook\"") && body.Contains("\"ready\":true") && body.Contains("\"instanceId\":\""+SessionId+"\"");
             }
         } catch { return false; }
     }
@@ -175,7 +178,7 @@ internal static class Launcher {
         using(var payload=Assembly.GetExecutingAssembly().GetManifestResourceStream("payload.zip")) {
             using(var sha=SHA256.Create()) {
                 string actual=BitConverter.ToString(sha.ComputeHash(payload)).Replace("-","").ToLowerInvariant();
-                if(actual!=BuildInfo.PayloadHash) throw new Exception("This download is damaged. Download Jarvis again from the official site.");
+                if(actual!=BuildInfo.PayloadHash) throw new Exception("This download is damaged. Download Sidelook again from the official site.");
             }
             payload.Position=0;
             using(var archive=new ZipArchive(payload,ZipArchiveMode.Read)) {
@@ -188,19 +191,19 @@ internal static class Launcher {
                 }
             }
         }
-        string installed=Path.Combine(VersionDir,"Jarvis.exe");
+        string installed=Path.Combine(VersionDir,"Sidelook.exe");
         if(!String.Equals(Application.ExecutablePath,installed,StringComparison.OrdinalIgnoreCase)) File.Copy(Application.ExecutablePath,installed,true);
         File.WriteAllText(marker,BuildInfo.PayloadHash);
     }
     static void Shortcuts() {
         try {
-            string programs=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs),"Jarvis");
+            string programs=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs),"Sidelook");
             Directory.CreateDirectory(programs);
-            foreach(string link in new [] { Path.Combine(programs,"Jarvis.lnk"),Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),"Jarvis.lnk") }) {
+            foreach(string link in new [] { Path.Combine(programs,"Sidelook.lnk"),Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory),"Sidelook.lnk") }) {
                 dynamic shell=Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell"));
                 dynamic shortcut=shell.CreateShortcut(link);
                 if(File.Exists(link) && !((string)shortcut.TargetPath).StartsWith(Root+Path.DirectorySeparatorChar,StringComparison.OrdinalIgnoreCase)) continue;
-                shortcut.TargetPath=Path.Combine(VersionDir,"Jarvis.exe"); shortcut.WorkingDirectory=VersionDir; shortcut.Description="Open Jarvis"; shortcut.Save();
+                shortcut.TargetPath=Path.Combine(VersionDir,"Sidelook.exe"); shortcut.WorkingDirectory=VersionDir; shortcut.Description="Open Sidelook"; shortcut.Save();
             }
         } catch { /* Shortcuts are optional; the downloaded executable remains usable. */ }
     }

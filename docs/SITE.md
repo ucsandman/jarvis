@@ -1,7 +1,7 @@
 # Public-site runbook
 
-Production: https://jarvis-workbench.vercel.app/
-Repository: https://github.com/ucsandman/jarvis
+Production: https://sidelook.practicalsystems.io/
+Repository: https://github.com/ucsandman/sidelook
 
 The public site is a static walkthrough and Windows download page. It doesn't run inference, take a subscription login, capture a camera or screen, or host the local API. Real builds happen in the downloaded app.
 
@@ -9,10 +9,11 @@ The public site is a static walkthrough and Windows download page. It doesn't ru
 
 1. Verify tests, browser behavior and the final Windows executable. Publish the versioned GitHub release and checksum.
 2. Update the pinned download and release links in the README and site. Keep the desktop-runtime, model, streaming, credit and signing disclosures accurate.
-3. Run `node scripts/build-site.mjs` and `node scripts/verify-site.mjs`. If the companion UI or the mark changed, regenerate `docs/images/companion.png` from the packaged app and `docs/images/social.png` with `node scripts/build-social.mjs` first.
+3. Run `node scripts/build-site.mjs`, `node scripts/verify-site.mjs` and `node scripts/verify-states.mjs` (every control under the mouse, every text node, every token, across the app and the built site). If the companion UI or the mark changed, regenerate `docs/images/companion.png` from the packaged app and `docs/images/social.png` with `node scripts/build-social.mjs` first.
 4. Inspect `vercel deploy --dry --json --cwd .artifacts/site --scope ucsandmans-projects`. It must contain only allowlisted public files, including the verified `companion.png` capture, and no environment or configuration data.
-5. Deploy the approved release with `vercel deploy --prod --yes --cwd .artifacts/site --scope ucsandmans-projects`.
-6. Run `node scripts/verify-site.mjs https://jarvis-workbench.vercel.app`. Confirm the anonymous executable download hash, metadata, website link and GitHub About text.
+5. Add the domain to the Vercel project and the CNAME at the parent's DNS (hard stop: confirm with the maintainer). Only then deploy, because `vercel.json` redirects the old host to the new one.
+6. Deploy the approved release with `vercel deploy --prod --yes --cwd .artifacts/site --scope ucsandmans-projects`.
+7. Run `node scripts/verify-site.mjs https://sidelook.practicalsystems.io`. Confirm the anonymous executable download hash, metadata, website link and GitHub About text.
 
 Never deploy the repository root. The build output is `.artifacts/site`. Generated environment files are excluded and must never be read, staged or uploaded. Roll back with Vercel's deployment promotion controls. A public-site rollback doesn't touch local apps.
 
@@ -85,6 +86,18 @@ Released v0.7.0 from code commit 25e1105. Windows and Linux CI run 33984559654 p
 The anonymous executable download was 171,325,440 bytes and matched SHA-256 bef0b66ee2b0f7d272191fc40dbe9995620ebb2fb48ac1451e8872ad5e3d0404. The final archive has 46 entries; all 23 first-party payload files match the shipped source, and 33 text files were scanned. Verification passed: 40 unit tests, 19 compiled filter cases, 14 native cases, 11 Computer UI checks, 20 packaged checks, 6 launcher lifecycle cases, plus user-app survival after Quit. Real Fable/browser/native execution completed three model steps and two reviewed actions; the final repeat took about 33 seconds.
 
 The installed app was not reopened after release: automatic approval review rejected that separate local launch with only a blocked-by-policy reason. Public download and production site verification completed successfully.
+
+## 0.15.1 Buttons that stay under the mouse release
+
+Release v0.15.1 from commit d718240 is public with `Jarvis-0.15.1-Windows-x64.exe` (172,353,536 bytes) and `SHA256SUMS.txt`. The anonymous download matched SHA-256 6f53e385eda83c14d44cb02470dec0c30f55bdc31b5ee872db739e8f6141e4f6. CI run 34027145525 passed on Windows and Linux. Production deployment dpl_5FSgapsoXZHYyWDUeq82G3pUB3YQ is Ready at the canonical URL with 12 allowlisted files; the production browser check passed and the live page carries the 0.15.1 download with no other version string on it. Local verification before the push, all synthetic: 63 unit tests; check.mjs over 52 files; the new states verifier (73 controls at rest and under the mouse, 201 text nodes, 12 tokens, across the panel, its dialogs, Computer mode, the studio, its dialogs and the built site; proven by putting the 0.15.0 token back, seven vanishing buttons reported); companion 23 checks; the packaged executable's 20 assertions. The desktop hand checks owed since 0.15.0 are still owed.
+
+## 0.15.0 The panel, quiet release
+
+Release v0.15.0 from commit 406b972 is public with `Jarvis-0.15.0-Windows-x64.exe` (172,353,536 bytes) and `SHA256SUMS.txt`. The anonymous download matched SHA-256 934fc203eac45b3199785308e16462931b99ee275c2c80e84e9e6668e2dcce60. CI run 34026458718 passed on Windows and Linux. Production deployment dpl_J6Q86ikKM4CpgiynVz791h9BwSxP is Ready at the canonical URL with 12 allowlisted files; the production browser check passed and the live page carries the 0.15.0 download, the new panel copy ("tile at the top", the arrow-only Send) and the graphite-and-mint tokens. The hero screenshot is the browser check's 440×380 content-sized panel (captioned as such, not as a packaged-app capture); the studio and Computer mode screenshots and the social image were regenerated in the new palette. Local verification before the push, all synthetic: 63 unit tests; check.mjs over 51 files; assistant 7 requests; companion 23 checks; computer 14; recovery 10; browser 9; live 24; models 13; stream 14; the packaged executable's 20 assertions. Not run, since the desktop was in use: the desktop-host check (now asserting a borderless content-sized panel), the desktop-content check, and a dock drag on a real desktop.
+
+## 0.14.0 Read it back release
+
+Release v0.14.0 from commit 2e32990 is public with `Jarvis-0.14.0-Windows-x64.exe` (172,345,344 bytes) and `SHA256SUMS.txt`. The anonymous download matched SHA-256 9e3be9a03b07f33c858533ffd48a44e90cd0ca15d835bd7e23c8d1d647a4ff7c. CI run 34023303339 passed on Windows and Linux. Production deployment dpl_J6ahAc3yoL92yvCmncfSEfARwm3V is Ready at the canonical URL with 12 allowlisted files (the dry inspection ignored `.env.local`, `.gitignore` and `.vercel`); the production browser check passed and the live page carries the 0.14.0 download and the new studio copy ("Use this frame", the chip, "Build with frame"). The walkthrough's studio screenshot and the Computer mode screenshot were regenerated from this release's synthetic checks. Local verification before the push, all synthetic: 63 unit tests; check.mjs over 51 files; assistant 7 requests; companion 22 checks; computer 14; recovery 10; browser 9; live 24; models 13; stream 14; the packaged executable's 20 assertions. The desktop-host hand check was not run this release, since the desktop was in use.
 
 ## 0.13.0 Screen on release
 

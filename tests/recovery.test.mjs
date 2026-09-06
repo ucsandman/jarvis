@@ -11,14 +11,14 @@ async function fixture(t,options) {
   await new Promise(resolve => server.listen(0,'127.0.0.1',resolve));
   t.after(() => { server.closeAllConnections(); server.close(); });
   const base = `http://127.0.0.1:${server.address().port}`;
-  return { base,post:async (path,body,token) => fetch(base+path,{ method:'POST',headers:{ 'Content-Type':'application/json','X-Jarvis-Session':token },body:JSON.stringify(body) }) };
+  return { base,post:async (path,body,token) => fetch(base+path,{ method:'POST',headers:{ 'Content-Type':'application/json','X-Sidelook-Session':token },body:JSON.stringify(body) }) };
 }
 test('readiness does not invoke subscription status',async t => {
   let checks=0;
   const f=await fixture(t,{vision:{status:async()=>{checks++;throw Error('must not run');}}});
   const response=await fetch(f.base+'/api/health');
   assert.equal(response.status,200);
-  assert.equal((await response.json()).app,'jarvis-workbench');
+  assert.equal((await response.json()).app,'sidelook');
   assert.equal(checks,0);
 });
 test('visual build returns validated observations and HTML in one inference turn',async()=> {

@@ -1,4 +1,4 @@
-const DB_NAME = 'jarvis-workbench';
+const DB_NAME = 'jarvis-workbench'; // legacy database name: renaming it orphans every saved version in the migrated profile
 let dbPromise;
 function database() {
   if (!dbPromise) dbPromise = new Promise((resolve,reject) => {

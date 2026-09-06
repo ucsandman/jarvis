@@ -2,25 +2,26 @@ import { loadProject, saveProject } from './storage.js';
 import { LiveFrames } from './live.js';
 import { initComputer } from './computer.js';
 import { initCompanion } from './companion.js';
-import { gate, spend, record, ledger, renderGate, renderPreview, MODEL_LABEL, ACCOUNT, CLI, MODELS, PROVIDERS, choice, usesCredits, billingLine } from './harness.js';
+import { gate, buildLabel, record, ledger, renderGate, renderPreview, MODEL_LABEL, ACCOUNT, CLI, MODELS, PROVIDERS, choice, usesCredits, billingLine } from './harness.js';
 import { DESIGN_CHIPS } from './chips.js';
+import { createSession, selectionChange } from './session.js';
 
 let launchKey = new URLSearchParams(location.hash.slice(1)).get('launch');
 if (launchKey) history.replaceState(null,'',location.pathname+location.search);
 try {
-  if (launchKey && /^[a-f0-9]{64}$/.test(launchKey)) sessionStorage.setItem('jarvisLaunch',launchKey);
-  else launchKey = sessionStorage.getItem('jarvisLaunch');
+  if (launchKey && /^[a-f0-9]{64}$/.test(launchKey)) sessionStorage.setItem('sidelookLaunch',launchKey);
+  else launchKey = sessionStorage.getItem('sidelookLaunch');
 } catch { /* This tab can still work when browser storage is unavailable. */ }
-const launchHeaders = () => launchKey ? {'X-Jarvis-Launch':launchKey} : {};
+const launchHeaders = () => launchKey ? {'X-Sidelook-Launch':launchKey} : {};
 
 const $ = id => document.getElementById(id);
-const state = { token:'', configured:false, stream:null, image:null, imageLabel:'', observation:null,
+const state = { token:'', configured:false, stream:null, image:null, imageLabel:'', attached:false, observation:null,
   revisions:[], selected:null, busy:false, consent:false, recognition:null, controller:null, previewSequence:0, remaining:null, setupBusy:false, setupController:null, dictation:false, inputBusy:false,
   elapsed:0, computerOn:false, planning:false };
 state.live=false; state.liveCount=0; state.captureKind=null; state.liveFrames=new LiveFrames(); state.liveTimer=null;
 state.model='astra'; state.effort='medium'; state.checking=false;
 try {
-  const saved=JSON.parse(localStorage.getItem('jarvisModelPreferences') || '{}');
+  const saved=JSON.parse(localStorage.getItem('sidelookModelPreferences') || localStorage.getItem('jarvisModelPreferences') || '{}'); // legacy key from 0.15 and earlier: read once, written back under the new name
   if (choice(saved.model)) state.model=saved.model;
   if (['low','medium','high','xhigh','max'].includes(saved.effort)) state.effort=saved.effort;
 } catch { /* Preferences are optional when browser storage is unavailable. */ }
@@ -29,7 +30,7 @@ const selectedAccount = () => ACCOUNT[state.model];
 const selectedIsClaude = () => choice(state.model).provider==='anthropic';
 const effortNotes = {low:'Faster, with lighter reasoning.',medium:'Balances speed and depth.',high:'More reasoning for complex changes.',xhigh:'Extra reasoning; expect a longer wait.',max:'Deepest reasoning; may take much longer and use more allowance.'};
 const openSettings = () => { if (!$('settings').open) $('settings').showModal(); };
-const notifyState = () => document.dispatchEvent(new Event('jarvis-state'));
+const notifyState = () => document.dispatchEvent(new Event('sidelook-state'));
 // The selector lists the whole catalog, grouped by the CLI and account each model runs on. A model that lacks an effort greys it out;
 // a saved effort the new model does not offer moves to that model's deepest level, and the note says so.
 $('model-choice').replaceChildren(...Object.entries(PROVIDERS).map(([key,provider])=>{
@@ -51,11 +52,11 @@ function renderSelection() {
   $('billing-note').textContent=billingLine(state.model) || `${selectedLabel()} uses your ${selectedAccount()} subscription.`;
   const claude=selectedIsClaude();
   $('install-title').textContent=claude?'Install official Claude Code?':'Install the official Codex CLI?';
-  $('install-detail').textContent=claude?'Downloads the verified Claude Code runtime directly from Anthropic’s official npm package into Jarvis’s per-user tools folder. No terminal or administrator access is needed. Claude Code is subject to Anthropic’s terms. No model request is made during installation.':'Downloads the official @openai/codex package through npm and installs it globally on this device. No account or model request is made during installation.';
+  $('install-detail').textContent=claude?'Downloads the verified Claude Code runtime directly from Anthropic’s official npm package into Sidelook’s per-user tools folder. No terminal or administrator access is needed. Claude Code is subject to Anthropic’s terms. No model request is made during installation.':'Downloads the official @openai/codex package through npm and installs it globally on this device. No account or model request is made during installation.';
   $('confirm-install').textContent=claude?'Install Claude Code':'Install Codex';
   $('install-terms').hidden=!claude;
   $('setup-help').href=claude?'https://code.claude.com/docs/en/authentication':'https://developers.openai.com/codex/auth';
-  $('setup-detail').textContent=claude?'Sign-in opens Anthropic’s official browser flow and updates Claude Code login on this device. Installation downloads Claude Code into Jarvis’s own tools folder. Each action starts only when you choose it.':'Sign-in opens the official browser flow and updates Codex login on this device. Installing Codex adds its official npm package globally. Each action starts only when you choose it.';
+  $('setup-detail').textContent=claude?'Sign-in opens Anthropic’s official browser flow and updates Claude Code login on this device. Installation downloads Claude Code into Sidelook’s own tools folder. Each action starts only when you choose it.':'Sign-in opens the official browser flow and updates Codex login on this device. Installing Codex adds its official npm package globally. Each action starts only when you choose it.';
 }
 const current = () => state.revisions.find(r => r.id === state.selected);
 const showError = message => { $('error-text').textContent = message; $('error').hidden = false; };
@@ -107,7 +108,7 @@ $('show-working').addEventListener('click',()=>chooseDraft(false));
 
 async function api(path, body, signal, keepalive=false) {
   if (['/api/build','/api/observe','/api/chat','/api/login','/api/install-codex'].includes(path)) body={...body,model:state.model,effort:state.effort};
-  const response = await fetch(path,{ method:'POST',signal,keepalive,headers:{ ...launchHeaders(),'Content-Type':'application/json','X-Jarvis-Session':state.token,...(path==='/api/build'?{Accept:'application/x-ndjson'}:{}) },body:JSON.stringify(body) });
+  const response = await fetch(path,{ method:'POST',signal,keepalive,headers:{ ...launchHeaders(),'Content-Type':'application/json','X-Sidelook-Session':state.token,...(path==='/api/build'?{Accept:'application/x-ndjson'}:{}) },body:JSON.stringify(body) });
   let data;
   if(response.headers.get('content-type')?.includes('application/x-ndjson')) {
     const reader=response.body.getReader(),decoder=new TextDecoder();let pending='',received=0;
@@ -134,9 +135,9 @@ function textElement(tag, text, className) {
   if (className) node.className = className;
   return node;
 }
-const buildGateView = () => ({ surface:'build', model:state.model, frame:$('include-frame').checked && !!(state.image || state.stream), hasSource:!!current(), live:state.live });
+const buildGateView = () => ({ surface:'build', model:state.model, frame:state.attached && !!state.image, hasSource:!!current(), live:state.live });
 function updateControls() {
-  const controls = ['share-screen','build','connect','upload','example','file','new-session','camera-select','clear-reference','resume','mic','try-demo','include-frame'];
+  const controls = ['share-screen','build','connect','upload','example','file','new-session','camera-select','clear-reference','resume','mic','try-demo','frame-remove','use-frame'];
   controls.forEach(id => { $(id).disabled = state.busy || state.setupBusy || state.inputBusy || (!state.token && id === 'build'); });
   $('build').disabled = state.live || state.busy || state.setupBusy || state.inputBusy || state.checking || !state.configured || !state.token || state.remaining === 0;
   for (const id of ['model-choice','effort-choice','faster-effort']) $(id).disabled=state.live || state.busy || state.setupBusy || state.inputBusy;
@@ -156,7 +157,7 @@ function updateControls() {
   $('source').disabled = !current(); $('download').disabled = !current();
   if (!state.busy) $('activity').textContent = current() ? `${versionName(current()).replace('VERSION','Version')} ready` : 'Ready';
   $('reply-status').textContent = state.busy ? 'Working' : current() ? 'Version ready' : 'Standing by';
-  updateFrameChoice();
+  renderAttachment();
   notifyState();
 }
 function clearObservations() {
@@ -164,20 +165,22 @@ function clearObservations() {
   $('observation-time').textContent = 'No frame sent yet';
   $('observation-summary').textContent = 'I’ll read the details, connect them to your direction, and build from there.';
 }
-function setImage(image,label) {
+// A chosen image (an upload, the sample, a still taken with Use this frame, the panel's screenshot) is attached; a restored saved frame is shown, not attached.
+function setImage(image,label,attach=true) {
   clearObservations(); state.image = image; state.imageLabel = label;
   $('reference').src = image; $('reference').hidden = false; $('camera').hidden = true;
   $('camera-empty').hidden = true; $('frame-label').hidden = false; $('frame-label').textContent = label;
   $('frame-tools').hidden = false; $('resume').hidden = !state.stream;
   $('source-status').textContent = 'Selected frame';
-  $('include-frame').checked = true; updateFrameChoice();
+  state.attached = attach; renderAttachment();
 }
+// Sharing shows a live preview and attaches nothing.
 function liveView() {
   state.image = null; state.imageLabel = ''; clearObservations();
   $('reference').hidden = true; $('reference').removeAttribute('src'); $('frame-label').hidden = true; $('frame-tools').hidden = true;
   $('camera').hidden = !state.stream; $('camera-empty').hidden = !!state.stream;
   $('source-status').textContent = state.stream ? state.captureKind==='screen' ? 'Screen shared · local preview' : 'Camera on · local only' : 'Camera off';
-  $('include-frame').checked = !!state.stream; updateFrameChoice();
+  state.attached = false; renderAttachment();
 }
 function stopCamera() {
   pauseLive('Sharing stopped. No new snapshots will be sent.');
@@ -345,10 +348,9 @@ async function selectRevision(id,restoreEvidence = false) {
   $('preview-note').textContent = 'Source available. Loading preview…';
   $('retry-preview').hidden = false;
   if (restoreEvidence) {
-    if (revision.image) { setImage(revision.image,`Saved reference · ${time(revision.created)}`); }
+    if (revision.image) { setImage(revision.image,`Saved reference · ${time(revision.created)}`,false); }
     else { liveView(); }
     if (revision.observation) renderObservations(revision.observation,revision.created);
-    $('include-frame').checked = false; updateFrameChoice();
   }
   await persist();
   if (!state.token) { $('preview-note').textContent = 'Source available. Reconnect to load the preview.'; return; }
@@ -410,9 +412,9 @@ function say(text) {
 }
 // Exactly what beginBuild() posts, minus the frame's bytes, for the preview dialog.
 function buildManifest() {
-  const image = $('include-frame').checked && (state.image || state.stream) ? (state.imageLabel || `One ${state.captureKind==='screen'?'screen':'camera'} frame, chosen when you build`) : null;
+  const image = state.attached && state.image ? state.imageLabel : null;
   const parent = current();
-  return { title:'What goes with Make it real', fields:[
+  return { title:`What goes with ${$('build-label').textContent}`, fields:[
     ['Direction',$('direction').value.trim() || '(nothing typed yet)'],['Frame',image || 'none'],
     ['Prototype source',parent ? `${versionName(parent)} · ${parent.html.length.toLocaleString()} characters` : 'none'],
     ['Model',`${selectedLabel()} · ${state.effort}`],['Goes to',`your ${selectedAccount()} subscription through ${CLI[state.model]}`]],
@@ -423,23 +425,24 @@ async function beginBuild(automatic=false) {
   if (state.busy || state.setupBusy || state.inputBusy || state.checking) return;
   hideError();
   const direction = $('direction').value.trim();
-  if (!direction) { showError('Tell Jarvis what should work first, such as “Build a task board.”'); $('direction').focus(); return; }
+  if (!direction) { showError('Tell Sidelook what should work first, such as “Build a task board.”'); $('direction').focus(); return; }
   if (!state.configured || !state.token) { openSettings(); showError('Check the selected model in Settings, then try again.'); return; }
   if (state.remaining === 0) { openSettings(); showError('Choose Start new allowance in Settings. This does not renew your provider subscription allowance.'); return; }
+  // The button is the consent: it says what goes, and the line under the box names it. Only Live build takes a still on its own, under its own permission.
   if (!automatic) {
-    const refusal = gate({ surface:'build', direction, ticked:$('build-consent').checked, configured:state.configured, token:state.token, remaining:state.remaining });
-    if (refusal) { showError(refusal); $('build-consent').focus(); return; }
+    const refusal = gate({ surface:'build', direction, configured:state.configured, token:state.token, remaining:state.remaining });
+    if (refusal) { showError(refusal); $('direction').focus(); return; }
     state.consent = true;
   } else if (!state.consent) return;
   try {
-    if (automatic || ($('include-frame').checked && !state.image && state.stream)) setImage(imageFromElement($('camera')),`${state.captureKind==='screen' ? 'Screen snapshot' : 'Chosen frame'} · ${time(Date.now())}`);
+    if (automatic) setImage(imageFromElement($('camera')),`Screen snapshot · ${time(Date.now())}`);
   } catch(error) { showError(error.message); return; }
   clearDraft();draftShown=true;
   state.busy = true; $('cancel').disabled = false; stopDictation(); stopSpeech();
   state.controller = new AbortController(); const controller = state.controller;
   let completed=false;
   const parent = current();
-  const image = $('include-frame').checked ? state.image : null;
+  const image = state.attached ? state.image : null;
   const previous = parent?.html || '', created = new Date().toISOString(), started = Date.now();
   $('build-phase').textContent = image ? 'Reading and building' : previous ? 'Revising your application' : 'Building your application';
   $('build-overlay').dataset.provider=choice(state.model).provider;
@@ -460,13 +463,13 @@ async function beginBuild(automatic=false) {
     notifyState();
   },1000);
   updateControls(); $('activity').textContent = `${selectedLabel()} · ${state.effort} · 0s`;
-  spend($('build-consent'));
   let sent = false;
   try {
     const built = await api('/api/build',{ image,instruction:direction,previous,consent:true },controller.signal);
     if (controller.signal.aborted) return;
     sent = true; record({ surface:'build', ok:true, frame:!!image, model:state.model, effort:state.effort, remaining:built.remaining });
-    if (image) $('include-frame').checked = false;
+    // A frame that went leaves the box and stays on the version as evidence. A refusal or a Stop keeps it attached to retry.
+    if (image) { state.attached = false; renderAttachment(); }
     const observation = built.result.observation || (image ? null : parent?.observation) || null;
     const revision = { ...built.result,id:crypto.randomUUID(),image:image || parent?.image || null,referenceUsed:!!image,observation,instruction:direction,created,model:built.model,effort:built.effort || state.effort };
     clearDraft();
@@ -500,7 +503,7 @@ async function beginBuild(automatic=false) {
 }
 function stopDictation() {
   state.recognition?.abort(); state.recognition = null;
-  $('mic').setAttribute('aria-pressed','false'); updateFrameChoice(); notifyState();
+  $('mic').setAttribute('aria-pressed','false'); renderAttachment(); notifyState();
 }
 async function startDictation() {
   if (state.recognition) { stopDictation(); return; }
@@ -540,7 +543,6 @@ $('example').addEventListener('click',async () => {
 });
 $('composer').addEventListener('submit',event => { event.preventDefault(); beginBuild(); });
 $('direction').addEventListener('keydown',event => { if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) { event.preventDefault(); beginBuild(); } });
-$('build-consent').addEventListener('keydown',event => { if (event.key === 'Enter') { event.preventDefault(); beginBuild(); } });
 $('build-preview').addEventListener('click',() => { renderPreview($('send-preview'),buildManifest(),ledger); $('send-preview').showModal(); });
 $('cancel').addEventListener('click',() => { pauseLive('Paused. Your previous version is still here.'); state.controller?.abort(); $('reply-text').textContent = 'Canceled. Your previous version is still here.'; });
 $('mic').addEventListener('click',startDictation);
@@ -559,7 +561,7 @@ $('source').addEventListener('click',() => { if (!current()) return; $('source-c
 $('download').addEventListener('click',() => {
   const revision = current(); if (!revision) return;
   const url = URL.createObjectURL(new Blob([revision.html],{ type:'text/html' }));
-  const link = document.createElement('a'); link.href = url; link.download = `${revision.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,60) || 'jarvis-prototype'}.html`;
+  const link = document.createElement('a'); link.href = url; link.download = `${revision.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,60) || 'sidelook-prototype'}.html`;
   document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url),10000);
 });
 $('new-session').addEventListener('click',() => { if (!state.busy) $('reset-dialog').showModal(); });
@@ -580,36 +582,44 @@ new ResizeObserver(positionAnnotations).observe($('viewfinder'));
 window.addEventListener('pagehide',() => { state.controller?.abort(); stopCamera(); stopDictation(); stopSpeech(); });
 document.addEventListener('visibilitychange',() => { if (document.hidden) stopDictation(); });
 
-function updateFrameChoice() {
-  const available = !!(state.image || state.stream);
-  $('include-frame').disabled = state.live || state.busy || state.setupBusy || state.inputBusy || !available;
-  if (!available) $('include-frame').checked = false;
-  $('frame-choice-note').textContent = $('include-frame').checked ? (state.image ? state.imageLabel : `One ${state.captureKind==='screen'?'screen':'camera'} frame will be chosen`) : available ? 'Kept here, not sent' : 'No frame yet';
+// The chip in the box is the attachment: attached means it goes, × removes it, and the button says whether it goes.
+function renderAttachment() {
+  if (!state.image) state.attached = false;
+  const attached = state.attached && !!state.image;
+  $('frame-chip').hidden = !attached;
+  if (attached) { $('frame-chip-image').src = state.image; $('frame-chip-label').textContent = state.imageLabel; }
+  else $('frame-chip-image').removeAttribute('src');
+  // Use this frame takes one still from the live view, or attaches the saved frame again. Sharing alone attaches nothing.
+  const locked = state.live || state.busy || state.setupBusy || state.inputBusy;
+  $('frame-attach').hidden = locked || !((!!state.stream && !state.image) || (!!state.image && !attached));
+  $('use-frame').textContent = state.image ? 'Attach this frame' : 'Use this frame';
+  $('frame-remove').disabled = locked;
+  $('build-label').textContent = buildLabel({ frame:attached, version:current() ? versionName(current()).replace('VERSION','Version') : '' });
   renderGate($('build-gate'),buildGateView());
 }
 function renderBudget() {
   $('budget').textContent = Number.isFinite(state.remaining) ? `${state.remaining} local requests left · your subscription limits still apply` : 'Local allowance unavailable';
 }
-let sessionSequence=0;
-async function refreshSession() {
-  const sequence=++sessionSequence;
-  const requestedModel=state.model,requestedEffort=state.effort;
-  state.checking=true; state.configured=false; updateControls();
-  $('recheck').disabled = true;
-  try {
+const renderProviderStatus = () => { $('provider-status').textContent = state.configured ? `${selectedLabel()} · ${state.effort}` : 'Setup needed'; };
+// Readiness runs on the orchestrator in session.js: the token lands first, the provider check starts at once, and a saved preview restores beside it.
+const session = createSession({
+  localSession: async () => {
     const local = await fetch('/api/local-session',{ signal:AbortSignal.timeout(3000),headers:launchHeaders() });
-    if (!local.ok) throw new Error('Local connection unavailable. Open Jarvis from its desktop shortcut, then choose Reconnect.');
-    const connection = await local.json();
-    if (sequence!==sessionSequence) return;
-    state.token = connection.token; state.remaining = connection.remaining; state.dictation = connection.dictation;
-    updateControls(); renderBudget();
-    if (current()) await selectRevision(state.selected);
-    const response = await fetch('/api/session',{ signal:AbortSignal.timeout(17000),headers:{...launchHeaders(),'X-Jarvis-Model':requestedModel,'X-Jarvis-Effort':requestedEffort} });
-    if (!response.ok) throw new Error('Could not connect to Jarvis. Reopen Jarvis, then choose Reconnect. Your saved source is available.');
-    const session = await response.json();
-    if (sequence!==sessionSequence) return;
+    if (!local.ok) throw new Error('Local connection unavailable. Open Sidelook from its desktop shortcut, then choose Reconnect.');
+    return local.json();
+  },
+  providerSession: async ({ model,effort }) => {
+    const response = await fetch('/api/session',{ signal:AbortSignal.timeout(17000),headers:{...launchHeaders(),'X-Sidelook-Model':model,'X-Sidelook-Effort':effort} });
+    if (!response.ok) throw new Error('Could not connect to Sidelook. Reopen Sidelook, then choose Reconnect. Your saved source is available.');
+    return response.json();
+  },
+  onLocal: connection => { state.token = connection.token; state.remaining = connection.remaining; state.dictation = connection.dictation; updateControls(); renderBudget(); },
+  // Only a preview that is not already showing is restored; the source and Retry preview are there either way.
+  restorePreview: () => { if (current() && ($('preview').hidden || !$('preview').src)) return selectRevision(state.selected); },
+  onPreviewError: error => showError(error.message),
+  onReady: session => {
     state.token = session.token; state.configured = session.configured; state.remaining = session.remaining; state.dictation = session.dictation;
-    $('provider-status').textContent = session.configured ? `${selectedLabel()} · ${state.effort}` : 'Setup needed';
+    renderProviderStatus();
     $('provider-dot').classList.toggle('ready',session.configured); $('setup-dot').classList.toggle('ready',session.configured);
     $('setup-summary').textContent = session.configured ? `${selectedAccount()} connected` : 'Action needed';
     const cliName=selectedIsClaude()?'Claude Code':'Codex CLI';
@@ -621,22 +631,31 @@ async function refreshSession() {
     $('login').textContent=`Sign in with ${selectedAccount()}`;
     $('setup-message').textContent = session.reason || 'Ready. Selected model access and subscription allowance are checked on each request.';
     if (!session.configured) openSettings();
-  } catch(error) {
-    if (sequence!==sessionSequence) return;
+  },
+  onError: error => {
     state.configured = false;
     $('provider-status').textContent = 'Local connection unavailable';
     $('provider-dot').classList.remove('ready'); $('setup-dot').classList.remove('ready');
     $('setup-summary').textContent = 'Reconnect needed'; $('setup-message').textContent = error.message;
     showError(error.message);
-  } finally { if (sequence===sessionSequence) {state.checking=false;renderBudget(); updateControls(); updateFrameChoice();} }
+  },
+  onSettled: () => { state.checking=false; renderBudget(); updateControls(); renderAttachment(); }
+});
+async function refreshSession() {
+  state.checking=true; state.configured=false; updateControls();
+  $('recheck').disabled = true;
+  await session.refresh({ model:state.model,effort:state.effort });
 }
 $('faster-effort').addEventListener('click',()=>{if(state.busy || state.live) return;$('effort-choice').value='low';$('effort-choice').dispatchEvent(new Event('change'));});
+// A new model is checked against the provider again. A new effort is saved and shown at once: it rides on the next request, exactly as before, with nothing to probe.
 for (const id of ['model-choice','effort-choice']) $(id).addEventListener('change',async()=>{
   if (state.busy || state.setupBusy) {renderSelection();return;}
-  state.model=$('model-choice').value; state.effort=$('effort-choice').value; state.consent=false; $('build-consent').checked=false;
+  const change=selectionChange({model:state.model,effort:state.effort},{model:$('model-choice').value,effort:$('effort-choice').value});
+  state.model=$('model-choice').value; state.effort=$('effort-choice').value; state.consent=false;
   renderSelection();
-  try {localStorage.setItem('jarvisModelPreferences',JSON.stringify({model:state.model,effort:state.effort}));} catch { }
-  hideError(); await refreshSession();
+  try {localStorage.setItem('sidelookModelPreferences',JSON.stringify({model:state.model,effort:state.effort}));} catch { }
+  if (change==='model') { hideError(); await refreshSession(); }
+  else if (state.configured) renderProviderStatus();
 });
 async function setupAction(path) {
   if (state.setupBusy || state.busy || !state.token) return;
@@ -669,7 +688,15 @@ $('reset-budget').addEventListener('click',async event => {
 document.addEventListener('click',event => { if (budgetArmed && event.target !== $('reset-budget')) disarmBudget(); });
 $('settings').addEventListener('close',disarmBudget);
 $('retry-preview').addEventListener('click',() => selectRevision(state.selected));
-$('include-frame').addEventListener('change',() => { $('build-consent').checked = false; updateFrameChoice(); });
+$('frame-remove').addEventListener('click',() => { state.attached = false; if (state.image) $('source-status').textContent = 'Saved frame · not attached'; renderAttachment(); });
+$('use-frame').addEventListener('click',() => {
+  if (state.live || state.busy || state.inputBusy) return;
+  hideError();
+  try {
+    if (state.image) { state.attached = true; $('source-status').textContent = 'Selected frame'; renderAttachment(); }
+    else if (state.stream) setImage(imageFromElement($('camera')),`${state.captureKind==='screen' ? 'Screen snapshot' : 'Camera frame'} · ${time(Date.now())}`);
+  } catch(error) { showError(error.message); }
+});
 $('direction').addEventListener('input',()=>{if(state.live) {state.liveFrames.sent=null;state.liveFrames.stableSince=Date.now();}});
 $('try-demo').addEventListener('click',async () => {
   if (state.busy || state.inputBusy) return;
@@ -702,9 +729,9 @@ initCompanion({api,getState:()=>state,updateControls,
   stopWork:()=>{pauseLive('Paused from the companion.');state.controller?.abort();state.setupController?.abort();stopDictation();stopCamera();$('computer-stop')?.click();},
   openWorkflow:(kind,instruction='',evidence)=>{
     if(kind==='setup'){openSettings();return;}
-    // A reply's "Let Jarvis do this" carries the task; the panel's "Open" carries none and keeps whatever was typed.
+    // A reply's "Let Sidelook do this" carries the task; the panel's "Open" carries none and keeps whatever was typed.
     if(kind==='computer'){if(instruction)$('computer-task').value=instruction.slice(0,2000);computer.open();return;}
-    $('direction').value=instruction;if(evidence)setImage(evidence.image,evidence.label);else{$('include-frame').checked=false;updateFrameChoice();}$('direction').focus();
+    $('direction').value=instruction;if(evidence)setImage(evidence.image,evidence.label);else{state.attached=false;renderAttachment();}$('direction').focus();
   },
   importSource:async(html,name)=>{
     if(state.busy || state.live || state.setupBusy || state.inputBusy)throw new Error('Finish the current task before importing.');

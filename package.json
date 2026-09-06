@@ -1,6 +1,6 @@
 {
-  "name": "jarvis-workbench",
-  "version": "0.13.0",
+  "name": "sidelook",
+  "version": "0.16.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -23,7 +23,9 @@
     "verify:computer": "node scripts/verify-computer.mjs",
     "verify:computer-native": "node scripts/verify-computer-native.mjs",
     "verify:assistant": "node scripts/verify-assistant.mjs",
-    "verify:companion": "node scripts/verify-companion.mjs"
+    "verify:companion": "node scripts/verify-companion.mjs",
+    "verify:states": "node scripts/verify-states.mjs",
+    "verify:mark": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify-mark.ps1"
   },
   "license": "MIT"
 }

@@ -1,9 +1,9 @@
 $ErrorActionPreference='Stop'
 Add-Type -Path (Join-Path $PSScriptRoot 'Computer.cs') -ReferencedAssemblies @('System.Windows.Forms','System.Drawing','System.Web.Extensions','UIAutomationClient','UIAutomationTypes','WindowsBase')
 $flags=[Reflection.BindingFlags]'Static,NonPublic'
-$denied=[JarvisComputer].GetField('denied',$flags).GetValue($null)
-$commands=[JarvisComputer].GetField('commandText',$flags).GetValue($null)
-$controls=[JarvisComputer].GetField('launcherControl',$flags).GetValue($null)
+$denied=[SidelookComputer].GetField('denied',$flags).GetValue($null)
+$commands=[SidelookComputer].GetField('commandText',$flags).GetValue($null)
+$controls=[SidelookComputer].GetField('launcherControl',$flags).GetValue($null)
 $count=0
 foreach($name in @('.env','example/.env - Notepad','.secrets.env','cmd.exe','Windows PowerShell','Sign in')) {
     if(-not $denied.IsMatch($name)){throw 'Protected-window filter failed.'};$count++

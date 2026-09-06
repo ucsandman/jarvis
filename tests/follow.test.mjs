@@ -34,6 +34,36 @@ test('an unchanged window does not replace the chip; a removed chip waits for a 
   f.click({front:word,now:10000});assert.equal(f.tick(10000+QUIET_MS),'capture');
 });
 
+test('next() names the one deadline to wait for, so the page needs no polling timer',()=>{
+  const f=new Follow();
+  assert.equal(f.next(0),null,'nothing to wait for while off');
+  f.start({snapshots:false,now:0,expires:600000});
+  assert.equal(f.next(1000),599000,'following alone waits for the lease end');
+  f.click({front:gmail,now:1000});
+  assert.equal(f.next(1000),599000,'a click without snapshots schedules no capture');
+  f.stop();f.start({snapshots:true,now:0,expires:600000});
+  f.click({front:gmail,now:1000});
+  assert.equal(f.next(1000),QUIET_MS,'with snapshots the capture deadline comes first');
+  assert.equal(f.next(1000+QUIET_MS+500),0,'a deadline in the past is due now');
+  assert.equal(f.tick(1000+QUIET_MS),'capture');
+  assert.equal(f.next(1000+QUIET_MS),600000-1000-QUIET_MS,'in flight, only the lease end remains');
+  f.captured(pixels(0),5000);
+  assert.equal(f.next(5000),595000,'landed, nothing pending');
+});
+
+test('a due capture waits through a busy page without being lost or doubled',()=>{
+  const f=new Follow();f.start({snapshots:true,now:0,expires:600000});
+  f.click({front:gmail,now:1000});
+  assert.equal(f.tick(1000+QUIET_MS,true),'busy','busy keeps the deadline');
+  assert.equal(f.state.captureDue,1000+QUIET_MS,'the deadline is untouched');
+  assert.equal(f.inFlight,false,'nothing is marked in flight');
+  assert.equal(f.next(1000+QUIET_MS+200),0,'still due');
+  assert.equal(f.tick(1000+QUIET_MS+200,true),'busy','asked twice while busy, still one deadline');
+  assert.equal(f.tick(1000+QUIET_MS+400),'capture','the first free tick takes it');
+  assert.equal(f.tick(1000+QUIET_MS+401),'skip','and only once');
+  assert.equal(f.tick(600000,true),'expired','expiry wins over busy');
+});
+
 test('the countdown formats and the lease ends on its own',()=>{
   const f=new Follow();f.start({snapshots:false,now:0,expires:600000});
   assert.equal(f.remaining(18000),'9:42');

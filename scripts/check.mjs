@@ -43,4 +43,34 @@ if (clipboardReads) throw new Error(`${clipboardReads} clipboard read site(s) fo
 
 const html = await readFile('public/index.html','utf8');
 if (!html.includes('name="robots" content="noindex,nofollow"')) throw new Error('Missing local-app noindex.');
-console.log(`PASS: syntax checked ${files.length} JavaScript files; assets: ${routes.size} routes on disk, ${references} references resolved; scanned ${stylesheets} stylesheets, ${declarations} declarations under 12px; ${clipboardFiles} files scanned, ${clipboardReads} clipboard reads; local page is noindex.`);
+
+// The product is Sidelook. The old name may survive only on lines marked `legacy` (kernel object names that keep the upgrade path,
+// the old profile folder) and in history files, which are not scanned. Anything else is a miss the retro should record.
+const gateFiles = [...new Set([
+  ...shipped, ...files, 'package.json', 'README.md', 'PRODUCT.md', 'DESIGN.md', 'CONTRIBUTING.md', 'SECURITY.md',
+  'docs/COMPUTER.md', 'docs/MODELS.md', 'docs/WINDOWS.md', 'docs/SITE.md', 'Start Sidelook.cmd', '.env.example',
+  ...(await readdir('public')).filter(f => /\.(html|css)$/.test(f)).map(f => `public/${f}`),
+  ...(await readdir('site')).filter(f => /\.(html|css|js|json)$/.test(f)).map(f => `site/${f}`),
+  ...(await readdir('scripts')).filter(f => /\.(mjs|ps1|cmd)$/.test(f)).map(f => `scripts/${f}`),
+  ...(await readdir('tests')).map(f => `tests/${f}`),
+])].filter(f => f !== 'site/vercel.json'); // its redirect source must keep matching the old Vercel project host
+// docs/SITE.md is a runbook followed by a release log. The log is history (old exe names, the old host) and is not scanned;
+// the scan stops at the first version heading, which is where the log begins.
+const runbookOnly = new Map([['docs/SITE.md', /^## \d/]]);
+let legacyLines = 0; const missing = [], nameHits = [];
+for (const file of gateFiles) {
+  if (!(await access(file).then(() => true, () => false))) { missing.push(file); continue; }
+  let lines = (await readFile(file,'utf8')).split('\n');
+  const logStart = runbookOnly.get(file);
+  if (logStart) { const at = lines.findIndex(line => logStart.test(line)); if (at > 0) lines = lines.slice(0,at); }
+  // The next line holds both words, so the gate counts itself as one of the legacy lines below.
+  lines.forEach((line,i) => { if (!/jarvis/i.test(line)) return; if (/legacy/.test(line)) { legacyLines++; return; } nameHits.push(`${file}:${i+1}`); });
+}
+if (missing.length) throw new Error(`Name gate could not read ${missing.length} listed file(s): ${missing.join(', ')}`);
+if (nameHits.length) throw new Error(`Old product name in ${nameHits.length} place(s): ${nameHits.slice(0,12).join(', ')}`);
+// 19 today: thirteen kernel object names the upgrade path needs (the launcher, Computer.cs and the four lifecycle checks that
+// open them), two profile-folder moves, the IndexedDB name, two localStorage fallbacks, and the counting line above, which
+// holds both words itself.
+if (legacyLines > 19) throw new Error(`${legacyLines} legacy-marked lines; the allowance is 19.`);
+
+console.log(`PASS: syntax checked ${files.length} JavaScript files; assets: ${routes.size} routes on disk, ${references} references resolved; scanned ${stylesheets} stylesheets, ${declarations} declarations under 12px; ${clipboardFiles} files scanned, ${clipboardReads} clipboard reads; local page is noindex.; name gate: ${gateFiles.length} files, ${legacyLines} legacy lines`);

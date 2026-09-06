@@ -13,7 +13,7 @@ async function fixture(t, overrides = {}) {
   const base = `http://127.0.0.1:${server.address().port}`;
   const { token } = await (await fetch(`${base}/api/session`)).json();
   const post = (path,data,headers = {}) => new Promise((resolve,reject) => {
-    const req = http.request(`${base}${path}`,{ method:'POST',headers:{ 'Content-Type':'application/json','X-Jarvis-Session':token,...headers } },response => {
+    const req = http.request(`${base}${path}`,{ method:'POST',headers:{ 'Content-Type':'application/json','X-Sidelook-Session':token,...headers } },response => {
       const chunks=[]; response.on('data',chunk=>chunks.push(chunk));
       response.on('end',()=>resolve({ status:response.statusCode,json:async()=>JSON.parse(Buffer.concat(chunks).toString()) }));
     });
@@ -25,7 +25,7 @@ test('requires local origin, exact host, session header and explicit cloud conse
   const f = await fixture(t);
   assert.equal((await f.post('/api/build',{ consent:true },{ Origin:'https://attacker.invalid' })).status,403);
   assert.equal((await f.post('/api/build',{ consent:true },{ Host:'attacker.invalid' })).status,403);
-  assert.equal((await f.post('/api/build',{ consent:true },{ 'X-Jarvis-Session':'wrong' })).status,403);
+  assert.equal((await f.post('/api/build',{ consent:true },{ 'X-Sidelook-Session':'wrong' })).status,403);
   assert.equal((await f.post('/api/build',{})).status,403);
   assert.equal((await f.post('/api/build',{ consent:true })).status,200);
   assert.equal(f.getCalls(),1);
