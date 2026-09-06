@@ -17,11 +17,11 @@ try {
   await page.locator('#version-label').filter({ hasText:'VERSION 01' }).waitFor();
   const app = page.frameLocator('#preview');
   await app.locator('#openModalBtn').click();
-  await app.locator('#taskTitleInput').fill('Jarvis integration verification');
+  await app.locator('#taskTitleInput').fill('Sidelook integration verification');
   const submit = app.locator('#taskForm button[type="submit"]');
   await submit.click();
-  await app.getByText('Jarvis integration verification',{ exact:true }).filter({ visible:true }).waitFor();
-  await app.locator('#searchInput').fill('Jarvis integration verification');
+  await app.getByText('Sidelook integration verification',{ exact:true }).filter({ visible:true }).waitFor();
+  await app.locator('#searchInput').fill('Sidelook integration verification');
   assert.equal(await app.locator('.task-card:visible').count(),1);
   console.log('PASS: generated app adds and filters real tasks in the restricted preview.');
   await page.getByRole('button',{ name:'Clear image',exact:true }).click();

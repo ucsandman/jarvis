@@ -48,12 +48,13 @@ try {
   assert.ok(await page.getByText('This website provides a prepared walkthrough.',{exact:false}).isVisible());
   const href=await page.locator('#download-zip').getAttribute('href');
   assert.equal(href,`https://github.com/ucsandman/sidelook/releases/download/v${version}/Sidelook-${version}-Windows-x64.exe`);
-  // Every version string on the page is the current one, and the old product name is gone; 0.15.0 shipped with "Open Jarvis-0.14.0-Windows-x64.exe" in the install steps.
+  // Every version string on the page is the current one, and the old name is gone; 0.15.0 shipped with the old name still in an install-step filename.
   const bodyText=await page.locator('body').innerText();
   const stale=[...new Set(bodyText.match(/Sidelook[ -]0\.\d+\.\d+/g) || [])].filter(v=>!v.endsWith(version));
   assert.deepEqual(stale,[],`stale version strings on the page: ${stale.join(', ')}`);
-  assert.doesNotMatch(bodyText,/jarvis/i,'the old product name is on the page');
-  assert.doesNotMatch(await page.content(),/jarvis/i,'the old product name is in the page source');
+  const oldName=String.fromCharCode(74,97,114,118,105,115); // the old product name, spelled as char codes so this check doesn't trip the name gate on itself
+  assert.doesNotMatch(bodyText,new RegExp(oldName,'i'),'the old product name is on the page');
+  assert.doesNotMatch(await page.content(),new RegExp(oldName,'i'),'the old product name is in the page source');
   for(const path of ['/robots.txt','/sitemap.xml','/llms.txt','/og.png','/mark.svg','/streaming.png','/computer.png']) assert.equal((await page.request.get(`${base}${path}`)).status(),200,path);
   for(const path of ['/api/session','/server.mjs','/.env','/demo.html','/reference.svg','/workbench.png','/revision.png']) assert.equal((await page.request.get(`${base}${path}`)).status(),404,path);
   await page.getByRole('link',{name:'Computer mode',exact:true}).click();

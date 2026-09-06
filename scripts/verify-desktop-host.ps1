@@ -65,7 +65,7 @@ function Get-SidelookBounds($process) {
     return @{ Width = $rect.Right - $rect.Left; Height = $rect.Bottom - $rect.Top }
 }
 
-$env:JARVIS_FOLLOW_LEASE_SECONDS = '8'   # the shell reads the lease length from its own environment, once per screen-on
+$env:SIDELOOK_FOLLOW_LEASE_SECONDS = '8'   # the shell reads the lease length from its own environment, once per screen-on
 $sidelookProbe = Start-Process -FilePath $sidelookExe -PassThru
 $fixture = $null
 try {
@@ -107,7 +107,7 @@ try {
     Write-Output "PASS: embedded WebView2 host rendered the first-launch companion panel borderless at 440x$emptyHeight (content-sized, no title bar), grew it for the lease dialog, collapsed to a 76x76 dock, registered Ctrl+Shift+Space and Ctrl+Shift+E, reopened from its named signal, leased Screen on from the header line, took and released Ctrl+Shift+F12, outlined a clicked Character Map window, and dropped the border at expiry."
 } finally {
     if ($fixture) { Stop-Process -Id $fixture.Id -ErrorAction SilentlyContinue }
-    Remove-Item Env:JARVIS_FOLLOW_LEASE_SECONDS -ErrorAction SilentlyContinue
+    Remove-Item Env:SIDELOOK_FOLLOW_LEASE_SECONDS -ErrorAction SilentlyContinue
     try { $quit = [Threading.EventWaitHandle]::OpenExisting('Local\JarvisDesktopQuit'); $quit.Set() | Out-Null; $quit.Dispose() } catch { }   # legacy name
     if (-not $sidelookProbe.WaitForExit(15000)) { Stop-Process -Id $sidelookProbe.Id }
 }

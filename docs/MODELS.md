@@ -41,7 +41,7 @@ Drafts are labeled and run in a script-disabled sandbox. Switch to the last work
 ## Local protocol
 
 - `GET /api/local-session` returns the model catalog and local session token.
-- `GET /api/session` accepts `X-Jarvis-Model` and `X-Jarvis-Effort` headers (legacy header names, unchanged from the wire protocol).
+- `GET /api/session` accepts `X-Sidelook-Model` and `X-Sidelook-Effort` headers.
 - Build/observe and setup bodies accept `model` and `effort`. Leaving them out keeps the Astra/medium compatibility behavior.
 - `POST /api/build` with `Accept: application/x-ndjson` streams `phase`, `draft`, and a terminal `result` or `error` record. Without that header you get the existing JSON response.
 - The initial phase carries a temporary `draftSession`. An authenticated `POST /api/preview` with `draft: true`, that session, and bounded HTML creates a non-executable preview. Sessions expire when the build ends.

@@ -4,7 +4,7 @@ $sidelookUrl = 'http://127.0.0.1:4317'
 function Test-SidelookReady {
     try {
         $response = Invoke-RestMethod -Uri "$sidelookUrl/api/health" -TimeoutSec 2
-        return $response.app -eq 'jarvis-workbench' -and $response.ready -eq $true
+        return $response.app -eq 'sidelook' -and $response.ready -eq $true
     } catch { return $false }
 }
 # Serialize repeated double-clicks without relying on authentication or browser state.

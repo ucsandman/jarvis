@@ -36,7 +36,7 @@ try {
   assert.equal(await page.locator('#composer input[type=checkbox]').count(),0,'no tick in the composer');
   const sketchDirection=await page.locator('#direction').inputValue();await page.locator('#direction').fill('');
   await page.locator('#build').click();
-  assert.match(await page.locator('#error-text').innerText(),/Tell Jarvis what should work first/);
+  assert.match(await page.locator('#error-text').innerText(),/Tell Sidelook what should work first/);
   assert.equal(cloudRequests,0);await page.locator('#direction').fill(sketchDirection);
   checks.push('sample labeled and attached; the button says the frame goes; an empty direction makes zero cloud requests');
 

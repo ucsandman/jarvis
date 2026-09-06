@@ -91,7 +91,7 @@ internal static class Launcher {
                         var start = new ProcessStartInfo(Path.Combine(VersionDir,"runtime","node.exe"), "server.mjs --desktop-instance=" + SessionId) { WorkingDirectory=VersionDir, UseShellExecute=false, CreateNoWindow=true };
                         // The CLI's native helpers can find the bundled Node runtime without a global install.
                         start.EnvironmentVariables["PATH"] = Path.Combine(VersionDir,"runtime") + ";" + Environment.GetEnvironmentVariable("PATH");
-                        start.EnvironmentVariables["JARVIS_DESKTOP_KEY"] = LaunchKey;
+                        start.EnvironmentVariables["SIDELOOK_DESKTOP_KEY"] = LaunchKey;
                         Server = Process.Start(start);
                         if(!AssignProcessToJobObject(Job,Server.Handle)) throw new Exception("Windows couldn't attach Sidelook to its process group.");
                         var deadline=DateTime.UtcNow.AddSeconds(20);
@@ -155,7 +155,7 @@ internal static class Launcher {
             var request=(HttpWebRequest)WebRequest.Create(Url+"/api/health");
             request.Timeout=500; request.Proxy=null;
             using(var response=request.GetResponse()) using(var reader=new StreamReader(response.GetResponseStream())) {
-                string body=reader.ReadToEnd(); return body.Contains("\"app\":\"jarvis-workbench\"") && body.Contains("\"ready\":true") && body.Contains("\"instanceId\":\""+SessionId+"\"");
+                string body=reader.ReadToEnd(); return body.Contains("\"app\":\"sidelook\"") && body.Contains("\"ready\":true") && body.Contains("\"instanceId\":\""+SessionId+"\"");
             }
         } catch { return false; }
     }

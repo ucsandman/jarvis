@@ -567,7 +567,7 @@ internal sealed class DesktopShell : Form {
     // Ten minutes, unless a check shortens the lease so it can watch the expiry without waiting ten minutes.
     static int LeaseSeconds() {
         int seconds;
-        string raw = Environment.GetEnvironmentVariable("JARVIS_FOLLOW_LEASE_SECONDS");
+        string raw = Environment.GetEnvironmentVariable("SIDELOOK_FOLLOW_LEASE_SECONDS");
         return Int32.TryParse(raw, out seconds) && seconds > 0 && seconds <= 600 ? seconds : 600;
     }
 

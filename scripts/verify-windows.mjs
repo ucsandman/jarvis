@@ -40,7 +40,7 @@ try {
   assert.ok((await (await fetch(base)).text()).includes('Sign in with ChatGPT'));
   assert.ok((await (await fetch(base+'/demo.html')).text()).includes('DAYLIGHT'));
   assert.equal((await fetch(base+'/api/session')).status,403);
-  const session=await (await fetch(base+'/api/session',{headers:{'X-Jarvis-Launch':desktopKey}})).json();   // legacy header name: server.mjs still reads x-jarvis-launch
+  const session=await (await fetch(base+'/api/session',{headers:{'X-Sidelook-Launch':desktopKey}})).json();
   assert.equal(session.cli,true); assert.equal(typeof session.configured,'boolean');
   const {chromium}=browserTools();
   const browser=await chromium.launch({channel:'chrome',headless:true});
@@ -51,7 +51,7 @@ try {
     await page.waitForFunction(()=>/^(Action needed|ChatGPT connected)$/.test(document.querySelector('#setup-summary').textContent));
     assert.equal(new URL(page.url()).hash,'');
     assert.equal((await page.context().cookies()).length,0,'No launch cookie may leak to another loopback port');
-    assert.equal(await page.evaluate(()=>sessionStorage.getItem('jarvisLaunch')?.length),64);
+    assert.equal(await page.evaluate(()=>sessionStorage.getItem('sidelookLaunch')?.length),64);
     await page.locator('#try-demo').click();
     await page.frameLocator('#preview').getByRole('textbox',{name:'Task title',exact:true}).fill('Packaged preview works');
     await page.frameLocator('#preview').getByRole('button',{name:'Add task',exact:true}).click();

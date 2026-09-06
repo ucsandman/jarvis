@@ -193,8 +193,8 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   const desktopArg=process.argv.find(arg=>arg.startsWith('--desktop-instance='));
   const instanceId=desktopArg?.split('=')[1];
   if(desktopArg && !/^[a-f0-9]{32}$/.test(instanceId || '')) throw new Error('Invalid desktop instance identifier.');
-  const desktopKey=process.env.JARVIS_DESKTOP_KEY;
-  delete process.env.JARVIS_DESKTOP_KEY;
+  const desktopKey=process.env.SIDELOOK_DESKTOP_KEY;
+  delete process.env.SIDELOOK_DESKTOP_KEY;
   if (desktopArg && !desktopKey) throw new Error('Desktop launch key is required.');
   const app = createApp({instanceId,desktopKey});
   app.listen(4317,'127.0.0.1',() => console.log('Sidelook is ready at http://127.0.0.1:4317'));
