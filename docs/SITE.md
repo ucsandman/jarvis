@@ -1,6 +1,6 @@
 # Public-site runbook
 
-Production: https://jarvis-workbench.vercel.app/
+Production: https://sidelook.practicalsystems.io/
 Repository: https://github.com/ucsandman/jarvis
 
 The public site is a static walkthrough and Windows download page. It doesn't run inference, take a subscription login, capture a camera or screen, or host the local API. Real builds happen in the downloaded app.
@@ -11,8 +11,9 @@ The public site is a static walkthrough and Windows download page. It doesn't ru
 2. Update the pinned download and release links in the README and site. Keep the desktop-runtime, model, streaming, credit and signing disclosures accurate.
 3. Run `node scripts/build-site.mjs`, `node scripts/verify-site.mjs` and `node scripts/verify-states.mjs` (every control under the mouse, every text node, every token, across the app and the built site). If the companion UI or the mark changed, regenerate `docs/images/companion.png` from the packaged app and `docs/images/social.png` with `node scripts/build-social.mjs` first.
 4. Inspect `vercel deploy --dry --json --cwd .artifacts/site --scope ucsandmans-projects`. It must contain only allowlisted public files, including the verified `companion.png` capture, and no environment or configuration data.
-5. Deploy the approved release with `vercel deploy --prod --yes --cwd .artifacts/site --scope ucsandmans-projects`.
-6. Run `node scripts/verify-site.mjs https://jarvis-workbench.vercel.app`. Confirm the anonymous executable download hash, metadata, website link and GitHub About text.
+5. Add the domain to the Vercel project and the CNAME at the parent's DNS (hard stop: confirm with the maintainer). Only then deploy, because `vercel.json` redirects the old host to the new one.
+6. Deploy the approved release with `vercel deploy --prod --yes --cwd .artifacts/site --scope ucsandmans-projects`.
+7. Run `node scripts/verify-site.mjs https://sidelook.practicalsystems.io`. Confirm the anonymous executable download hash, metadata, website link and GitHub About text.
 
 Never deploy the repository root. The build output is `.artifacts/site`. Generated environment files are excluded and must never be read, staged or uploaded. Roll back with Vercel's deployment promotion controls. A public-site rollback doesn't touch local apps.
 
