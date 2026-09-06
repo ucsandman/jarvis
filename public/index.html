@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
   <meta name="description" content="Sidelook is a local desktop companion. Ask about the window you are in, build a prototype from a sketch, or let it work in a Windows app one approved action at a time.">
-  <meta name="theme-color" content="#141719">
+  <meta name="theme-color" content="#171D2D">
   <title>Sidelook</title>
   <link rel="icon" href="/mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/style.css">
@@ -27,7 +27,7 @@
 
   <div class="app-shell">
     <header class="toolbar">
-      <span class="toolbar-mark" aria-hidden="true"><svg class="mark-live" viewBox="0 0 64 64" width="22" height="22"><polygon points="32,10 51,21 51,43 32,54 13,43 13,21" fill="#fff"/><circle class="eye" cx="31" cy="32" r="3.6"/><circle class="eye" cx="43" cy="32" r="3.6"/></svg></span>
+      <span class="toolbar-mark" aria-hidden="true"><svg class="mark-live" viewBox="0 0 64 64" width="22" height="22"><polygon points="32,10 51,21 51,43 32,54 13,43 13,21" fill="var(--hub)"/><circle class="eye" cx="31" cy="32" r="3.6"/><circle class="eye" cx="43" cy="32" r="3.6"/></svg></span>
       <button class="quiet" id="companion-back">← Panel</button>
       <span class="toolbar-title">Studio</span>
       <div class="toolbar-actions">
@@ -114,7 +114,7 @@
   </div>
 
   <section id="companion" aria-label="Sidelook companion">
-    <header class="companion-header"><button id="companion-drag" class="companion-brand" aria-label="Drag Sidelook window" title="Sidelook"><svg class="mark-live" viewBox="0 0 64 64" width="22" height="22" aria-hidden="true"><polygon points="32,10 51,21 51,43 32,54 13,43 13,21" fill="#fff"/><circle class="eye" cx="31" cy="32" r="3.6"/><circle class="eye" cx="43" cy="32" r="3.6"/></svg></button><button type="button" id="companion-sense" class="companion-sense" aria-describedby="companion-status"><i id="companion-dot" aria-hidden="true"></i><span id="companion-status" role="status">Connecting</span></button><button id="companion-settings" aria-label="Settings" title="Settings">⚙</button><button id="companion-hide" aria-label="Return to dock" title="Return to dock">−</button></header>
+    <header class="companion-header"><button id="companion-drag" class="companion-brand" aria-label="Drag Sidelook window" title="Sidelook"><svg class="mark-live" viewBox="0 0 64 64" width="22" height="22" aria-hidden="true"><polygon points="32,10 51,21 51,43 32,54 13,43 13,21" fill="var(--hub)"/><circle class="eye" cx="31" cy="32" r="3.6"/><circle class="eye" cx="43" cy="32" r="3.6"/></svg></button><button type="button" id="companion-sense" class="companion-sense" aria-describedby="companion-status"><i id="companion-dot" aria-hidden="true"></i><span id="companion-status" role="status">Connecting</span></button><button id="companion-settings" aria-label="Settings" title="Settings">⚙</button><button id="companion-hide" aria-label="Return to dock" title="Return to dock">−</button></header>
     <div class="companion-scroll">
       <ol id="companion-messages" aria-label="Conversation" aria-live="polite" aria-relevant="additions"></ol>
       <div id="companion-deck">
@@ -232,7 +232,7 @@
 
   <dialog id="screen-lease" aria-labelledby="screen-lease-title">
     <h2 id="screen-lease-title">Let Sidelook follow your screen?</h2>
-    <p>For the next 10 minutes, whatever window you click is the one Sidelook looks at. A thin mint border marks it. Starters refit to that app.</p>
+    <p>For the next 10 minutes, whatever window you click is the one Sidelook looks at. A thin teal border marks it. Starters refit to that app.</p>
     <p>Pixels stay on this computer until you press Send. No microphone, no keyboard, no clicking on your behalf.</p>
     <p id="screen-lease-stop">Press the header line or Ctrl+Shift+F12 to stop early.</p>
     <p id="screen-lease-note" role="alert" class="lease-note"></p>

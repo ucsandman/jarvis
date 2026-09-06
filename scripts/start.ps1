@@ -8,6 +8,8 @@ function Test-SidelookReady {
     } catch { return $false }
 }
 # Serialize repeated double-clicks without relying on authentication or browser state.
+# This name was renamed with the product on purpose: the source install both creates the mutex and waits on it here, in this one
+# file, so no other process is left waiting on the old name. The packaged launcher's kernel object names stay as they were.
 $sidelookMutex = New-Object System.Threading.Mutex($false, 'Local\SidelookWorkbenchLauncher')
 $sidelookOwned = $false
 try {

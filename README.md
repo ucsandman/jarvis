@@ -3,7 +3,7 @@
   <h1>sidelook</h1>
   <p><strong>A desktop companion for Windows that runs on the ChatGPT or Claude subscription you already pay for.</strong></p>
   <p>a <a href="https://practicalsystems.io">Practical Systems</a> product</p>
-  <p><a href="https://github.com/ucsandman/sidelook/actions/workflows/ci.yml"><img src="https://github.com/ucsandman/sidelook/actions/workflows/ci.yml/badge.svg" alt="Windows and Linux checks"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-e5b977" alt="MIT license"></a> <a href="https://github.com/ucsandman/sidelook/releases/latest"><img src="https://img.shields.io/github/v/release/ucsandman/sidelook" alt="Latest release"></a></p>
+  <p><a href="https://github.com/ucsandman/sidelook/actions/workflows/ci.yml"><img src="https://github.com/ucsandman/sidelook/actions/workflows/ci.yml/badge.svg" alt="Windows and Linux checks"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2DD4A8" alt="MIT license"></a> <a href="https://github.com/ucsandman/sidelook/releases/latest"><img src="https://img.shields.io/github/v/release/ucsandman/sidelook" alt="Latest release"></a></p>
   <p><a href="https://sidelook.practicalsystems.io/">Website</a> · <a href="https://github.com/ucsandman/sidelook/releases/download/v0.16.0/Sidelook-0.16.0-Windows-x64.exe">Download for Windows</a> · <a href="#getting-started">Get started</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
 </div>
 
@@ -11,7 +11,7 @@ Sidelook sits in the corner of your screen. Hit **Ctrl+Shift+Space** and a small
 
 It's experimental and built around how I work. Anthropic models can burn paid Claude usage credits. What your account can reach is up to your plan. The website is a walkthrough, the app is where the sign-in and generation actually happen.
 
-<img src="docs/images/companion.png" width="360" alt="Sidelook panel: a header with the mark and Screen and mic off, a tile naming the window in front with its app, three starter lines, a one-line message box with a mint arrow, and the model name under it">
+<img src="docs/images/companion.png" width="360" alt="Sidelook panel: a header with the mark and Screen and mic off, a tile naming the window in front with its app, three starter lines, a one-line message box with a teal arrow, and the model name under it">
 
 *The panel at rest, from the browser check with a synthetic shell: 440 by 380 pixels, as tall as its content. Nothing was sent.*
 
@@ -25,7 +25,7 @@ It's experimental and built around how I work. Anthropic models can burn paid Cl
 
 - **Knows what was in front, and lets you change it.** The panel reads the title and process of the window you came from and shows it as a tile with the app's icon, then three starters for it: "Unstick me" for an error, "What does this output mean?" for a terminal, "Draft a reply" for mail. Press the tile to pick **Whole desktop** or any open window; the starters and Screenshot follow it. A window half off the screen or on another monitor captures whole. No pixels, no model call, until you press a starter or Screenshot.
 - **Small until asked to be bigger.** No title bar; the panel is as tall as its content, about 380px when empty, and grows upward as replies arrive while the box stays put. Drag an edge and it keeps that size until the next summon. The box grows a line at a time as you type, up to eight, and a grip in the corner makes it taller. Drag the dock itself to any corner and Sidelook lives there from then on.
-- **Follows your clicks when you ask it to.** Press **Screen & mic off** in the header and choose **Follow my clicks** for ten minutes: whatever window you click is the one Sidelook looks at, a thin mint border marks it, and the starters refit to that app. **Follow and keep a fresh screenshot** also puts a screenshot of that window in the box three quiet seconds after each click, so your next question already has it; it never sends on its own. The header counts down and the same line stops it, as does **Ctrl+Shift+F12**.
+- **Follows your clicks when you ask it to.** Press **Screen & mic off** in the header and choose **Follow my clicks** for ten minutes: whatever window you click is the one Sidelook looks at, a thin teal border marks it, and the starters refit to that app. **Follow and keep a fresh screenshot** also puts a screenshot of that window in the box three quiet seconds after each click, so your next question already has it; it never sends on its own. The header counts down and the same line stops it, as does **Ctrl+Shift+F12**.
 
   ![Screen on: the header reads Screen on, fresh screenshots, 9:55; a coloured border outlines a clicked Character Map window beside the panel, and a screenshot of it sits in the box waiting for Send](docs/images/screen-on.png)
 - **Reads the exact text.** Error, terminal, spreadsheet and settings starters pull the accessible text of the window you came from through the same broker as Computer mode, read-only: every character is shown in the box with a count and whether it was cut short. Nothing is armed and nothing can click.
@@ -159,4 +159,4 @@ Changed the mark? Run `powershell -NoProfile -File scripts/build-icon.ps1` to re
 
 ## License
 
-Sidelook is [MIT](LICENSE). Node.js, Codex and Claude Code keep their own licenses. Upstream notices ship with the bundled runtimes; Claude Code is downloaded separately through Setup.
+Sidelook is [MIT](LICENSE). Node.js, Codex and Claude Code keep their own licenses. Upstream notices ship with the bundled runtimes; Claude Code is downloaded separately through Setup. Plus Jakarta Sans is licensed under the SIL Open Font License 1.1 (site/plus-jakarta-sans-OFL.txt).
