@@ -26,6 +26,16 @@ Computer mode moved into the column as one resting line and a lease dialog. Mode
 
 Not built, on purpose: auto-capture on summon, model-generated chip suggestions, and anything that watches a window and reports when it changed.
 
+## 2026-09-05: Choose what Jarvis looks at
+
+The maintainer's second correction after 0.10.0: the panel only ever looked at the window that was foreground at summon, which is not how people use a computer, and its capture refused any window not entirely on the visible desktop. Approved from a fifth mock state before code changed.
+
+The target is a pick. The "Looking at" line carries **change**, which asks the shell for every visible, titled, top-level window except Jarvis, tool windows, cloaked and minimized ones (titles and process names only, capped at 60), and lists them as rows under **Whole desktop**. A pick is a `select-target` message; the shell validates the window still exists, pins it, and answers with the new `front`, so the page never shows a target the shell would not capture. The foreground tracker keeps running but only fills the default; a pick lasts until the next summon, because a new summon is a new context. Ctrl+Shift+E therefore still captures the window that was in front.
+
+Whole desktop is `CopyFromScreen` over the virtual screen with the panel at opacity zero for the capture, bounded and encoded like a window. Window capture is `PrintWindow` at the window's own size instead of its intersection with the screen, which is what made off-screen and other-monitor windows fail. The stricter "move it onto the desktop" check was protecting nothing: PrintWindow renders the window's surface, not the screen.
+
+Not built, on purpose: a live thumbnail per window in the list (pixels before a pick), capturing minimized windows (nothing to render), and a per-monitor choice (Whole desktop covers it).
+
 ## 2026-09-05: One box, one button, no tick in the panel
 
 The maintainer rejected the 0.9.0 panel on sight: a scrolling box inside a small window, a checkbox sentence, two Include boxes, a horizontal chip strip with arrows, a Computer card under the chat. The redesign was mocked as four states of the same 440px panel and approved before any code changed.

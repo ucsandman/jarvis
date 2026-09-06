@@ -107,6 +107,8 @@ internal sealed class DesktopShell : Form {
     public void ShowDock() { SetMode("dock"); }
 
     public void SummonPanel() {
+        // A new summon is a new context: a window picked from the list is forgotten and the window in front is the default again.
+        capture.ClearPick();
         capture.RememberForeground();
         SetMode("panel");
         Show();
@@ -154,7 +156,7 @@ internal sealed class DesktopShell : Form {
         string[] front = capture.DescribeForeground();
         Post(new Dictionary<string, object> {
             {"type", "host-ready"}, {"mode", mode},
-            {"front", new Dictionary<string, object> { {"title", front[0]}, {"process", front[1]} }},
+            {"front", new Dictionary<string, object> { {"title", front[0]}, {"process", front[1]}, {"id", front[2]} }},
             {"hotkeys", new Dictionary<string, object> { {"summon", hotkeyRegistered}, {"quickAsk", quickAskRegistered} }}
         });
     }
@@ -202,6 +204,15 @@ internal sealed class DesktopShell : Form {
             object rawRequestId;
             string requestId = message.TryGetValue("requestId", out rawRequestId) ? rawRequestId as string : null;
             if (ValidRequestId(requestId)) CancelCapture(requestId);
+        } else if (type == "windows") {
+            // The list of open windows for the picker. Titles and process names only; no pixels.
+            Post(new Dictionary<string, object> { {"type", "windows"}, {"windows", capture.ListWindows()} });
+        } else if (type == "select-target") {
+            object rawTarget;
+            string requested = message.TryGetValue("target", out rawTarget) ? rawTarget as string : null;
+            bool selected = requested != null && requested.Length <= 32 && capture.Select(requested);
+            string[] front = capture.DescribeForeground();
+            Post(new Dictionary<string, object> { {"type", "target"}, {"ok", selected}, {"front", new Dictionary<string, object> { {"title", front[0]}, {"process", front[1]}, {"id", front[2]} }} });
         } else if (type == "speak") {
             object rawText;
             string text = message.TryGetValue("text", out rawText) ? rawText as string : null;
@@ -245,7 +256,13 @@ internal sealed class DesktopShell : Form {
         pendingCaptureId = requestId;
         try {
             CaptureService.CaptureTarget target = capture.PrepareCapture();
-            CaptureResult result = await Task.Run(() => capture.Capture(target));
+            CaptureResult result;
+            if (target.Desktop) {
+                // The whole desktop without Jarvis in it: the panel goes transparent for the capture and comes straight back.
+                Opacity = 0;
+                try { await Task.Delay(180); result = await Task.Run(() => capture.Capture(target)); }
+                finally { Opacity = 1; }
+            } else result = await Task.Run(() => capture.Capture(target));
             if (generation != captureGeneration || pendingCaptureId != requestId || mode == "dock") return;
             pendingCaptureId = null;
             Post(new Dictionary<string, object> { {"type", "capture"}, {"requestId", requestId}, {"image", result.Image}, {"label", result.Label}, {"capturedAt", result.CapturedAt} });

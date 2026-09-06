@@ -22,7 +22,9 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     if(next==='companion')setTimeout(()=>$('input').focus(),100);
   }
   const currentFamilies=()=>front?families(front.process,front.title):['unknown'];
-  const appName=()=>{const name=String(front?.process || '').replace(/\.exe$/i,'');return name?name[0].toUpperCase()+name.slice(1):'the window';};
+  const DESKTOP='desktop';
+  const appName=()=>{if(front?.id===DESKTOP)return 'the desktop';const name=String(front?.process || '').replace(/\.exe$/i,'');return name?name[0].toUpperCase()+name.slice(1):'the window';};
+  const readFront=value=>value && typeof value==='object' && typeof value.title==='string' && value.title.trim()?{title:value.title.trim().slice(0,200),process:String(value.process || '').slice(0,100),id:String(value.id || '').slice(0,32)}:null;
   const view=()=>{const s=getState();return {dictating:!!dictation || !!s.recognition,thinking:!!controller,capturing:capturing || reading,busy:s.busy,elapsed:s.elapsed,planning:s.planning,live:s.live,liveCount:s.liveCount,setupBusy:s.setupBusy,checking:s.checking,token:s.token,configured:s.configured,remaining:s.remaining,computerOn:s.computerOn,frameAttached:!!frame,textAttached:!!text,stream:s.stream,captureKind:s.captureKind};};
   const running=v=>!!(v.dictating || v.thinking || v.capturing || v.busy || v.planning || v.live || v.setupBusy);
   // The attachment chips describe themselves from state, so the caption can never disagree with what goes.
@@ -232,11 +234,29 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     if(take==='frame')capture();
     $('input').focus();
   }
+  // The picker: every open window plus the whole desktop, from the shell, titles only. It replaces the starters until something is picked.
+  function openPicker() {
+    if(!native || capturing || reading || controller)return;
+    $('targets').replaceChildren();$('front-change').setAttribute('aria-expanded','true');post({type:'windows'});
+  }
+  function closePicker() {$('targets').hidden=true;$('chips').hidden=false;$('front-change').setAttribute('aria-expanded','false');}
+  function renderPicker(list) {
+    const rows=[{id:DESKTOP,title:'Whole desktop',process:'',note:'every monitor, without Jarvis'},...list.map(w=>({id:String(w.id || '').slice(0,32),title:String(w.title || '').slice(0,200),process:String(w.process || '').slice(0,100)})).filter(w=>w.id && w.title)];
+    $('targets').replaceChildren(...rows.map(row=>{
+      const button=document.createElement('button');button.type='button';button.className='starter';button.setAttribute('aria-current',String(front?.id===row.id));
+      const label=document.createElement('strong');label.textContent=row.title;
+      const small=document.createElement('small');small.textContent=row.note || (row.process?row.process[0].toUpperCase()+row.process.slice(1).replace(/\.exe$/i,''):'');
+      const wrap=document.createElement('span');wrap.append(label,small);button.append(wrap);
+      button.onclick=()=>{error('');post({type:'select-target',target:row.id});};
+      return button;
+    }));
+    $('chips').hidden=true;$('targets').hidden=false;$('deck').hidden=false;$('targets').firstElementChild?.focus();
+  }
   // The starters show while the conversation is empty, and again when Jarvis is summoned from a different window mid-conversation.
   function renderDeck(show=false) {
     const fams=currentFamilies();
     chips=front?chipsFor(fams,front.title):UNKNOWN_CHIPS;
-    $('front').hidden=!front;$('front-title').textContent=front?`In front: ${front.title}`:'';
+    $('front').hidden=!front && !native;$('front-title').textContent=front?`Looking at: ${front.title}`:'Looking at: nothing yet';$('front-change').hidden=!native;
     $('ask').textContent=front?'What are we looking at?':'What are we working on?';
     if(show)$('deck').hidden=false;
     $('chips').replaceChildren(...chips.map(chip=>{
@@ -260,7 +280,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   $('expand').onclick=()=>{if(settings.open)settings.close();showSurface('studio');};$('back').onclick=()=>showSurface('companion');
   $('computer').onclick=()=>openWorkflow('computer','');
   $('hide').onclick=()=>{stop();showSurface('dock');};$('drag').onpointerdown=()=>post({type:'drag'});
-  $('front-clear').onclick=()=>{front=null;renderDeck();};
+  $('front-change').onclick=()=>{if($('targets').hidden)openPicker();else closePicker();};
   document.getElementById('model-choice').addEventListener('change',render);
   $('clear').onclick=()=>{history=[];$('messages').replaceChildren();$('welcome').hidden=false;$('deck').hidden=false;setFrame(null);setText(null);error('');};
   $('spoken').onchange=()=>{if(!$('spoken').checked){post({type:'stop-speaking'});window.speechSynthesis?.cancel();}};
@@ -273,9 +293,16 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     if(data.type==='host-ready'){
       showSurface(data.mode==='workbench'?'studio':'companion',false);
       const before=front?.title;
-      front=data.front && typeof data.front==='object' && typeof data.front.title==='string' && data.front.title.trim()?{title:data.front.title.trim().slice(0,200),process:String(data.front.process || '').slice(0,100)}:null;
+      front=readFront(data.front);
       document.getElementById('hotkey-note').hidden=!(data.hotkeys && data.hotkeys.quickAsk===false);
+      if(front?.title!==before)closePicker();
       renderDeck(!!front && front.title!==before);render();
+    }
+    if(data.type==='windows')renderPicker(Array.isArray(data.windows)?data.windows.slice(0,60):[]);
+    // The shell confirms what it will look at from now on; the starters follow the app, and a stale row says so.
+    if(data.type==='target'){
+      if(data.ok!==true){error('That window is no longer open. Pick another.');post({type:'windows'});return;}
+      front=readFront(data.front);closePicker();renderDeck(true);render();
     }
     // Ctrl+Shift+E: never while something is in flight, and never over a message the user is still writing.
     if(data.type==='quick-ask'){

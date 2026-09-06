@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.0: Choose what Jarvis looks at
+
+- The "In front" line is now "Looking at" with **change**. It lists **Whole desktop** and every open window (title and app, Jarvis excluded) as rows in place of the starters; a pick tells the shell, re-fits the starters to that app, and Screenshot and the starters capture that target until the next summon. A closed window is refused and the list refreshes. "not this one" is gone.
+- **Whole desktop** captures every monitor at once, bounded like a window capture, with the panel made transparent for the capture so Jarvis is not in the picture.
+- Window capture renders the window's own surface at full size, so a window half off the screen or on another monitor captures whole. "Move the entire selected window onto the visible desktop" is gone; only a minimized window refuses, and says so.
+- Shell messages: `windows` (titles and process names only), `select-target`, and `id` on `host-ready`'s `front`. The browser build hides **change** and keeps the OS picker.
+
 ## 0.10.0: One box, one button
 
 - The panel redesigned from first principles: one message box, one Send button, nothing to tick. The button says what goes ("Send with screenshot", "Send with window text"); a screenshot or the window's text sits inside the box as a chip with its name, time and size, × removes it, and after a send it leaves the box and stays on the message as evidence. Refused and stopped sends keep it.

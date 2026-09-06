@@ -25,7 +25,7 @@ const server=createApp({vision,computer});await new Promise(resolve=>server.list
 const {chromium}=browserTools();const browser=await chromium.launch({channel:'chrome',headless:true});
 const page=await browser.newPage({viewport:{width:440,height:700}});const errors=[],checks=[];
 page.on('pageerror',e=>errors.push(e.message));
-await page.addInitScript(()=>{window.nativeMessages=[];window.nativeListener=null;window.chrome={webview:{postMessage(value){window.nativeMessages.push(value);if(value.type==='copy'){setTimeout(()=>window.nativeListener({data:{type:'copied',ok:!/refuse me/.test(value.text)}}),10);}if(value.type==='capture'){const canvas=document.createElement('canvas');canvas.width=200;canvas.height=100;const ctx=canvas.getContext('2d');ctx.fillStyle='#efede5';ctx.fillRect(0,0,200,100);ctx.fillStyle='#292e29';ctx.font='18px sans-serif';ctx.fillText('Design reference',15,55);setTimeout(()=>window.nativeListener({data:{type:'capture',requestId:value.requestId,image:canvas.toDataURL('image/jpeg'),label:'Design reference · verification fixture',capturedAt:new Date().toISOString()}}),10);}},addEventListener(type,fn){window.nativeListener=fn;}}};});
+await page.addInitScript(()=>{window.nativeMessages=[];window.nativeListener=null;window.shellWindows=[{id:'1001',title:'Design reference window',process:'Fixture'},{id:'1002',title:'Setup failed: error 0x1',process:'Fixture'}];window.shellFront={title:'Design reference window',process:'Fixture',id:'1001'};window.chrome={webview:{postMessage(value){window.nativeMessages.push(value);if(value.type==='windows'){setTimeout(()=>window.nativeListener({data:{type:'windows',windows:window.shellWindows}}),10);}if(value.type==='select-target'){const row=value.target==='desktop'?{title:'Whole desktop',process:'',id:'desktop'}:window.shellWindows.find(w=>w.id===value.target);if(row)window.shellFront=row;setTimeout(()=>window.nativeListener({data:{type:'target',ok:!!row,front:window.shellFront}}),10);}if(value.type==='copy'){setTimeout(()=>window.nativeListener({data:{type:'copied',ok:!/refuse me/.test(value.text)}}),10);}if(value.type==='capture'){const canvas=document.createElement('canvas');canvas.width=200;canvas.height=100;const ctx=canvas.getContext('2d');ctx.fillStyle='#efede5';ctx.fillRect(0,0,200,100);ctx.fillStyle='#292e29';ctx.font='18px sans-serif';ctx.fillText('Design reference',15,55);setTimeout(()=>window.nativeListener({data:{type:'capture',requestId:value.requestId,image:canvas.toDataURL('image/jpeg'),label:'Design reference · verification fixture',capturedAt:new Date().toISOString()}}),10);}},addEventListener(type,fn){window.nativeListener=fn;}}};});
 const $=id=>page.locator('#companion-'+id);
 const starters=page.locator('#companion-chips .starter');
 const idle=()=>page.waitForFunction(()=>!document.getElementById('companion-send').disabled);
@@ -74,7 +74,7 @@ try{
   assert.equal(await $('deck').isHidden(),true,'starters leave once there is a conversation');
   await hostReady({title:'Setup failed: error 0x1',process:'WindowsTerminal'});assert.equal(await $('deck').isVisible(),true,'a new window in front brings the starters back');
   assert.match(await starters.first().innerText(),/^Unstick me\ntakes a screenshot of WindowsTerminal$/,'a terminal takes a screenshot even for a text-first starter');
-  await hostReady({title:'Setup failed: error 0x1',process:'Fixture'});assert.equal(await $('front-title').innerText(),'In front: Setup failed: error 0x1');
+  await hostReady({title:'Setup failed: error 0x1',process:'Fixture'});assert.equal(await $('front-title').innerText(),'Looking at: Setup failed: error 0x1');
   assert.match(await starters.first().innerText(),/^Unstick me\nreads the text of Fixture$/);
   await starters.first().click();await $('text').waitFor();
   assert.deepEqual(nativeOps,['windows','snapshot'],'a read never arms');assert.equal(await captures(),3,'a text starter captures no frame');
@@ -88,8 +88,21 @@ try{
   checks.push('an error window brings Unstick me back, reads text instead of a frame, shows every character, sends it once, never arms');
   // A read that fails keeps its reason on screen and falls back to a screenshot.
   await hostReady({title:'Gone window: error',process:'Fixture'});await starters.first().click();await $('context').waitFor();assert.match(await $('error').innerText(),/not open.*Taking a screenshot instead/);assert.equal(await captures(),4);await $('remove').click();
-  await $('front-clear').click();assert.equal(await starters.count(),3);assert.equal(await $('front').isHidden(),true);assert.match(await starters.first().innerText(),/takes a screenshot of the window$/);
-  checks.push('a failed read says why and takes a screenshot; not this one falls back to the generic starters');
+  checks.push('a failed read says why and takes a screenshot');
+  // The picker: change lists the whole desktop and every open window from the shell, a pick tells the shell and re-fits the starters, a stale row says so.
+  const targets=page.locator('#companion-targets .starter');
+  await $('front-change').click();await $('targets').waitFor();assert.equal(await targets.count(),3);assert.equal(await $('chips').isHidden(),true,'the list replaces the starters');
+  assert.match(await targets.nth(0).innerText(),/^Whole desktop\nevery monitor, without Jarvis$/);assert.match(await targets.nth(1).innerText(),/^Design reference window\nFixture$/);
+  assert.equal(await page.evaluate(()=>window.nativeMessages.filter(m=>m.type==='windows').length),1);assert.equal(await captures(),4,'listing captures nothing');
+  await targets.nth(0).click();await page.waitForFunction(()=>document.getElementById('companion-front-title').textContent==='Looking at: Whole desktop');
+  assert.deepEqual(await page.evaluate(()=>window.nativeMessages.filter(m=>m.type==='select-target').map(m=>m.target)),['desktop']);
+  assert.equal(await $('targets').isHidden(),true);assert.equal(await starters.count(),3);assert.match(await starters.first().innerText(),/takes a screenshot of the desktop$/);
+  await $('capture').click();await $('context').waitFor();assert.equal(await captures(),5);assert.equal(await starters.first().isDisabled(),false,'starters stay live after a capture');await $('remove').click();
+  await $('front-change').click();await $('targets').waitFor();assert.equal(await targets.nth(0).getAttribute('aria-current'),'true','the current pick is marked');
+  await page.evaluate(()=>{window.shellWindows=window.shellWindows.slice(0,1);});await targets.nth(2).click();await page.waitForFunction(()=>document.getElementById('companion-error').textContent.includes('no longer open'));
+  await page.waitForFunction(()=>document.querySelectorAll('#companion-targets .starter').length===2,null,{timeout:3000});
+  await targets.nth(1).click();await page.waitForFunction(()=>document.getElementById('companion-front-title').textContent==='Looking at: Design reference window');assert.equal(await $('targets').isHidden(),true);
+  assert.equal(nativeOps.filter(op=>op==='arm').length,0);checks.push('change lists the desktop and every window, a pick re-fits the starters and captures that target, a closed window is refused and relisted');
   await page.getByRole('button',{name:'Build this in the studio'}).click();assert.ok(await page.locator('.app-shell').isVisible());assert.equal(await page.locator('#direction').inputValue(),'Help me build a prototype');assert.equal(await page.locator('#include-frame').isChecked(),false);assert.equal(requests.length,5);checks.push('build handoff fills the studio composer without generation');
   await $('back').click();await $('input').fill('Help with setup');await $('send').click();await idle();await page.getByRole('button',{name:'Let Jarvis do this'}).click();
   assert.equal(await page.locator('#computer-task').inputValue(),'Help with setup');assert.equal(await page.locator('#computer-lease').evaluate(d=>d.open),true,'the lease asks before anything is armed');assert.equal(await page.locator('#computer-permission').isChecked(),false);assert.equal(await page.locator('.app-shell').isVisible(),false);

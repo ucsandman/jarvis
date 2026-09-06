@@ -73,6 +73,21 @@ $p=Get-Process -Id ${fixture.pid};$deadline=[DateTime]::UtcNow.AddSeconds(5);do{
   if(await page.locator('#companion-context').isHidden())throw new Error('Native capture failed: '+await page.locator('#companion-error').innerText());
   assert.equal((await page.locator('#companion-frame-label').innerText()).includes('Jarvis capture verification'),true,'Capture must target only the owned fixture.');
   assert.match(await page.locator('#companion-frame').getAttribute('src'),/^data:image\/jpeg;base64,/);assert.equal(await page.locator('#companion-send').innerText(),'Send with screenshot ↑');await page.screenshot({path:'.artifacts/native-capture.png'});checks.push('explicit native capture returns only named fixture, no sharing');
+  // The picker against the real shell: the fixture is in the list, picking it captures it, and Whole desktop captures every monitor without the panel.
+  await page.locator('#companion-remove').click();await page.locator('#companion-front-change').click();await page.locator('#companion-targets .starter').first().waitFor();
+  assert.match(await page.locator('#companion-targets .starter').first().innerText(),/^Whole desktop/);
+  const fixtureRow=page.locator('#companion-targets .starter').filter({hasText:'Jarvis capture verification'});assert.equal(await fixtureRow.count(),1,'the fixture is listed once');
+  assert.equal(await page.locator('#companion-targets .starter').filter({hasText:/^Jarvis\n/}).count(),0,'Jarvis is not in its own list');
+  await fixtureRow.click();await page.waitForFunction(()=>document.getElementById('companion-front-title').textContent==='Looking at: Jarvis capture verification');
+  await page.locator('#companion-capture').click();await page.waitForFunction(()=>!document.getElementById('companion-context').hidden || !document.getElementById('companion-error').hidden);
+  assert.match(await page.locator('#companion-frame-label').innerText(),/Jarvis capture verification/);await page.locator('#companion-remove').click();
+  await page.locator('#companion-front-change').click();await page.locator('#companion-targets .starter').first().click();await page.waitForFunction(()=>document.getElementById('companion-front-title').textContent==='Looking at: Whole desktop');
+  await page.locator('#companion-capture').click();await page.waitForFunction(()=>!document.getElementById('companion-context').hidden || !document.getElementById('companion-error').hidden);
+  if(await page.locator('#companion-context').isHidden())throw new Error('Desktop capture failed: '+await page.locator('#companion-error').innerText());
+  assert.equal(await page.locator('#companion-frame-label').innerText(),'Whole desktop');
+  const desktopSize=await page.locator('#companion-frame').evaluate(img=>[img.naturalWidth,img.naturalHeight]);assert.ok(desktopSize[0]>=800 && desktopSize[1]>=400,`desktop frame is ${desktopSize.join('x')}`);
+  assert.equal(await page.evaluate(()=>document.visibilityState),'visible','the panel is back after a desktop capture');
+  await page.screenshot({path:'.artifacts/native-desktop-capture.png'});await page.locator('#companion-remove').click();checks.push('picker lists the fixture and the whole desktop; both capture through the real shell');
   await page.locator('#companion-hide').click();await page.waitForTimeout(200);
   execFileSync(powershell,['-NoProfile','-Command',"$s=[Threading.EventWaitHandle]::OpenExisting('Local\\JarvisDesktopOpen');$s.Set()|Out-Null;$s.Dispose()"],{windowsHide:true,stdio:'pipe'});
   await page.locator('#companion-input').waitFor();assert.ok(await page.locator('#companion').isVisible());checks.push('dock collapse and summon restore conversation');
