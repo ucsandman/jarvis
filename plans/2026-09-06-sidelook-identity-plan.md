@@ -205,7 +205,7 @@ static class MarkTest {
             if (bmp.GetPixel(43, 32).ToArgb() != SidelookMark.Navy.ToArgb()) { Console.WriteLine("FAIL right eye pixel not navy"); failures++; }
             if (bmp.GetPixel(2, 2).ToArgb() != SidelookMark.Navy.ToArgb()) { Console.WriteLine("FAIL corner not navy"); failures++; }
         }
-        Console.WriteLine(failures == 0 ? "PASS: 15 mark assertions" : failures + " mark assertion(s) failed");
+        Console.WriteLine(failures == 0 ? "PASS: 14 mark assertions" : failures + " mark assertion(s) failed");
         return failures == 0 ? 0 : 1;
     }
 }
@@ -366,7 +366,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-icon.ps1
 sed -i "s#desktop/jarvis.ico#desktop/sidelook.ico#g" scripts/build-windows.ps1
 npm run verify:mark
 ```
-Expected: `PASS: 7 source checks, 15 compiled assertions, sidelook.ico <n> bytes.`
+Expected: `PASS: 7 source checks, 14 compiled assertions, sidelook.ico <n> bytes.`
 
 - [ ] **Step 8: Prove the verifier bites.** Change `13,21` to `13,22` in `public/mark.svg`, run `npm run verify:mark`, expect `mark.svg hexagon differs`. Revert. Change `EyeReach = 120f` to `60f` in the C#, run, expect `FAIL half dx`. Revert.
 
@@ -623,7 +623,7 @@ git commit -m "Claude: [FEAT] the dock's eyes follow the cursor; the shell posts
         Directory.Delete(temp, true);
 ```
 
-Change the PASS line's count to `20` (15 mark, 5 migration), and add `desktop/ProfileMigration.cs` to the `& $csc` arguments.
+Change the PASS line's count to `19` (14 mark, 5 migration), and add `desktop/ProfileMigration.cs` to the `& $csc` arguments.
 
 Run `npm run verify:mark`. Expected: compile error, `ProfileMigration` does not exist.
 
@@ -666,7 +666,7 @@ internal static class ProfileMigration {
 }
 ```
 
-Run `npm run verify:mark`. Expected: `PASS: 7 source checks, 20 compiled assertions, ...`.
+Run `npm run verify:mark`. Expected: `PASS: 7 source checks, 19 compiled assertions, ...`.
 
 - [ ] **Step 3: Rename in `desktop/Launcher.cs`**
 
