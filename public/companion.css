@@ -20,7 +20,9 @@ body:not([data-native]) .companion-edges{display:none}
 #screen-lease .dialog-actions{flex-direction:column}
 #companion-dot{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}#companion-dot.on{background:var(--accent);animation:companion-pulse 1.4s ease-out infinite}
 @keyframes companion-pulse{0%{box-shadow:0 0 0 0 #2DD4A899}100%{box-shadow:0 0 0 8px #2DD4A800}}
-#companion .companion-header>button:not(.companion-brand):not(.companion-sense){width:32px;min-height:32px;padding:0;font-size:17px;color:var(--muted)}#companion .companion-header>button:not(.companion-brand):not(.companion-sense):hover:not(:disabled){color:var(--ink)}
+#companion .companion-header>button:not(.companion-brand):not(.companion-sense):not(.companion-bench){width:32px;min-height:32px;padding:0;font-size:17px;color:var(--muted)}#companion .companion-header>button:not(.companion-brand):not(.companion-sense):not(.companion-bench):hover:not(:disabled){color:var(--ink)}
+/* The bench: the studio is one press from the header, not two presses inside Settings. */
+#companion .companion-bench{flex-shrink:0;font-size:12px;white-space:nowrap}
 
 /* The conversation. It scrolls only once the panel has hit the top of the working area. */
 .companion-scroll{overflow:auto;flex:1;min-height:0;padding:2px 16px 8px;scrollbar-width:thin;scrollbar-color:var(--line) transparent;display:flex;flex-direction:column}
@@ -88,5 +90,7 @@ body:not([data-native]) .companion-edges{display:none}
 #computer-history{margin:0;padding-left:20px;font-size:13px;color:var(--muted)}#computer-history li{margin:2px 0}
 .computer-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 16px 12px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);flex-shrink:0}#companion #computer-stop{background:#2b313f;color:var(--ink);padding:7px 14px;font-weight:500}#companion #computer-stop:hover:not(:disabled){background:#363c4e}
 
-@media(max-width:1180px){body[data-surface=studio] #companion{display:none}}
+/* Too narrow for the column beside the studio: Chat in the toolbar slides it over the right edge of the stage instead, and ← Panel or Escape closes it. */
+@media(max-width:1180px){body[data-surface=studio] #companion{display:none}body[data-surface=studio].chat-open #companion{display:flex;position:fixed;top:0;right:0;width:440px;max-width:100%;height:100dvh;z-index:6;box-shadow:-24px 0 60px #0b0f1a99}}
+@media(max-width:900px){body[data-surface=studio].chat-open #companion{width:100%;border-left:0}}
 @media(prefers-reduced-motion:reduce){#companion *,#companion *::before{scroll-behavior:auto!important;transition:none!important;animation:none!important}}

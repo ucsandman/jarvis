@@ -38,7 +38,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   tone.onchange=()=>{try{localStorage.setItem('sidelookTone',tone.value);}catch{}};
   function showSurface(next,notify=true) {
     document.body.dataset.surface=next==='studio'?'studio':'companion';
-    $('expand').hidden=next==='studio';
+    $('bench').hidden=next==='studio';
     if(notify)post({type:'resize',mode:next==='studio'?'workbench':next==='dock'?'dock':'panel'});
     if(next==='companion')setTimeout(()=>$('input').focus(),100);
   }
@@ -394,7 +394,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   $('settings').onclick=()=>{if(!settings.open)settings.showModal();};
   $('preview').onclick=showPreview;
   document.getElementById('settings-preview').onclick=showPreview;
-  $('expand').onclick=()=>{if(settings.open)settings.close();showSurface('studio');};$('back').onclick=()=>showSurface('companion');
+  $('bench').onclick=()=>{if(settings.open)settings.close();showSurface('studio');};$('back').onclick=()=>showSurface('companion');
   $('computer').onclick=()=>openWorkflow('computer','');
   $('hide').onclick=()=>{stop();showSurface('dock');};$('drag').onpointerdown=()=>post({type:'drag'});
   $('front').onclick=()=>{if($('targets').hidden)openPicker();else closePicker();};

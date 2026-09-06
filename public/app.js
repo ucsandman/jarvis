@@ -556,7 +556,12 @@ function setViewport(mobile) {
   for (const [id,active] of [['mobile-view',mobile],['desktop-view',!mobile]]) { $(id).classList.toggle('active',active); $(id).setAttribute('aria-pressed',String(active)); }
 }
 $('expand').addEventListener('click',() => { const expanded = document.querySelector('.stage').classList.toggle('expanded'); $('expand').setAttribute('aria-label',expanded ? 'Collapse preview' : 'Expand preview'); });
-document.addEventListener('keydown',event => { if (event.key === 'Escape') { document.querySelector('.stage').classList.remove('expanded'); $('expand').setAttribute('aria-label','Expand preview'); } });
+document.addEventListener('keydown',event => { if (event.key === 'Escape') { document.querySelector('.stage').classList.remove('expanded'); $('expand').setAttribute('aria-label','Expand preview'); setChat(false); } });
+// Below 1180 the column cannot sit beside the studio, so Chat slides it over the right edge of the stage. Escape, ← Panel, and a window wide enough for the column all close it.
+function setChat(open) { document.body.classList.toggle('chat-open',open); $('chat-toggle').setAttribute('aria-expanded',String(open)); }
+$('chat-toggle').addEventListener('click',() => setChat(!document.body.classList.contains('chat-open')));
+$('companion-back').addEventListener('click',() => setChat(false));
+addEventListener('resize',() => { if (innerWidth > 1180) setChat(false); });
 $('source').addEventListener('click',() => { if (!current()) return; $('source-code').textContent = current().html; $('source-dialog').showModal(); });
 $('download').addEventListener('click',() => {
   const revision = current(); if (!revision) return;

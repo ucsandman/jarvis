@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- **Bench ↗** sits in the panel header and opens the studio. It was a line inside Settings, two presses away; that line is gone.
+- The studio opens to fit the monitor Sidelook lives on: 85% of the working area, capped at 1480x900 and floored at 760x520. Drag it to another size and it opens at that size next time, saved in `studio-size.json` beside the dock position. The panel and the dock still remember nothing.
+- The studio reflows instead of clipping. Above 1180 it is unchanged. From 900 to 1180 the chat column steps aside and a **Chat** button in the toolbar slides it over the right edge of the stage; Escape, ← Panel, or a window wide enough for the column closes it. Under 900 the rail stacks above the stage with its own scroll, the toolbar wraps and Share window and Live build shorten to Share and Live. Nothing scrolls sideways down to 760.
+- The browser check loads the studio at 1480, 1180, 1100, 900, 800 and 760, opens and closes the chat overlay at two of them, and fails on any horizontal overflow.
+
 ## 0.16.0: Sidelook
 
 - Jarvis is now Sidelook, a Practical Systems product. Same app, same shortcuts, same port, same twelve versions. The exe is `Sidelook-0.16.0-Windows-x64.exe`; the site is https://sidelook.practicalsystems.io and the old address redirects.

@@ -31,8 +31,9 @@
       <button class="quiet" id="companion-back">← Panel</button>
       <span class="toolbar-title">Studio</span>
       <div class="toolbar-actions">
-        <button class="button amber" id="share-screen">Share window</button>
-        <button class="button secondary" id="live-start">Live build</button>
+        <button class="quiet" id="chat-toggle" aria-expanded="false" aria-controls="companion">Chat</button>
+        <button class="button amber" id="share-screen">Share<span class="toolbar-wide"> window</span></button>
+        <button class="button secondary" id="live-start">Live<span class="toolbar-wide"> build</span></button>
         <button class="button secondary" id="live-pause" hidden>Live <span id="live-count">0 / 10 builds</span> · Pause</button>
         <button class="quiet model-menu" id="model-menu" aria-label="Model and effort, opens Settings"><span class="status-dot" id="provider-dot"></span><span id="provider-status">Checking connection</span><span aria-hidden="true">▾</span></button>
         <button class="icon-button" id="settings-open" aria-label="Settings" title="Settings">⚙</button>
@@ -114,7 +115,7 @@
   </div>
 
   <section id="companion" aria-label="Sidelook companion">
-    <header class="companion-header"><button id="companion-drag" class="companion-brand" aria-label="Drag Sidelook window" title="Sidelook"><svg class="mark-live" viewBox="0 0 64 64" width="22" height="22" aria-hidden="true"><polygon points="32,10 51,21 51,43 32,54 13,43 13,21" fill="var(--hub)"/><circle class="eye" cx="31" cy="32" r="3.6"/><circle class="eye" cx="43" cy="32" r="3.6"/></svg></button><button type="button" id="companion-sense" class="companion-sense" aria-describedby="companion-status"><i id="companion-dot" aria-hidden="true"></i><span id="companion-status" role="status">Connecting</span></button><button id="companion-settings" aria-label="Settings" title="Settings">⚙</button><button id="companion-hide" aria-label="Return to dock" title="Return to dock">−</button></header>
+    <header class="companion-header"><button id="companion-drag" class="companion-brand" aria-label="Drag Sidelook window" title="Sidelook"><svg class="mark-live" viewBox="0 0 64 64" width="22" height="22" aria-hidden="true"><polygon points="32,10 51,21 51,43 32,54 13,43 13,21" fill="var(--hub)"/><circle class="eye" cx="31" cy="32" r="3.6"/><circle class="eye" cx="43" cy="32" r="3.6"/></svg></button><button type="button" id="companion-sense" class="companion-sense" aria-describedby="companion-status"><i id="companion-dot" aria-hidden="true"></i><span id="companion-status" role="status">Connecting</span></button><button type="button" class="quiet companion-bench" id="companion-bench" title="Open the studio · build a prototype from a sketch">Bench ↗</button><button id="companion-settings" aria-label="Settings" title="Settings">⚙</button><button id="companion-hide" aria-label="Return to dock" title="Return to dock">−</button></header>
     <div class="companion-scroll">
       <ol id="companion-messages" aria-label="Conversation" aria-live="polite" aria-relevant="additions"></ol>
       <div id="companion-deck">
@@ -169,7 +170,6 @@
   <dialog id="settings" class="settings" aria-labelledby="settings-title">
     <div class="settings-head"><h2 id="settings-title">Settings</h2><button class="quiet" id="settings-close" data-close="settings">Back</button></div>
     <section class="settings-section settings-more" aria-label="Do more">
-      <button class="quiet" id="companion-expand">Open the studio · build a prototype from a sketch ↗</button>
       <button class="quiet" id="computer-open">Computer mode · let Sidelook work in one Windows app, one approved action at a time</button>
     </section>
     <section class="settings-section" aria-label="Model">
