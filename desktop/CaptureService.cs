@@ -14,7 +14,7 @@ internal sealed class CaptureResult {
     public string CapturedAt;
 }
 
-// What Jarvis looks at: the window that was in front at summon, or one the user picked from the list, or the whole desktop.
+// What Sidelook looks at: the window that was in front at summon, or one the user picked from the list, or the whole desktop.
 // A pick lasts until the next summon. Nothing is captured until the page asks.
 // A minimized window is shown without activation for the capture and minimized again afterwards.
 internal sealed class CaptureService {
@@ -110,7 +110,7 @@ internal sealed class CaptureService {
         return true;
     }
 
-    // Title, process name and id of what Jarvis is looking at, for the label and the starters. Never a pixel, never sent anywhere by the shell.
+    // Title, process name and id of what Sidelook is looking at, for the label and the starters. Never a pixel, never sent anywhere by the shell.
     public string[] DescribeForeground() {
         lock (sync) {
             if (desktop) return new[] { DesktopTitle, String.Empty, DesktopId };
@@ -119,7 +119,7 @@ internal sealed class CaptureService {
         }
     }
 
-    // Every visible, titled top-level window except Jarvis, tool windows and cloaked ones, minimized ones included. Titles only; no pixels.
+    // Every visible, titled top-level window except Sidelook, tool windows and cloaked ones, minimized ones included. Titles only; no pixels.
     public List<Dictionary<string, object>> ListWindows() {
         var windows = new List<Dictionary<string, object>>();
         var names = new Dictionary<int, string>();
@@ -182,14 +182,14 @@ internal sealed class CaptureService {
         // A minimized window has nothing rendered. Show it at its last size without activating it, capture, then put it back exactly as it was.
         WindowPlacement placement = new WindowPlacement();
         placement.Length = Marshal.SizeOf(typeof(WindowPlacement));
-        if (!GetWindowPlacement(snapshot.Window, ref placement)) throw new InvalidOperationException("Jarvis could not read the minimized window's placement.");
+        if (!GetWindowPlacement(snapshot.Window, ref placement)) throw new InvalidOperationException("Sidelook could not read the minimized window's placement.");
         ShowWindow(snapshot.Window, SwShowNoActivate);
         try {
             for (int waited = 0; IsIconic(snapshot.Window) && waited < 1000; waited += 50) Thread.Sleep(50);
             if (IsIconic(snapshot.Window)) throw new InvalidOperationException("That window would not restore for the screenshot. Restore it yourself, then take the screenshot again.");
             Thread.Sleep(250);
             DwmFlush();
-            if (!GetWindowRect(snapshot.Window, out snapshot.Bounds)) throw new InvalidOperationException("Jarvis could not read the selected window bounds.");
+            if (!GetWindowRect(snapshot.Window, out snapshot.Bounds)) throw new InvalidOperationException("Sidelook could not read the selected window bounds.");
             return CaptureWindow(snapshot);
         } finally {
             placement.ShowCmd = SwShowMinNoActive;
@@ -214,7 +214,7 @@ internal sealed class CaptureService {
         }
     }
 
-    // Every monitor at once. The shell hides its own panel before calling this, so Jarvis is not in the picture.
+    // Every monitor at once. The shell hides its own panel before calling this, so Sidelook is not in the picture.
     CaptureResult CaptureDesktop() {
         Rectangle bounds = SystemInformation.VirtualScreen;
         if (bounds.Width < 2 || bounds.Height < 2) throw new InvalidOperationException("The desktop has no size to capture.");
@@ -241,7 +241,7 @@ internal sealed class CaptureService {
         string selectedTitle;
         DateTime selectedAt;
         lock (sync) { selected = target; selectedProcessId = targetProcessId; selectedTitle = targetTitle; selectedAt = targetSeenAt; }
-        if (selected == IntPtr.Zero || DateTime.UtcNow - selectedAt > MaxTargetAge) throw new InvalidOperationException("Choose a window with \"change\", or summon Jarvis from the window you want.");
+        if (selected == IntPtr.Zero || DateTime.UtcNow - selectedAt > MaxTargetAge) throw new InvalidOperationException("Choose a window with \"change\", or summon Sidelook from the window you want.");
         int processId;
         if (!IsWindow(selected) || GetWindowThreadProcessId(selected, out processId) == 0 || processId != selectedProcessId || processId == ownProcessId) throw new InvalidOperationException("That window is no longer open. Choose another with \"change\".");
         if (!IsWindowVisible(selected)) throw new InvalidOperationException("The selected window is not currently visible.");
@@ -251,7 +251,7 @@ internal sealed class CaptureService {
         int cloaked;
         if (DwmGetWindowAttribute(selected, DwmwaCloaked, out cloaked, sizeof(int)) == 0 && cloaked != 0) throw new InvalidOperationException("The selected window is not currently visible.");
         var result = new CaptureTarget { Window = selected, ProcessId = selectedProcessId, Title = selectedTitle, Minimized = IsIconic(selected) };
-        if (!result.Minimized && !GetWindowRect(selected, out result.Bounds)) throw new InvalidOperationException("Jarvis could not read the selected window bounds.");
+        if (!result.Minimized && !GetWindowRect(selected, out result.Bounds)) throw new InvalidOperationException("Sidelook could not read the selected window bounds.");
         return result;
     }
 

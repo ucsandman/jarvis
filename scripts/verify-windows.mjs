@@ -9,13 +9,13 @@ import { browserTools } from './browser.mjs';
 if(process.platform!=='win32') throw new Error('Run this executable verification on Windows x64.');
 const {version}=JSON.parse(await readFile('package.json','utf8'));
 const build=resolve(`.artifacts/windows-${version}`);
-const exe=join(build,`Jarvis-${version}-Windows-x64.exe`);
+const exe=join(build,`Sidelook-${version}-Windows-x64.exe`);
 const clean=await mkdtemp(resolve('.artifacts/desktop-profile-'));
 const env={...Object.fromEntries(Object.entries(subscriptionEnv()).map(([key,value])=>[key.toUpperCase(),value])),PATH:join(process.env.WINDIR,'System32'),HOME:clean,USERPROFILE:clean,HOMEDRIVE:clean.slice(0,2),HOMEPATH:clean.slice(2),APPDATA:join(clean,'AppData','Roaming'),LOCALAPPDATA:join(clean,'AppData','Local')};
 const probe=spawn(exe,['--verify'],{windowsHide:true,env});
 assert.equal(await new Promise(resolve=>probe.on('close',resolve)),0,'Executable extraction/runtime check');
 const hash=createHash('sha256').update(await readFile(join(build,'payload.zip'))).digest('hex');
-const installed=join(env.LOCALAPPDATA,'Jarvis','versions',`${version}-${hash.slice(0,12)}`);
+const installed=join(env.LOCALAPPDATA,'Sidelook','versions',`${version}-${hash.slice(0,12)}`);
 const node=join(installed,'runtime','node.exe');
 const transport=pathToFileURL(join(installed,'lib','subscription.mjs')).href;
 const nativeUrl=pathToFileURL(join(installed,'lib','computer.mjs')).href;
@@ -40,7 +40,7 @@ try {
   assert.ok((await (await fetch(base)).text()).includes('Sign in with ChatGPT'));
   assert.ok((await (await fetch(base+'/demo.html')).text()).includes('DAYLIGHT'));
   assert.equal((await fetch(base+'/api/session')).status,403);
-  const session=await (await fetch(base+'/api/session',{headers:{'X-Jarvis-Launch':desktopKey}})).json();
+  const session=await (await fetch(base+'/api/session',{headers:{'X-Jarvis-Launch':desktopKey}})).json();   // legacy header name: server.mjs still reads x-jarvis-launch
   assert.equal(session.cli,true); assert.equal(typeof session.configured,'boolean');
   const {chromium}=browserTools();
   const browser=await chromium.launch({channel:'chrome',headless:true});

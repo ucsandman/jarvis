@@ -41,7 +41,7 @@ internal sealed class DesktopShell : Form {
     int panelFrom, panelTarget;
     DateTime panelStart;
     bool panelSized;   // the user dragged an edge, so content stops driving the height until the next summon
-    // Where Jarvis lives on the desktop: the bottom-right corner shared by the dock, the panel and the studio. Dragging the dock moves it; it is saved beside the profile.
+    // Where Sidelook lives on the desktop: the bottom-right corner shared by the dock, the panel and the studio. Dragging the dock moves it; it is saved beside the profile.
     Point anchor = Point.Empty;
     readonly string anchorFile;
     Point dockPress;
@@ -49,9 +49,15 @@ internal sealed class DesktopShell : Form {
     readonly WebView2 web = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(23, 29, 45) };
     readonly Button dockButton = new Button {
         Dock = DockStyle.Fill, Text = String.Empty, BackColor = SidelookMark.Navy,
-        FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, TabStop = false, AccessibleName = "Open Jarvis"
+        FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, TabStop = false, AccessibleName = "Open Sidelook"
     };
     bool dockHover;
+    readonly Timer eyeTimer = new Timer { Interval = 40 };
+    PointF eyes = new PointF(SidelookMark.EyeTravel, 0);
+    Point lastCursor = new Point(int.MinValue, int.MinValue);
+    bool animations = true;   // Windows' animation switch, refreshed on preference change; false means the eyes stay at the static right
+    readonly Timer fadeTimer = new Timer { Interval = 15 };
+    DateTime fadeStart; double fadeFrom, fadeTo, fadeMs; Action fadeDone;
     string mode = "dock";
     bool ready;
     bool allowClose;
@@ -72,7 +78,7 @@ internal sealed class DesktopShell : Form {
     public DesktopShell(string dataRoot, string appUrl, string key) {
         url = appUrl;
         launchKey = key;
-        Text = "Jarvis";
+        Text = "Sidelook";
         Icon = SidelookMark.AppIcon();
         BackColor = SidelookMark.Navy;
         ShowInTaskbar = false;
@@ -82,11 +88,11 @@ internal sealed class DesktopShell : Form {
         dockButton.FlatAppearance.MouseOverBackColor = SidelookMark.Navy;
         dockButton.FlatAppearance.MouseDownBackColor = SidelookMark.Navy;
         dockButton.Paint += delegate(object sender, PaintEventArgs args) {
-            SidelookMark.Draw(args.Graphics, dockButton.ClientRectangle, new PointF(SidelookMark.EyeTravel, 0), false, dockHover);
+            SidelookMark.Draw(args.Graphics, dockButton.ClientRectangle, eyes, false, dockHover);
         };
         dockButton.MouseEnter += delegate { dockHover = true; dockButton.Invalidate(); };
         dockButton.MouseLeave += delegate { dockHover = false; dockButton.Invalidate(); };
-        // Press and release summons; press and move drags the dock, and where it lands is where Jarvis lives from then on.
+        // Press and release summons; press and move drags the dock, and where it lands is where Sidelook lives from then on.
         dockButton.MouseDown += delegate(object sender, MouseEventArgs args) { if (args.Button == MouseButtons.Left) { dockPress = Cursor.Position; dockDragging = false; } };
         dockButton.MouseMove += delegate(object sender, MouseEventArgs args) {
             if (args.Button != MouseButtons.Left || dockDragging) return;
@@ -106,6 +112,12 @@ internal sealed class DesktopShell : Form {
         follow.Clicked += OnFollowClick;
         followTimer.Tick += delegate { if (DateTime.UtcNow >= followExpires) EndFollow("expired"); };
         panelTimer.Tick += delegate { StepPanel(); };
+        animations = AnimationsEnabled();
+        Microsoft.Win32.SystemEvents.UserPreferenceChanged += OnPreferenceChanged;
+        Microsoft.Win32.SystemEvents.SessionSwitch += OnSessionSwitch;
+        eyeTimer.Tick += delegate { TrackEyes(); };
+        eyeTimer.Start();
+        fadeTimer.Tick += delegate { StepFade(); };
         FormClosing += OnShellClosing;
         Shown += delegate { PositionForMode(); };
         ProfileDirectory = Path.Combine(dataRoot, "WebView2");
@@ -149,9 +161,11 @@ internal sealed class DesktopShell : Form {
         capture.ClearPick();
         capture.RememberForeground();
         panelSized = false;
+        if (animations) Opacity = 0;
         SetMode("panel");
         Show();
         Activate();
+        Fade(Opacity, 1, 150, null);
     }
 
     public void Shutdown() {
@@ -162,6 +176,9 @@ internal sealed class DesktopShell : Form {
         foregroundTimer.Stop();
         StopSpeaking();
         if (speech != null && Marshal.IsComObject(speech)) Marshal.FinalReleaseComObject(speech);
+        eyeTimer.Stop();
+        Microsoft.Win32.SystemEvents.UserPreferenceChanged -= OnPreferenceChanged;
+        Microsoft.Win32.SystemEvents.SessionSwitch -= OnSessionSwitch;
         Close();
     }
 
@@ -208,7 +225,7 @@ internal sealed class DesktopShell : Form {
         });
     }
 
-    // Title, process, id and the process icon of what Jarvis is looking at. Never a pixel of the window itself.
+    // Title, process, id and the process icon of what Sidelook is looking at. Never a pixel of the window itself.
     Dictionary<string, object> Front() {
         string[] front = capture.DescribeForeground();
         return new Dictionary<string, object> { {"title", front[0]}, {"process", front[1]}, {"id", front[2]}, {"icon", capture.DescribeIcon()} };
@@ -258,6 +275,52 @@ internal sealed class DesktopShell : Form {
         return enabled;
     }
 
+    // Summon fades in over 150 ms, dismiss out over 120 ms, opacity only, ease-out. Under Windows' animation switch both are instant.
+    void Fade(double from, double to, double ms, Action done) {
+        if (!animations) { Opacity = to; if (done != null) done(); return; }
+        fadeFrom = from; fadeTo = to; fadeMs = ms; fadeDone = done; fadeStart = DateTime.UtcNow;
+        Opacity = from;
+        fadeTimer.Start();
+    }
+
+    void StepFade() {
+        double t = Math.Min(1, (DateTime.UtcNow - fadeStart).TotalMilliseconds / fadeMs);
+        double eased = 1 - Math.Pow(1 - t, 3);
+        Opacity = fadeFrom + (fadeTo - fadeFrom) * eased;
+        if (t < 1) return;
+        fadeTimer.Stop();
+        Action done = fadeDone; fadeDone = null;
+        if (done != null) done();
+    }
+
+    void OnPreferenceChanged(object sender, Microsoft.Win32.UserPreferenceChangedEventArgs args) { animations = AnimationsEnabled(); lastCursor = new Point(int.MinValue, int.MinValue); }
+
+    // A locked session has no cursor to follow; the eyes rest and the timer stops until the desktop is back.
+    void OnSessionSwitch(object sender, Microsoft.Win32.SessionSwitchEventArgs args) {
+        if (args.Reason == Microsoft.Win32.SessionSwitchReason.SessionLock) { eyeTimer.Stop(); SetEyes(new PointF(SidelookMark.EyeTravel, 0)); }
+        else if (args.Reason == Microsoft.Win32.SessionSwitchReason.SessionUnlock) eyeTimer.Start();
+    }
+
+    // 25 times a second: read the cursor, and only when it moved either turn the dock's eyes or tell the page where it is.
+    void TrackEyes() {
+        Point cursor = Cursor.Position;
+        if (cursor == lastCursor) return;
+        lastCursor = cursor;
+        if (mode == "dock") {
+            SetEyes(SidelookMark.EyeOffset(dockButton.RectangleToScreen(dockButton.ClientRectangle), cursor, !animations));
+        } else if (Visible && ready && animations) {
+            Point origin = web.PointToScreen(Point.Empty);
+            Post(new Dictionary<string, object> { {"type", "cursor"}, {"x", cursor.X}, {"y", cursor.Y}, {"left", origin.X}, {"top", origin.Y} });
+        }
+    }
+
+    void SetEyes(PointF next) {
+        // Redraw only when an eye moves a quarter unit; the dock is 76px so that is under a pixel.
+        if (Math.Round(next.X * 4) == Math.Round(eyes.X * 4) && Math.Round(next.Y * 4) == Math.Round(eyes.Y * 4)) return;
+        eyes = next;
+        dockButton.Invalidate();
+    }
+
     void OnShellClosing(object sender, FormClosingEventArgs args) {
         if (allowClose || args.CloseReason == CloseReason.ApplicationExitCall) return;
         args.Cancel = true;
@@ -284,7 +347,10 @@ internal sealed class DesktopShell : Form {
         if (type == "resize") {
             object rawMode, rawHeight;
             string requested = message.TryGetValue("mode", out rawMode) ? rawMode as string : null;
-            if (requested == "dock" || requested == "panel" || requested == "workbench") SetMode(requested);
+            if (requested == "dock" || requested == "panel" || requested == "workbench") {
+                if (requested == "dock" && mode != "dock") Fade(1, 0, 120, delegate { SetMode("dock"); Opacity = 1; });
+                else SetMode(requested);
+            }
             else if (message.TryGetValue("height", out rawHeight) && (rawHeight is int || rawHeight is long || rawHeight is decimal || rawHeight is double)) FitPanel(Convert.ToInt32(rawHeight));
         } else if (type == "capture") {
             object rawRequestId;
@@ -380,7 +446,7 @@ internal sealed class DesktopShell : Form {
             CaptureService.CaptureTarget target = capture.PrepareCapture();
             CaptureResult result;
             if (target.Desktop) {
-                // The whole desktop without Jarvis in it: the panel goes transparent for the capture and comes straight back.
+                // The whole desktop without Sidelook in it: the panel goes transparent for the capture and comes straight back.
                 Opacity = 0;
                 try { await Task.Delay(180); result = await Task.Run(() => capture.Capture(target)); }
                 finally { Opacity = 1; }
