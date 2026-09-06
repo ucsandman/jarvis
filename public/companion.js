@@ -9,8 +9,9 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   const host=document.getElementById('companion');
   const $=id=>document.getElementById('companion-'+id);
   const settings=document.getElementById('settings'),preview=document.getElementById('send-preview'),tone=document.getElementById('rewrite-tone');
-  let history=[],frame=null,text=null,controller=null,dictation=null,capturing=false,reading=false,captureEpoch=0,captureRequest=null,front=null,chips=[],pendingRoute=null,quickAsk=false,copyButton=null,followCapture=false;
-  const follow=new Follow();let followTimer=null,offNote='';
+  let history=[],frame=null,text=null,controller=null,dictation=null,capturing=false,reading=false,captureEpoch=0,captureRequest=null,front=null,chips=[],pendingRoute=null,quickAsk=false,copyButton=null;
+  // followRequest is the requestId of a follow-driven capture, so the fact "this was a follow capture" travels with the request and survives stop()/endFollow rather than living in a bare flag.
+  const follow=new Follow();let followTimer=null,offNote='',followRequest=null;
   const post=value=>native?.postMessage(value);
   const error=message=>{$('error').textContent=message;$('error').hidden=!message;};
   const clock=value=>new Date(value).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
@@ -27,8 +28,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   const DESKTOP='desktop';
   const appName=()=>{if(front?.id===DESKTOP)return 'the desktop';const name=String(front?.process || '').replace(/\.exe$/i,'');return name?name[0].toUpperCase()+name.slice(1):'the window';};
   const readFront=value=>value && typeof value==='object' && typeof value.title==='string' && value.title.trim()?{title:value.title.trim().slice(0,200),process:String(value.process || '').slice(0,100),id:String(value.id || '').slice(0,32)}:null;
-  // remaining is the allowance while off; sensorLine only reads it while screenOn, when it is the lease countdown instead (harness.test.mjs pairs screenOn with a string remaining).
-  const view=()=>{const s=getState();return {dictating:!!dictation || !!s.recognition,thinking:!!controller,capturing:capturing || reading,busy:s.busy,elapsed:s.elapsed,planning:s.planning,live:s.live,liveCount:s.liveCount,setupBusy:s.setupBusy,checking:s.checking,token:s.token,configured:s.configured,remaining:follow.state.on?follow.remaining():s.remaining,computerOn:s.computerOn,frameAttached:!!frame,textAttached:!!text,stream:s.stream,captureKind:s.captureKind,screenOn:follow.state.on,snapshots:follow.state.snapshots};};
+  const view=()=>{const s=getState();return {dictating:!!dictation || !!s.recognition,thinking:!!controller,capturing:capturing || reading,busy:s.busy,elapsed:s.elapsed,planning:s.planning,live:s.live,liveCount:s.liveCount,setupBusy:s.setupBusy,checking:s.checking,token:s.token,configured:s.configured,remaining:s.remaining,computerOn:s.computerOn,frameAttached:!!frame,textAttached:!!text,stream:s.stream,captureKind:s.captureKind,screenOn:follow.state.on,snapshots:follow.state.snapshots};};
   const running=v=>!!(v.dictating || v.thinking || v.capturing || v.busy || v.planning || v.live || v.setupBusy);
   // The attachment chips describe themselves from state, so the caption can never disagree with what goes.
   function renderStrips() {
@@ -43,7 +43,8 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     $('send').textContent=`${sendLabel({frame:!!frame,text:!!text})} ↑`;
     $('input').disabled=!!controller;
     $('mic').disabled=!!controller || s.busy || s.setupBusy || s.live || !s.dictation || !s.token;
-    const v=view(),sensor=sensorLine(v),activity=activityLine(v),busy=running(v);
+    // The lease countdown goes only to sensorLine, in its own object; activityLine keeps reading the numeric allowance from v so "Allowance used" still shows while following.
+    const v=view(),sensor=sensorLine(follow.state.on?{...v,remaining:follow.remaining()}:v),activity=activityLine(v),busy=running(v);
     $('status').textContent=sensor[0].toUpperCase()+sensor.slice(1);
     $('dot').className=sensor==='screen & mic off'?'':'on';
     $('sense').title=follow.state.on?'Stop following':'Let Jarvis follow your screen';
@@ -253,11 +254,11 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   function followTick(){
     const verb=follow.tick();
     if(verb==='expired'){endFollow('expired');return;}
-    if(verb==='capture' && !capturing && !reading && !controller){followCapture=true;capture(true);}
+    if(verb==='capture' && !capturing && !reading && !controller){capture(true);followRequest=captureRequest;}
     render();
   }
   function endFollow(reason){
-    follow.stop();clearInterval(followTimer);followTimer=null;followCapture=false;
+    follow.stop();clearInterval(followTimer);followTimer=null;
     offNote=reason==='expired'?'Screen off · followed for 10 minutes':'Screen off · stopped early';
     renderDeck();render();
   }
@@ -347,7 +348,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     }
     if(data.type==='copied')copied(data.ok===true,data.error);
     if(data.type==='capture'&&capturing&&data.requestId===captureRequest){
-      captureRequest=null;const wasFollow=followCapture;followCapture=false;let ok=false;
+      captureRequest=null;const wasFollow=data.requestId===followRequest;followRequest=null;let ok=false;
       if(typeof data.image==='string'&&data.image.length<=4500000&&/^data:image\/jpeg;base64,/.test(data.image)){
         const value={image:data.image,label:String(data.label||'Selected window').slice(0,200),capturedAt:data.capturedAt};
         if(wasFollow){ok=follow.captured(await thumbnail(data.image));if(ok)setFrame(value);}
@@ -357,7 +358,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     }
     // A follow capture that fails (the window moved or closed) is not the user's mistake, so it shows no error and does not run afterCapture.
     if(data.type==='capture-error'&&capturing&&data.requestId===captureRequest){
-      capturing=false;captureRequest=null;const wasFollow=followCapture;followCapture=false;
+      capturing=false;captureRequest=null;const wasFollow=data.requestId===followRequest;followRequest=null;
       if(wasFollow)follow.failed();else error(data.error || 'Choose a window, then summon Jarvis again.');
       render();if(!wasFollow)afterCapture(false);
     }
