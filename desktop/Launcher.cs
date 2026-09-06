@@ -44,6 +44,7 @@ internal static class Launcher {
         Application.SetCompatibleTextRenderingDefault(false);
         if (args.Length == 1 && args[0] == "--verify") {
             try {
+                ProfileMigration.Apply(Path.Combine(LocalAppData, "Jarvis"), Root); // legacy profile folder from 0.15 and earlier: --verify runs before the first real start
                 Extract();
                 string node = Run("--version");
                 string codex = Run("\"" + Path.Combine(VersionDir,"runtime","node_modules","@openai","codex","bin","codex.js") + "\" --version");

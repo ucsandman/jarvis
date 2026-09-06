@@ -12,17 +12,32 @@ internal static class ProfileMigration {
     }
 
     public static void Apply(string legacyRoot, string newRoot) {
-        if (Decide(Directory.Exists(newRoot), Directory.Exists(legacyRoot)) != Plan.Move) return;
+        // The WebView2 folder decides, not the root: lib/claude.mjs makes <root>\tools before the shell ever starts, so the root
+        // alone is there on a first run and gating on it would disable the move forever. A new root without a profile in it makes
+        // Directory.Move throw, which is intended: the copy below runs instead.
+        string profile = Path.Combine(newRoot, "WebView2");
+        string legacyProfile = Path.Combine(legacyRoot, "WebView2");
+        if (Decide(Directory.Exists(profile), Directory.Exists(legacyProfile)) != Plan.Move) return;
         try { Directory.Move(legacyRoot, newRoot); return; }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }
+        // A half-copied profile is worse than none and would never be retried, so the tree lands beside the real name and is
+        // renamed into place only once all of it arrived; anything else leaves nothing behind and the next start tries again.
+        string incoming = profile + ".incoming";
         try {
             Directory.CreateDirectory(newRoot);
-            string profile = Path.Combine(legacyRoot, "WebView2");
-            if (Directory.Exists(profile)) CopyTree(profile, Path.Combine(newRoot, "WebView2"));
+            Discard(incoming);
+            CopyTree(legacyProfile, incoming);
+            Directory.Move(incoming, profile);
             string dock = Path.Combine(legacyRoot, "dock.json");
             if (File.Exists(dock)) File.Copy(dock, Path.Combine(newRoot, "dock.json"), true);
-        } catch (IOException) { /* The app still starts with a fresh profile; nothing in the old folder is deleted. */ }
+        } catch (IOException) { Discard(incoming); /* The app still starts with a fresh profile; nothing in the old folder is deleted. */ }
+        catch (UnauthorizedAccessException) { Discard(incoming); }
+    }
+
+    static void Discard(string folder) {
+        try { if (Directory.Exists(folder)) Directory.Delete(folder, true); }
+        catch (IOException) { }
         catch (UnauthorizedAccessException) { }
     }
 
