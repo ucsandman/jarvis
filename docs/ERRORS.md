@@ -1,5 +1,14 @@
 # Implementation lessons
 
+## 2026-09-06: Sidelook (0.16.0)
+
+- A scoped sed (`jarvis-workbench` -> `sidelook`) renamed the IndexedDB database in `public/storage.js`; the name gate then required the new name and no test observes the database, so it passed every check and would have emptied every user's saved versions after the profile move. The whole-branch review caught it; reverted to the legacy name on a marked line. A rename of anything that names data already on disk is a migration, not a string.
+- The retint script's `#[0-9a-fA-F]{6}` never matched an 8-digit alpha-suffixed hex, so ten old-palette shades survived in overlays and shadows; found by the Task 3 review's named check, fixed by hand. A colour sweep lists 8-digit, 3-digit and `rgb()` forms before it starts.
+- Three parallel worktree lanes each renamed their own half of a private contract (launch header, health payload, environment variables, storage keys) and the merged tree had six disagreeing pairs; a reconciliation pass on the merged tree, not a per-lane fix, closed them. Rename both halves in one change or in one pass.
+- Workflow `isolation: 'worktree'` branched from `main`, not the feature branch, so the lanes started without Tasks 1 and 2; caught by `git worktree list` a minute in. The lane prompt's first command is now `git reset --hard <feature SHA>`.
+- The plan's `verify-mark` corner-pixel assertion sampled (2,2), which sits outside a radius-14 rounded corner and could never pass; the implementer diagnosed it instead of loosening it. A pixel assertion names the geometry it relies on.
+- `npm run lint` is wrapped in this environment by a harness that mislabels the repo's own output as ESLint JSON; every agent ran `node scripts/check.mjs` directly. Not a repo defect.
+
 ## 2026-09-06: The panel, quiet (0.15.0)
 
 - The first height the page posted was 700: `.companion-scroll` is `flex:1`, so its `scrollHeight` is whatever the window gave it, never what the content wants. The content's height is the sum of the scroll area's children plus its padding. A flex child that fills the viewport cannot measure its own content.

@@ -1,5 +1,9 @@
 # Architecture decisions
 
+## 2026-09-06: Sidelook, a Practical Systems product
+
+Jarvis is a Marvel mark shared by dozens of projects and implies an always-on butler, which the product principle rejects. The maintainer chose Sidelook (a sidelong look at the window beside you), launched it under Practical Systems with the family navy and teal, and took one node of the family's seven-hexagon mark as the product mark: a white hexagon with two navy eyes that follow the cursor in the dock and the page header, and hold the sidelong look in every static render. The lens marks (ring and pupil, pupil to the edge, open ring, window and pupil) were dropped. Karpathy's "we're summoning ghosts, not building animals" is the story: the model sees nothing until shown something; the word ghost appears in the About screen and never as a label or a costume. The site self-hosts Plus Jakarta Sans 700 for the lowercase wordmark so the CSP stays at `font-src 'self'`. Private contracts with data already on disk keep their old names on `legacy`-marked lines: the four kernel object names, the profile folder the migration reads, the IndexedDB name and the two preference keys.
+
 ## 2026-09-06: The panel is as tall as its content, and says less
 
 The maintainer rejected the 0.14.0 panel on sight: a native title bar over a page header, a fixed 700px window with 300px of nothing between three identical cards and the box, the window Jarvis was looking at as a truncated 12px line, and a chat composer any AI product ships. The redesign was mocked as six states plus four states of the box (`.artifacts/panel-mock.html`) and approved twice, the second time after "cleaner, fewer words and options, a box that grows with the text".
