@@ -8,6 +8,8 @@ const types = {html:'text/html',js:'text/javascript',css:'text/css',svg:'image/s
 const server = createServer(async(req,res)=>{
   const path = new URL(req.url,'http://localhost').pathname;
   if (path.includes('..')) {res.writeHead(404).end();return;}
+  // Vercel injects its Web Analytics script on the real host; the local copy serves an empty one so the page loads without a 404 in the console.
+  if (path === '/_vercel/insights/script.js') {res.writeHead(200,{'Content-Type':'text/javascript'}).end('');return;}
   try {
     const file = path === '/' ? '/index.html' : path;
     const data = await readFile(`.artifacts/site${file}`);
