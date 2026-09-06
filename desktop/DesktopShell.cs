@@ -41,7 +41,7 @@ internal sealed class DesktopShell : Form {
     int panelFrom, panelTarget;
     DateTime panelStart;
     bool panelSized;   // the user dragged an edge, so content stops driving the height until the next summon
-    // Where Jarvis lives on the desktop: the bottom-right corner shared by the dock, the panel and the studio. Dragging the dock moves it; it is saved beside the profile.
+    // Where Sidelook lives on the desktop: the bottom-right corner shared by the dock, the panel and the studio. Dragging the dock moves it; it is saved beside the profile.
     Point anchor = Point.Empty;
     readonly string anchorFile;
     Point dockPress;
@@ -49,7 +49,7 @@ internal sealed class DesktopShell : Form {
     readonly WebView2 web = new WebView2 { Dock = DockStyle.Fill, DefaultBackgroundColor = Color.FromArgb(23, 29, 45) };
     readonly Button dockButton = new Button {
         Dock = DockStyle.Fill, Text = String.Empty, BackColor = SidelookMark.Navy,
-        FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, TabStop = false, AccessibleName = "Open Jarvis"
+        FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, TabStop = false, AccessibleName = "Open Sidelook"
     };
     bool dockHover;
     readonly Timer eyeTimer = new Timer { Interval = 40 };
@@ -78,7 +78,7 @@ internal sealed class DesktopShell : Form {
     public DesktopShell(string dataRoot, string appUrl, string key) {
         url = appUrl;
         launchKey = key;
-        Text = "Jarvis";
+        Text = "Sidelook";
         Icon = SidelookMark.AppIcon();
         BackColor = SidelookMark.Navy;
         ShowInTaskbar = false;
@@ -92,7 +92,7 @@ internal sealed class DesktopShell : Form {
         };
         dockButton.MouseEnter += delegate { dockHover = true; dockButton.Invalidate(); };
         dockButton.MouseLeave += delegate { dockHover = false; dockButton.Invalidate(); };
-        // Press and release summons; press and move drags the dock, and where it lands is where Jarvis lives from then on.
+        // Press and release summons; press and move drags the dock, and where it lands is where Sidelook lives from then on.
         dockButton.MouseDown += delegate(object sender, MouseEventArgs args) { if (args.Button == MouseButtons.Left) { dockPress = Cursor.Position; dockDragging = false; } };
         dockButton.MouseMove += delegate(object sender, MouseEventArgs args) {
             if (args.Button != MouseButtons.Left || dockDragging) return;
@@ -225,7 +225,7 @@ internal sealed class DesktopShell : Form {
         });
     }
 
-    // Title, process, id and the process icon of what Jarvis is looking at. Never a pixel of the window itself.
+    // Title, process, id and the process icon of what Sidelook is looking at. Never a pixel of the window itself.
     Dictionary<string, object> Front() {
         string[] front = capture.DescribeForeground();
         return new Dictionary<string, object> { {"title", front[0]}, {"process", front[1]}, {"id", front[2]}, {"icon", capture.DescribeIcon()} };
@@ -446,7 +446,7 @@ internal sealed class DesktopShell : Form {
             CaptureService.CaptureTarget target = capture.PrepareCapture();
             CaptureResult result;
             if (target.Desktop) {
-                // The whole desktop without Jarvis in it: the panel goes transparent for the capture and comes straight back.
+                // The whole desktop without Sidelook in it: the panel goes transparent for the capture and comes straight back.
                 Opacity = 0;
                 try { await Task.Delay(180); result = await Task.Run(() => capture.Capture(target)); }
                 finally { Opacity = 1; }

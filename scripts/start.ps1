@@ -1,45 +1,45 @@
 $ErrorActionPreference = 'Stop'
-$jarvisRoot = Split-Path -Parent $PSScriptRoot
-$jarvisUrl = 'http://127.0.0.1:4317'
-function Test-JarvisReady {
+$sidelookRoot = Split-Path -Parent $PSScriptRoot
+$sidelookUrl = 'http://127.0.0.1:4317'
+function Test-SidelookReady {
     try {
-        $response = Invoke-RestMethod -Uri "$jarvisUrl/api/health" -TimeoutSec 2
+        $response = Invoke-RestMethod -Uri "$sidelookUrl/api/health" -TimeoutSec 2
         return $response.app -eq 'jarvis-workbench' -and $response.ready -eq $true
     } catch { return $false }
 }
 # Serialize repeated double-clicks without relying on authentication or browser state.
-$jarvisMutex = New-Object System.Threading.Mutex($false, 'Local\JarvisWorkbenchLauncher')
-$jarvisOwned = $false
+$sidelookMutex = New-Object System.Threading.Mutex($false, 'Local\SidelookWorkbenchLauncher')
+$sidelookOwned = $false
 try {
-    $jarvisOwned = $jarvisMutex.WaitOne(30000)
-    if (-not $jarvisOwned) { throw 'Another Jarvis launch is still starting. Please try again shortly.' }
-    if (-not (Test-JarvisReady)) {
-        $jarvisNode = Get-Command node -ErrorAction SilentlyContinue
-        if (-not $jarvisNode) { throw 'Install Node.js 24 or newer, then reopen Start Jarvis.cmd. Download: https://nodejs.org/en/download' }
-        $jarvisVersion = & $jarvisNode.Source --version
-        if ($LASTEXITCODE -ne 0 -or $jarvisVersion -notmatch '^v(\d+)\.' -or [int]$Matches[1] -lt 24) {
-            throw 'Jarvis needs Node.js 24 or newer. Update Node, then reopen Start Jarvis.cmd. Download: https://nodejs.org/en/download'
+    $sidelookOwned = $sidelookMutex.WaitOne(30000)
+    if (-not $sidelookOwned) { throw 'Another Sidelook launch is still starting. Please try again shortly.' }
+    if (-not (Test-SidelookReady)) {
+        $sidelookNode = Get-Command node -ErrorAction SilentlyContinue
+        if (-not $sidelookNode) { throw 'Install Node.js 24 or newer, then reopen Start Sidelook.cmd. Download: https://nodejs.org/en/download' }
+        $sidelookVersion = & $sidelookNode.Source --version
+        if ($LASTEXITCODE -ne 0 -or $sidelookVersion -notmatch '^v(\d+)\.' -or [int]$Matches[1] -lt 24) {
+            throw 'Sidelook needs Node.js 24 or newer. Update Node, then reopen Start Sidelook.cmd. Download: https://nodejs.org/en/download'
         }
-        $jarvisLogDir = Join-Path $jarvisRoot '.artifacts'
-        New-Item -ItemType Directory -Force -Path $jarvisLogDir | Out-Null
-        $jarvisProcess = Start-Process -FilePath $jarvisNode.Source -ArgumentList 'server.mjs' -WorkingDirectory $jarvisRoot -WindowStyle Hidden -RedirectStandardOutput (Join-Path $jarvisLogDir 'server.log') -RedirectStandardError (Join-Path $jarvisLogDir 'server-error.log') -PassThru
-        $jarvisDeadline = [DateTime]::UtcNow.AddSeconds(15)
-        while (-not (Test-JarvisReady)) {
-            if ($jarvisProcess.HasExited) { throw 'Jarvis could not start. Port 4317 may belong to another application. Close that application and try again. Startup details are in .artifacts/server-error.log.' }
-            if ([DateTime]::UtcNow -ge $jarvisDeadline) { throw 'Jarvis did not become ready within 15 seconds. Reopen the launcher to retry. Startup details are in .artifacts/server-error.log.' }
+        $sidelookLogDir = Join-Path $sidelookRoot '.artifacts'
+        New-Item -ItemType Directory -Force -Path $sidelookLogDir | Out-Null
+        $sidelookProcess = Start-Process -FilePath $sidelookNode.Source -ArgumentList 'server.mjs' -WorkingDirectory $sidelookRoot -WindowStyle Hidden -RedirectStandardOutput (Join-Path $sidelookLogDir 'server.log') -RedirectStandardError (Join-Path $sidelookLogDir 'server-error.log') -PassThru
+        $sidelookDeadline = [DateTime]::UtcNow.AddSeconds(15)
+        while (-not (Test-SidelookReady)) {
+            if ($sidelookProcess.HasExited) { throw 'Sidelook could not start. Port 4317 may belong to another application. Close that application and try again. Startup details are in .artifacts/server-error.log.' }
+            if ([DateTime]::UtcNow -ge $sidelookDeadline) { throw 'Sidelook did not become ready within 15 seconds. Reopen the launcher to retry. Startup details are in .artifacts/server-error.log.' }
             Start-Sleep -Milliseconds 250
         }
     }
-    Start-Process $jarvisUrl
+    Start-Process $sidelookUrl
 } catch {
     Add-Type -AssemblyName PresentationFramework
-    $jarvisMessage = $_.Exception.Message
-    if ($jarvisMessage -like '*nodejs.org*') {
-        $jarvisAnswer = [System.Windows.MessageBox]::Show("$jarvisMessage`n`nOpen the Node.js download page?",'Jarvis setup','YesNo','Information')
-        if ($jarvisAnswer -eq 'Yes') { Start-Process 'https://nodejs.org/en/download' }
-    } else { [System.Windows.MessageBox]::Show($jarvisMessage,'Jarvis') | Out-Null }
+    $sidelookMessage = $_.Exception.Message
+    if ($sidelookMessage -like '*nodejs.org*') {
+        $sidelookAnswer = [System.Windows.MessageBox]::Show("$sidelookMessage`n`nOpen the Node.js download page?",'Sidelook setup','YesNo','Information')
+        if ($sidelookAnswer -eq 'Yes') { Start-Process 'https://nodejs.org/en/download' }
+    } else { [System.Windows.MessageBox]::Show($sidelookMessage,'Sidelook') | Out-Null }
     exit 1
 } finally {
-    if ($jarvisOwned) { $jarvisMutex.ReleaseMutex() }
-    $jarvisMutex.Dispose()
+    if ($sidelookOwned) { $sidelookMutex.ReleaseMutex() }
+    $sidelookMutex.Dispose()
 }

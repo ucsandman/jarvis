@@ -43,16 +43,30 @@ static class MarkTest {
             SidelookMark.Draw(wg, new Rectangle(0, 0, 64, 64), new PointF(5, 0), true, true);
             if (wideBmp.GetPixel(40, 32).ToArgb() != SidelookMark.Navy.ToArgb()) { Console.WriteLine("FAIL wide eye pixel not navy"); failures++; }
         }
-        Console.WriteLine(failures == 0 ? "PASS: 15 mark assertions" : failures + " mark assertion(s) failed");
+        if (ProfileMigration.Decide(false, true) != ProfileMigration.Plan.Move) { Console.WriteLine("FAIL decide: legacy only should move"); failures++; }
+        if (ProfileMigration.Decide(true, true) != ProfileMigration.Plan.None) { Console.WriteLine("FAIL decide: both present should not move"); failures++; }
+        if (ProfileMigration.Decide(false, false) != ProfileMigration.Plan.None) { Console.WriteLine("FAIL decide: neither present should not move"); failures++; }
+        string temp = Path.Combine(Path.GetTempPath(), "sidelook-migration-" + Guid.NewGuid().ToString("N"));
+        string legacy = Path.Combine(temp, "OldProfile"), fresh = Path.Combine(temp, "NewProfile");
+        Directory.CreateDirectory(Path.Combine(legacy, "WebView2")); File.WriteAllText(Path.Combine(legacy, "WebView2", "state.txt"), "kept"); File.WriteAllText(Path.Combine(legacy, "dock.json"), "{}");
+        ProfileMigration.Apply(legacy, fresh);
+        if (!File.Exists(Path.Combine(fresh, "WebView2", "state.txt")) || Directory.Exists(legacy)) { Console.WriteLine("FAIL move: profile not moved whole"); failures++; }
+        // A locked file inside the legacy folder: the move fails and the two things worth keeping are copied instead.
+        string legacy2 = Path.Combine(temp, "OldProfile2"), fresh2 = Path.Combine(temp, "NewProfile2");
+        Directory.CreateDirectory(Path.Combine(legacy2, "WebView2")); Directory.CreateDirectory(Path.Combine(legacy2, "versions")); File.WriteAllText(Path.Combine(legacy2, "WebView2", "state.txt"), "kept"); File.WriteAllText(Path.Combine(legacy2, "dock.json"), "{}");
+        using (var hold = new FileStream(Path.Combine(legacy2, "versions", "lock.bin"), FileMode.Create, FileAccess.Write, FileShare.None)) ProfileMigration.Apply(legacy2, fresh2);
+        if (!File.Exists(Path.Combine(fresh2, "WebView2", "state.txt")) || !File.Exists(Path.Combine(fresh2, "dock.json")) || !Directory.Exists(legacy2)) { Console.WriteLine("FAIL copy fallback"); failures++; }
+        Directory.Delete(temp, true);
+        Console.WriteLine(failures == 0 ? "PASS: 20 compiled assertions (15 mark, 5 migration)" : failures + " compiled assertion(s) failed");
         return failures == 0 ? 0 : 1;
     }
 }
 '@ | Set-Content -LiteralPath $test -Encoding UTF8
 $csc = Join-Path $env:WINDIR 'Microsoft.NET/Framework64/v4.0.30319/csc.exe'
 $exe = Join-Path (Resolve-Path .artifacts) 'mark-test.exe'
-& $csc /nologo /target:exe /out:$exe /reference:System.Drawing.dll /reference:System.Windows.Forms.dll desktop\SidelookMark.cs $test
+& $csc /nologo /target:exe /out:$exe /reference:System.Drawing.dll /reference:System.Windows.Forms.dll desktop\SidelookMark.cs desktop\ProfileMigration.cs $test
 if ($LASTEXITCODE -ne 0) { throw 'mark test did not compile.' }
 & $exe; if ($LASTEXITCODE -ne 0) { throw 'mark test failed.' }
 $ico = Get-Item desktop/sidelook.ico -ErrorAction Stop
 if ($ico.Length -lt 20000) { throw "sidelook.ico is only $($ico.Length) bytes; run scripts/build-icon.ps1." }; $checks++
-Write-Output "PASS: $checks source checks, 15 compiled assertions, sidelook.ico $($ico.Length) bytes."
+Write-Output "PASS: $checks source checks, 20 compiled assertions, sidelook.ico $($ico.Length) bytes."
