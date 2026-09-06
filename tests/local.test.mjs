@@ -97,16 +97,16 @@ test('LM Studio models are loaded with a Codex-sized context before inference',a
   setLocalModels([{provider:'lmstudio',model:'qwen/qwen3-8b'}]);
   const chosen=choice('lmstudio:qwen/qwen3-8b');
   // Not loaded: one load with the wide context. Loaded wide: nothing runs. Loaded narrow (LM Studio's 4,096 default): unload, then load wide.
-  assert.deepEqual(await ensureLoaded(chosen,undefined,{fetchImpl,run,vram:null}),{loaded:true,context:LOCAL_CONTEXT});
+  assert.deepEqual(await ensureLoaded(chosen,undefined,{fetchImpl,run,vram:null,lms:'lms'}),{loaded:true,context:LOCAL_CONTEXT});
   assert.deepEqual(runs,[['load','qwen/qwen3-8b','--context-length',String(LOCAL_CONTEXT),'--yes']]); // vram null: LM Studio chooses the offload
-  runs.length=0;assert.deepEqual(await ensureLoaded(chosen,undefined,{fetchImpl,run,vram:null}),{loaded:true,context:LOCAL_CONTEXT});assert.deepEqual(runs,[]);
+  runs.length=0;assert.deepEqual(await ensureLoaded(chosen,undefined,{fetchImpl,run,vram:null,lms:'lms'}),{loaded:true,context:LOCAL_CONTEXT});assert.deepEqual(runs,[]);
   state={...state,loaded_context_length:4096};
-  await ensureLoaded(chosen,undefined,{fetchImpl,run,vram:null});
+  await ensureLoaded(chosen,undefined,{fetchImpl,run,vram:null,lms:'lms'});
   assert.deepEqual(runs.map(a=>a[0]),['unload','load']);
   assert.equal(LOCAL_CONTEXT>=16384,true);
   // Only LM Studio needs this; Ollama entries pass straight through.
   setLocalModels([{provider:'ollama',model:'gemma3:4b'}]);
-  assert.deepEqual(await ensureLoaded(choice('ollama:gemma3:4b'),undefined,{fetchImpl,run,vram:null}),{loaded:true,context:null});
+  assert.deepEqual(await ensureLoaded(choice('ollama:gemma3:4b'),undefined,{fetchImpl,run,vram:null,lms:'lms'}),{loaded:true,context:null});
 });
 
 test('a local reply is read as its one JSON object, fenced or wrapped, and prose alone is refused',async()=>{
@@ -129,7 +129,7 @@ test('the GPU share comes from the card and the model, and low effort turns a lo
   const fetchImpl=async()=>({ok:true,json:async()=>({data:[state]})});
   const run=async(command,args)=>{runs.push([command,...args]);if(args[0]==='load') state={...state,state:'loaded',loaded_context_length:LOCAL_CONTEXT};return {code:0,stdout:'',stderr:''};};
   setLocalModels([{provider:'lmstudio',model:'qwen/qwen3-8b'}]);
-  await ensureLoaded(choice('lmstudio:qwen/qwen3-8b'),undefined,{fetchImpl,run,vram:8*GiB});
+  await ensureLoaded(choice('lmstudio:qwen/qwen3-8b'),undefined,{fetchImpl,run,vram:8*GiB,lms:'lms'});
   assert.ok(runs.some(r=>r.includes('--gpu') && r[r.indexOf('--gpu')+1]==='0.6'));
   const low=inferenceArgs('s','r',null,null,{model:'lmstudio:qwen/qwen3-8b',effort:'low'}),medium=inferenceArgs('s','r',null,null,{model:'lmstudio:qwen/qwen3-8b',effort:'medium'});
   assert.ok(low.includes('model_reasoning_effort="none"'));assert.ok(medium.includes('model_reasoning_effort="medium"'));
