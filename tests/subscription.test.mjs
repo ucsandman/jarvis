@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { subscriptionEnv,inferenceArgs,MODEL,runProcess,hasSubscriptionLogin } from '../lib/subscription.mjs';
+import { subscriptionEnv,inferenceArgs,MODEL,runProcess,hasSubscriptionLogin,usageTokens } from '../lib/subscription.mjs';
 import { Vision } from '../lib/vision.mjs';
 
 test('subscription child inherits no API keys, alternate credentials or endpoint overrides',() => {
@@ -19,6 +19,11 @@ test('inference pins Astra and ChatGPT login with no provider or configuration f
   assert.ok(args.includes('approval_policy="never"'));
   assert.ok(!args.includes('--dangerously-bypass-approvals-and-sandbox'));
   assert.ok(!args.includes('--fallback-model'));
+});
+test('Codex usage reports the turn total with its cached input beside it, and zero when the CLI reports none',()=> {
+  assert.deepEqual(usageTokens({input_tokens:1200,cached_input_tokens:310,output_tokens:40}),{tokens:1240,cachedTokens:310});
+  assert.deepEqual(usageTokens({input_tokens:1200,output_tokens:40}),{tokens:1240,cachedTokens:0});
+  assert.deepEqual(usageTokens(),{tokens:0,cachedTokens:0});
 });
 test('API-key login and failed status checks are rejected; only ChatGPT login passes',()=> {
   assert.equal(hasSubscriptionLogin({code:0,stdout:'Logged in using an API key',stderr:''}),false);

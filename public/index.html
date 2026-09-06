@@ -124,6 +124,8 @@
       </div>
     </div>
     <div class="companion-compose">
+      <div class="companion-chat-controls"><button type="button" class="quiet" id="companion-clear">New chat</button><button type="button" class="quiet" id="companion-clear-context">Clear context</button><button type="button" class="quiet" id="companion-compact">Compact</button></div>
+      <p class="companion-meter" id="companion-meter"></p>
       <p id="companion-error" role="alert" hidden></p>
       <form id="companion-form">
         <div class="companion-attach">
@@ -191,7 +193,6 @@
       <button class="quiet" id="companion-import">Import a saved HTML prototype</button><input id="companion-import-file" type="file" accept=".html,.htm,text/html" hidden>
       <p class="muted">Download the prototype from the browser version, then import its HTML here.</p>
       <p id="budget">Checking local allowance</p><button class="quiet" id="reset-budget">Start new allowance</button>
-      <button class="quiet" id="companion-clear">Clear conversation</button>
     </details>
     <section class="settings-section" aria-label="What leaves this device">
       <h3>What leaves this device</h3>

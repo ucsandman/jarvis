@@ -45,6 +45,15 @@ test('Fable parser rejects model switches, external tools, partial output, limit
   assert.throws(()=>parseClaudeResult(result([init,{type:'result',subtype:'error',is_error:true,result:'PRIVATE UPSTREAM ERROR'}],1),'low'),error=>!error.message.includes('PRIVATE'));
 });
 
+test('Fable usage reports the turn total with both cached input numbers beside it',()=>{
+  const init={type:'system',subtype:'init',model:FABLE_MODEL,tools:['StructuredOutput']};
+  const done=usage=>({code:0,stdout:[init,{type:'result',subtype:'success',is_error:false,structured_output:{ok:true},usage}].map(e=>JSON.stringify(e)).join('\n'),stderr:''});
+  const cached=parseClaudeResult(done({input_tokens:900,output_tokens:340,cache_read_input_tokens:1800,cache_creation_input_tokens:300}),'low');
+  assert.equal(cached.tokens,1240);assert.equal(cached.cachedTokens,2100);
+  assert.equal(parseClaudeResult(done({input_tokens:900,output_tokens:340}),'low').cachedTokens,0);
+  assert.equal(parseClaudeResult(done(undefined),'low').cachedTokens,0);
+});
+
 test('another Anthropic choice pins its own model ID in the flags, the settings and the parser',()=>{
   const args=claudeInferenceArgs({system:'Bounded generation',schema:{type:'object'},effort:'low',model:'opus'});
   assert.equal(args[args.indexOf('--model')+1],'claude-opus-5');
