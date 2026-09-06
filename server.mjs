@@ -7,6 +7,7 @@ import { AppError, Vision } from './lib/vision.mjs';
 import { Assistant } from './lib/assistant.mjs';
 import { runProcess, subscriptionLogin, installCodex, SubscriptionError } from './lib/subscription.mjs';
 import { MODELS, selection, SelectionError } from './lib/models.mjs';
+import { localModels } from './lib/local.mjs';
 import { Computer } from './lib/computer.mjs';
 
 export const PREVIEW_CSP = "sandbox allow-scripts allow-forms; default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; frame-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'";
@@ -37,7 +38,7 @@ async function readJson(req) {
   } catch { throw new AppError('The request is not valid JSON.'); }
 }
 
-export function createApp({ vision = new Vision(), assistant = new Assistant({vision}), computer, maxCalls = 60, login = subscriptionLogin, install = installCodex, instanceId, desktopKey } = {}) {
+export function createApp({ vision = new Vision(), assistant = new Assistant({vision}), computer, maxCalls = 60, login = subscriptionLogin, install = installCodex, local = localModels, instanceId, desktopKey } = {}) {
   computer ||= new Computer({launcherInstance:instanceId});
   if (desktopKey !== undefined && !/^[a-f0-9]{64}$/.test(desktopKey)) throw new Error('Invalid desktop launch key.');
   const matchesKey = value => typeof value === 'string' && /^[a-f0-9]{64}$/.test(value) && timingSafeEqual(Buffer.from(value),Buffer.from(desktopKey));
@@ -66,7 +67,11 @@ export function createApp({ vision = new Vision(), assistant = new Assistant({vi
       const url = new URL(req.url,`http://${host}`);
       if (req.method === 'GET' && url.pathname === '/api/health') return send(200,{ app:'sidelook',ready:true,...(instanceId ? {instanceId} : {}) });
       if (desktopKey && url.pathname.startsWith('/api/') && !matchesKey(req.headers['x-sidelook-launch'])) throw new AppError('Open Sidelook from its desktop shortcut to reconnect this browser.',403);
-      if (req.method === 'GET' && url.pathname === '/api/local-session') return send(200,{ token,models:MODELS,remaining:maxCalls-calls,dictation:process.platform === 'win32' });
+      if (req.method === 'GET' && url.pathname === '/api/local-session') {
+        // The local runtimes are probed on every handshake (1.5 s cap each), so the selector lists what LM Studio or Ollama hold right now.
+        const seen=await local(AbortSignal.timeout(2500)).catch(()=>({runtimes:{},models:[]}));
+        return send(200,{ token,models:MODELS,local:seen,remaining:maxCalls-calls,dictation:process.platform === 'win32' });
+      }
       if (req.method === 'GET' && url.pathname === '/api/session') {
         const selected=selection({model:req.headers['x-sidelook-model'],effort:req.headers['x-sidelook-effort']});
         const status = await vision.status(AbortSignal.timeout(15000),selected);
@@ -164,7 +169,7 @@ export function createApp({ vision = new Vision(), assistant = new Assistant({vi
         if(streaming) draftSession=randomBytes(20).toString('hex');
         const progress=streaming ? event=>{
           if(signal.aborted || res.destroyed || updates>=250) return;
-          const value=event.type==='draft' && typeof event.html==='string' && event.html.length<=120000 ? {type:'draft',html:event.html} : event.type==='phase' && ['connecting','waiting'].includes(event.phase) ? {type:'phase',phase:event.phase,streaming:event.streaming===true,draftSession} : null;
+          const value=event.type==='draft' && typeof event.html==='string' && event.html.length<=120000 ? {type:'draft',html:event.html} : event.type==='phase' && ['connecting','loading','waiting'].includes(event.phase) ? {type:'phase',phase:event.phase,streaming:event.streaming===true,draftSession} : null;
           if(!value) return;
           if(!res.headersSent) res.writeHead(200,{'Content-Type':'application/x-ndjson; charset=utf-8','X-Accel-Buffering':'no'});
           if(res.writableLength>1_000_000) return;

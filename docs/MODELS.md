@@ -24,6 +24,14 @@ Anthropic models can spend paid Claude usage credits under your account settings
 
 Sidelook has no direct model API, no API-key route, and no automatic model fallback. Missing subscription auth, model access or allowance fails closed.
 
+## Local models
+
+LM Studio and Ollama models run on your own computer and cost nothing per request. They appear in the selector under their runtime's name while the runtime is running, listed from what it holds right now (LM Studio's `GET /api/v0/models`, chat models only; Ollama's `GET /api/tags`). Sidelook talks to the runtime through the official Codex CLI's open-source provider (`codex exec --oss --local-provider lmstudio` or `ollama`, `--model` set to the runtime's own key), inside the same read-only sandbox and with the same disabled tools as a subscription model. Effort levels are low, medium and high; models without a reasoning mode ignore them.
+
+Setup for a local model checks that Codex is available, that the runtime answers, and that the chosen model is still listed. If LM Studio's server is off, Setup offers **Start LM Studio server**, which runs LM Studio's own `lms server start`. Ollama is started by you (`ollama serve`). A model that disappears from the runtime fails closed with a message; Sidelook never picks another one.
+
+Quality depends on the model. Structured output is requested through Codex's `--output-schema`, and a local model that cannot follow the schema gets the same "incomplete application" refusal a subscription model would.
+
 ## Setup
 
 Windows ships with Codex bundled. For any Anthropic model, Setup's install button downloads official Claude Code 2.1.261 from Anthropic's npm package, checks its pinned SHA-512 integrity and publisher signature, and installs it per user. No Anthropic binaries are redistributed inside Sidelook. Supported existing installs and logins are reused. A different Claude Code version means installing the verified runtime from Setup.

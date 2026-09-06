@@ -1,11 +1,16 @@
 // The model catalog. One list for the server (lib/models.mjs re-exports it) and the page, so the selector, the consent
 // sentence and the CLI arguments can never disagree. Every entry is a product choice: one model on one official CLI,
 // on the subscription that CLI is signed in with. Never an arbitrary model ID or CLI argument from the page.
+// Local runtimes (LM Studio, Ollama) are the one exception to a fixed list: the server enumerates what the runtime holds
+// and the page adopts that list, so the page still chooses from server-supplied entries, never free text.
 export const EFFORTS=['low','medium','high','xhigh','max'];
 const STANDARD=['low','medium','high','xhigh'];
+export const LOCAL_EFFORTS=['low','medium','high'];
 export const PROVIDERS={
   openai:{label:'OpenAI',account:'ChatGPT',cli:'Codex',subscription:'OpenAI subscription',usageCredits:false},
-  anthropic:{label:'Anthropic',account:'Claude',cli:'Claude Code',subscription:'Anthropic subscription',usageCredits:true}
+  anthropic:{label:'Anthropic',account:'Claude',cli:'Claude Code',subscription:'Anthropic subscription',usageCredits:true},
+  lmstudio:{label:'Local',account:'LM Studio',cli:'Codex',subscription:'this computer',usageCredits:false,local:true,port:1234},
+  ollama:{label:'Local',account:'Ollama',cli:'Codex',subscription:'this computer',usageCredits:false,local:true,port:11434}
 };
 // OpenAI entries and their effort levels come from the Codex CLI's own model list on 2026-09-05; Anthropic entries from Claude Code's model names.
 export const MODELS=[
@@ -21,10 +26,22 @@ export const MODELS=[
   {id:'sonnet',label:'Sonnet 5',model:'claude-sonnet-5',provider:'anthropic',efforts:EFFORTS},
   {id:'haiku',label:'Haiku 4.5',model:'claude-haiku-4-5-20251001',provider:'anthropic',efforts:EFFORTS}
 ];
+// Local entries, replaced whole on each enumeration. An id is `<runtime>:<model key>`; the key is what Codex's --model receives.
+export const LOCAL=[];
+const KEY=/^[A-Za-z0-9][A-Za-z0-9._:/@-]{0,119}$/;
+export function localEntry(runtime,key,label,context) {
+  if(!PROVIDERS[runtime]?.local || typeof key!=='string' || !KEY.test(key)) return null;
+  return {id:`${runtime}:${key}`,label:typeof label==='string' && label.trim()?label.trim().slice(0,60):key,model:key,provider:runtime,efforts:LOCAL_EFFORTS,...(Number.isInteger(context) && context>0?{context}:{})};
+}
+export function setLocalModels(list) {
+  LOCAL.length=0;
+  for(const item of Array.isArray(list)?list:[]) {const entry=localEntry(item.provider,item.model,item.label,item.context);if(entry && !LOCAL.some(known=>known.id===entry.id)) LOCAL.push(entry);}
+  return LOCAL;
+}
 // The catalog entry for a selection id, with its provider's account, CLI and billing facts folded in. Null for anything else.
 export function choice(id) {
-  const entry=MODELS.find(item=>item.id===id);
+  const entry=MODELS.find(item=>item.id===id) || LOCAL.find(item=>item.id===id);
   if(!entry) return null;
   const provider=PROVIDERS[entry.provider];
-  return {...entry,account:provider.account,cli:provider.cli,subscription:provider.subscription,usageCredits:provider.usageCredits};
+  return {...entry,account:provider.account,cli:provider.cli,subscription:provider.subscription,usageCredits:provider.usageCredits,local:provider.local===true};
 }

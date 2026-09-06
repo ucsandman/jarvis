@@ -8,11 +8,11 @@ The downloaded app (companion, workbench, Computer mode) is the primary surface 
 
 ## Users
 
-Windows users who are already working in another application: drawing in a design tool, filling out a form, writing in Notepad. They want to ask about what is on their screen, turn a sketch into a working prototype, or have a hand with a task in an app, without opening a browser tab or learning a terminal. They pay for a ChatGPT or Claude subscription already and want to use it here.
+Windows users who are already working in another application: drawing in a design tool, filling out a form, writing in Notepad. They want to ask about what is on their screen, turn a sketch into a working prototype, or have a hand with a task in an app, without opening a browser tab or learning a terminal. They pay for a ChatGPT or Claude subscription already and want to use it here, or they run a local model in LM Studio or Ollama and want that.
 
 ## Product Purpose
 
-Sidelook is a local desktop companion. A small dock sits in the corner, Ctrl+Shift+Space opens a compact conversation panel, and from there the user can open the prototype workbench or Computer mode. Every model call goes through the user's own subscription via the official Codex or Claude Code CLI. Every desktop action waits for a per-action approval. Success is a user who trusts what Sidelook saw, what it sent, and what it is about to do, because each of those is shown before it happens.
+Sidelook is a local desktop companion. A small dock sits in the corner, Ctrl+Shift+Space opens a compact conversation panel, and from there the user can open the prototype workbench or Computer mode. Every model call goes through the user's own subscription via the official Codex or Claude Code CLI, or to a local model on their own computer via Codex. Every desktop action waits for a per-action approval. Success is a user who trusts what Sidelook saw, what it sent, and what it is about to do, because each of those is shown before it happens.
 
 ## Brand Personality
 

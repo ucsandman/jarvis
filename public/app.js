@@ -2,7 +2,7 @@ import { loadProject, saveProject } from './storage.js';
 import { LiveFrames } from './live.js';
 import { initComputer } from './computer.js';
 import { initCompanion } from './companion.js';
-import { gate, buildLabel, record, ledger, renderGate, renderPreview, MODEL_LABEL, ACCOUNT, CLI, MODELS, PROVIDERS, choice, usesCredits, billingLine } from './harness.js';
+import { gate, buildLabel, record, ledger, renderGate, renderPreview, MODEL_LABEL, ACCOUNT, MODELS, LOCAL, PROVIDERS, choice, usesCredits, billingLine, adoptLocalModels, isLocal, goesTo } from './harness.js';
 import { DESIGN_CHIPS } from './chips.js';
 import { createSession, selectionChange } from './session.js';
 
@@ -20,23 +20,34 @@ const state = { token:'', configured:false, stream:null, image:null, imageLabel:
   elapsed:0, computerOn:false, planning:false };
 state.live=false; state.liveCount=0; state.captureKind=null; state.liveFrames=new LiveFrames(); state.liveTimer=null;
 state.model='astra'; state.effort='medium'; state.checking=false;
+let savedModel=null; // a saved local model is restored once the server has listed it, on the first handshake
 try {
   const saved=JSON.parse(localStorage.getItem('sidelookModelPreferences') || localStorage.getItem('jarvisModelPreferences') || '{}'); // legacy key from 0.15 and earlier: read once, written back under the new name
-  if (choice(saved.model)) state.model=saved.model;
+  if (choice(saved.model)) state.model=saved.model; else if (typeof saved.model==='string' && saved.model.includes(':')) savedModel=saved.model;
   if (['low','medium','high','xhigh','max'].includes(saved.effort)) state.effort=saved.effort;
 } catch { /* Preferences are optional when browser storage is unavailable. */ }
 const selectedLabel = () => MODEL_LABEL[state.model];
 const selectedAccount = () => ACCOUNT[state.model];
 const selectedIsClaude = () => choice(state.model).provider==='anthropic';
+const selectedIsLocal = () => isLocal(state.model);
 const effortNotes = {low:'Faster, with lighter reasoning.',medium:'Balances speed and depth.',high:'More reasoning for complex changes.',xhigh:'Extra reasoning; expect a longer wait.',max:'Deepest reasoning; may take much longer and use more allowance.'};
 const openSettings = () => { if (!$('settings').open) $('settings').showModal(); };
 const notifyState = () => document.dispatchEvent(new Event('sidelook-state'));
 // The selector lists the whole catalog, grouped by the CLI and account each model runs on. A model that lacks an effort greys it out;
 // a saved effort the new model does not offer moves to that model's deepest level, and the note says so.
-$('model-choice').replaceChildren(...Object.entries(PROVIDERS).map(([key,provider])=>{
-  const group=document.createElement('optgroup');group.label=`${provider.label} · ${provider.account} through ${provider.cli}`;
-  group.append(...MODELS.filter(m=>m.provider===key).map(m=>new Option(`${m.label} · ${provider.account}`,m.id)));return group;
-}));
+// Local runtimes get a group only while they hold a model; an empty runtime shows one disabled line saying how to fill it.
+function renderModelChoice(runtimes={}) {
+  $('model-choice').replaceChildren(...Object.entries(PROVIDERS).flatMap(([key,provider])=>{
+    const entries=(provider.local?LOCAL:MODELS).filter(m=>m.provider===key);
+    if(provider.local && !entries.length && !runtimes[key]?.up) return [];
+    const group=document.createElement('optgroup');group.label=provider.local?`${provider.account} · on this computer through ${provider.cli}`:`${provider.label} · ${provider.account} through ${provider.cli}`;
+    if(entries.length) group.append(...entries.map(m=>new Option(`${m.label} · ${provider.account}`,m.id)));
+    else {const empty=new Option(`No chat model loaded in ${provider.account} yet`,'');empty.disabled=true;group.append(empty);}
+    return [group];
+  }));
+  $('model-choice').value=state.model;
+}
+renderModelChoice();
 function settleEffort() {
   const efforts=choice(state.model).efforts;
   for (const option of $('effort-choice').options) option.disabled=!efforts.includes(option.value);
@@ -49,14 +60,14 @@ function renderSelection() {
   $('faster-effort').hidden=state.effort==='low';
   $('model-choice').value=state.model; $('effort-choice').value=state.effort;
   $('effort-note').textContent=`${moved?`${selectedLabel()} goes up to ${$('effort-choice').selectedOptions[0].textContent.toLowerCase()} effort, so that is selected. `:''}${effortNotes[state.effort]} Applies to your next request.`;
-  $('billing-note').textContent=billingLine(state.model) || `${selectedLabel()} uses your ${selectedAccount()} subscription.`;
+  $('billing-note').textContent=billingLine(state.model) || (selectedIsLocal()?`${selectedLabel()} runs in ${selectedAccount()} on this computer. Nothing leaves this device for the model.`:`${selectedLabel()} uses your ${selectedAccount()} subscription.`);
   const claude=selectedIsClaude();
   $('install-title').textContent=claude?'Install official Claude Code?':'Install the official Codex CLI?';
   $('install-detail').textContent=claude?'Downloads the verified Claude Code runtime directly from Anthropic’s official npm package into Sidelook’s per-user tools folder. No terminal or administrator access is needed. Claude Code is subject to Anthropic’s terms. No model request is made during installation.':'Downloads the official @openai/codex package through npm and installs it globally on this device. No account or model request is made during installation.';
   $('confirm-install').textContent=claude?'Install Claude Code':'Install Codex';
   $('install-terms').hidden=!claude;
-  $('setup-help').href=claude?'https://code.claude.com/docs/en/authentication':'https://developers.openai.com/codex/auth';
-  $('setup-detail').textContent=claude?'Sign-in opens Anthropic’s official browser flow and updates Claude Code login on this device. Installation downloads Claude Code into Sidelook’s own tools folder. Each action starts only when you choose it.':'Sign-in opens the official browser flow and updates Codex login on this device. Installing Codex adds its official npm package globally. Each action starts only when you choose it.';
+  $('setup-help').href=claude?'https://code.claude.com/docs/en/authentication':selectedIsLocal()?(choice(state.model).provider==='ollama'?'https://ollama.com/':'https://lmstudio.ai/'):'https://developers.openai.com/codex/auth';
+  $('setup-detail').textContent=claude?'Sign-in opens Anthropic’s official browser flow and updates Claude Code login on this device. Installation downloads Claude Code into Sidelook’s own tools folder. Each action starts only when you choose it.':selectedIsLocal()?`${selectedAccount()} serves the model on this computer and Codex talks to it locally. Start server runs ${selectedAccount()}’s own command line; nothing is installed or signed in.`:'Sign-in opens the official browser flow and updates Codex login on this device. Installing Codex adds its official npm package globally. Each action starts only when you choose it.';
 }
 const current = () => state.revisions.find(r => r.id === state.selected);
 const showError = message => { $('error-text').textContent = message; $('error').hidden = false; };
@@ -94,7 +105,7 @@ function buildProgress(event) {
   if(!state.busy || state.controller?.signal.aborted) return;
   if(event.type==='phase') {
     if(/^[a-f0-9]{40}$/.test(event.draftSession || '')) draftSession=event.draftSession;
-    $('build-phase').textContent=event.phase==='connecting'?'Connecting to your subscription':'Waiting for model output';
+    $('build-phase').textContent=event.phase==='connecting'?(selectedIsLocal()?`Connecting to ${selectedAccount()} on this computer`:'Connecting to your subscription'):event.phase==='loading'?`Loading ${selectedLabel()} into memory`:'Waiting for model output';
     if(event.phase==='waiting') $('build-detail').textContent=event.streaming?'The live draft will appear when HTML starts arriving. Reasoning happens before visible code.':'This Codex CLI returns completed messages. The preview will update as soon as it releases HTML; Anthropic models through Claude Code support incremental drafts.';
   }
   if(event.type!=='draft' || typeof event.html!=='string' || event.html.length>120000) return;
@@ -272,7 +283,7 @@ $('screen-stop').addEventListener('click',stopCamera);
 $('live-pause').addEventListener('click',()=>pauseLive());
 $('live-start').addEventListener('click',()=>{
   if(state.captureKind!=='screen' || !state.stream || state.busy || !state.configured) return;
-  $('live-consent-detail').textContent=`Automatic snapshots go to ${selectedLabel()} through your ${selectedAccount()} subscription, at least ${Number($('live-interval').value)/1000} seconds apart. ${usesCredits(state.model)?`${selectedLabel()} can automatically consume paid Claude usage credits.`:'Each build uses your subscription allowance.'}`;
+  $('live-consent-detail').textContent=`Automatic snapshots go to ${selectedLabel()} through ${goesTo(state.model)}, at least ${Number($('live-interval').value)/1000} seconds apart. ${usesCredits(state.model)?`${selectedLabel()} can automatically consume paid Claude usage credits.`:'Each build uses your subscription allowance.'}`;
   $('live-dialog').showModal();
 });
 $('live-confirm').addEventListener('click',()=>{
@@ -417,7 +428,7 @@ function buildManifest() {
   return { title:`What goes with ${$('build-label').textContent}`, fields:[
     ['Direction',$('direction').value.trim() || '(nothing typed yet)'],['Frame',image || 'none'],
     ['Prototype source',parent ? `${versionName(parent)} · ${parent.html.length.toLocaleString()} characters` : 'none'],
-    ['Model',`${selectedLabel()} · ${state.effort}`],['Goes to',`your ${selectedAccount()} subscription through ${CLI[state.model]}`]],
+    ['Model',`${selectedLabel()} · ${state.effort}`],['Goes to',goesTo(state.model)]],
     body:{ image:image ? `<frame: ${image}>` : null, instruction:$('direction').value.trim(), previous:parent ? `<${versionName(parent)} source>` : '', consent:true, model:state.model, effort:state.effort } };
 }
 async function beginBuild(automatic=false) {
@@ -449,7 +460,7 @@ async function beginBuild(automatic=false) {
   $('build-message').textContent = `${selectedLabel()} is ${selectedIsClaude() ? 'grinding' : 'thinking'}.`;
   if (image) { $('sent-image').src=image; $('sent-label').textContent=`Last frame sent · ${time(created)} · ${selectedLabel()}`; $('sent-evidence').hidden=false; }
   if (automatic) showSharedScreen();
-  $('build-detail').textContent = image ? 'One selected frame, one subscription turn. Observations and the prototype arrive together. This can take several minutes.' : 'Using your direction and selected source. No image is sent. This can take several minutes.';
+  $('build-detail').textContent = image ? 'One selected frame, one model turn. Observations and the prototype arrive together. This can take several minutes.' : 'Using your direction and selected source. No image is sent. This can take several minutes.';
   $('build-elapsed').textContent = '0s elapsed · up to 5 minutes';
   state.elapsed = 0;
   const elapsedTimer = setInterval(() => {
@@ -613,7 +624,12 @@ const session = createSession({
     if (!response.ok) throw new Error('Could not connect to Sidelook. Reopen Sidelook, then choose Reconnect. Your saved source is available.');
     return response.json();
   },
-  onLocal: connection => { state.token = connection.token; state.remaining = connection.remaining; state.dictation = connection.dictation; updateControls(); renderBudget(); },
+  onLocal: connection => {
+    state.token = connection.token; state.remaining = connection.remaining; state.dictation = connection.dictation;
+    adoptLocalModels(connection.local?.models); renderModelChoice(connection.local?.runtimes);
+    if (savedModel && choice(savedModel)) { state.model = savedModel; savedModel = null; renderSelection(); }
+    updateControls(); renderBudget();
+  },
   // Only a preview that is not already showing is restored; the source and Retry preview are there either way.
   restorePreview: () => { if (current() && ($('preview').hidden || !$('preview').src)) return selectRevision(state.selected); },
   onPreviewError: error => showError(error.message),
@@ -622,14 +638,15 @@ const session = createSession({
     renderProviderStatus();
     $('provider-dot').classList.toggle('ready',session.configured); $('setup-dot').classList.toggle('ready',session.configured);
     $('setup-summary').textContent = session.configured ? `${selectedAccount()} connected` : 'Action needed';
-    const cliName=selectedIsClaude()?'Claude Code':'Codex CLI';
+    const cliName=selectedIsClaude()?'Claude Code':'Codex CLI', local=selectedIsLocal();
     $('cli-check').textContent = session.cli === false ? `Official ${cliName} needs installation.` : session.code==='CLI_UPDATE_REQUIRED' ? `Official ${cliName} needs updating.` : `Official ${cliName} is available.`;
-    $('login-check').textContent = session.configured ? `Signed in with ${selectedAccount()}.` : `${selectedAccount()} subscription sign-in is needed.`;
+    $('login-check').textContent = local ? (session.configured ? `${selectedAccount()} is running with ${selectedLabel()} available.` : session.code==='RUNTIME_DOWN' ? `${selectedAccount()} server is not running.` : `${selectedLabel()} is not in ${selectedAccount()}.`) : session.configured ? `Signed in with ${selectedAccount()}.` : `${selectedAccount()} subscription sign-in is needed.`;
     $('install-codex').hidden = session.cli !== false && session.code!=='CLI_UPDATE_REQUIRED';
     $('install-codex').textContent=`Install official ${cliName}`;
-    $('login').hidden = session.configured || session.cli === false || session.code==='CLI_UPDATE_REQUIRED';
-    $('login').textContent=`Sign in with ${selectedAccount()}`;
-    $('setup-message').textContent = session.reason || 'Ready. Selected model access and subscription allowance are checked on each request.';
+    // A local runtime that is down gets Start server in the sign-in slot (LM Studio only; Ollama is started by the user, and the message says so).
+    $('login').hidden = session.configured || session.cli === false || session.code==='CLI_UPDATE_REQUIRED' || (local && (session.code!=='RUNTIME_DOWN' || choice(state.model).provider!=='lmstudio'));
+    $('login').textContent=local?`Start ${selectedAccount()} server`:`Sign in with ${selectedAccount()}`;
+    $('setup-message').textContent = session.reason || (local ? 'Ready. The model runs on this computer; nothing is sent to a subscription.' : 'Ready. Selected model access and subscription allowance are checked on each request.');
     if (!session.configured) openSettings();
   },
   onError: error => {
@@ -661,7 +678,7 @@ async function setupAction(path) {
   if (state.setupBusy || state.busy || !state.token) return;
   state.setupBusy = true; state.setupController = new AbortController();
   $('cancel-setup').hidden = false;
-  $('setup-message').textContent = path === '/api/login' ? `Complete ${selectedAccount()} sign-in in the browser opened by the official CLI. This can take up to three minutes.` : `Installing official ${selectedIsClaude()?'Claude Code':'Codex CLI'}. This can take up to three minutes.`;
+  $('setup-message').textContent = path === '/api/login' ? (selectedIsLocal() ? `Starting the ${selectedAccount()} server on this computer.` : `Complete ${selectedAccount()} sign-in in the browser opened by the official CLI. This can take up to three minutes.`) : `Installing official ${selectedIsClaude()?'Claude Code':'Codex CLI'}. This can take up to three minutes.`;
   updateControls();
   try { await api(path,{ consent:true },state.setupController.signal); await refreshSession(); }
   catch(error) { $('setup-message').textContent = error.name === 'AbortError' ? 'Setup action canceled. Choose Check again to inspect the current state.' : error.message; }

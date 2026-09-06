@@ -1,17 +1,27 @@
 // Shared plumbing for both surfaces: one status line, one consent sentence, one gate, one ledger.
 // Pure functions first so tests/harness.test.mjs can import this file under node --test.
-import {MODELS,PROVIDERS,choice} from './models.js';
-export {MODELS,PROVIDERS,choice};
+import {MODELS,LOCAL,PROVIDERS,choice,setLocalModels} from './models.js';
+export {MODELS,LOCAL,PROVIDERS,choice};
 export const MODEL_LABEL=Object.fromEntries(MODELS.map(m=>[m.id,m.label]));
 export const ACCOUNT=Object.fromEntries(MODELS.map(m=>[m.id,PROVIDERS[m.provider].account]));
 export const CLI=Object.fromEntries(MODELS.map(m=>[m.id,PROVIDERS[m.provider].cli]));
+// The server's enumeration of the local runtimes joins the same maps, so every label below works for a local model too.
+// The maps are mutated in place because both surfaces imported them by reference at load.
+export function adoptLocalModels(list) {
+  for(const stale of LOCAL) {delete MODEL_LABEL[stale.id];delete ACCOUNT[stale.id];delete CLI[stale.id];}
+  for(const m of setLocalModels(list)) {MODEL_LABEL[m.id]=m.label;ACCOUNT[m.id]=PROVIDERS[m.provider].account;CLI[m.id]=PROVIDERS[m.provider].cli;}
+  return LOCAL;
+}
+export const isLocal=model=>!!choice(model)?.local;
 // Anthropic models can spend paid usage credits; the line names the chosen model. Null when the choice is subscription-only.
 export const usesCredits=model=>!!choice(model)?.usageCredits;
 export const billingLine=model=>usesCredits(model)?`${MODEL_LABEL[model]} can use paid usage credits on your Claude account.`:null;
+// Where a send goes, in the words the manifest and the consent sentence share: a subscription through its CLI, or this computer.
+export const goesTo=model=>isLocal(model)?`${ACCOUNT[model]} on this computer through ${CLI[model]}`:`your ${ACCOUNT[model] || ACCOUNT.astra} subscription through ${CLI[model] || CLI.astra}`;
 export const ledger=[];
 
 const list=items=>items.length<2?items.join(''):`${items.slice(0,-1).join(', ')} and ${items.at(-1)}`;
-const destination=model=>`${MODEL_LABEL[model] || MODEL_LABEL.astra} (your ${ACCOUNT[model] || ACCOUNT.astra} subscription)`;
+const destination=model=>isLocal(model)?`${MODEL_LABEL[model]} (${ACCOUNT[model]} on this computer)`:`${MODEL_LABEL[model] || MODEL_LABEL.astra} (your ${ACCOUNT[model] || ACCOUNT.astra} subscription)`;
 const clock=value=>new Date(value).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
 
 // What Sidelook is doing right now, and what the sensors are doing. Both computed from live state, never from a literal at a call site.

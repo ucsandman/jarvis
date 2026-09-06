@@ -1,13 +1,13 @@
 <div align="center">
   <img src="public/mark.svg" width="72" height="72" alt="Sidelook">
   <h1>sidelook</h1>
-  <p><strong>A desktop companion for Windows that runs on the ChatGPT or Claude subscription you already pay for.</strong></p>
+  <p><strong>A desktop companion for Windows that runs on the ChatGPT or Claude subscription you already pay for, or on a local model in LM Studio or Ollama.</strong></p>
   <p>a <a href="https://practicalsystems.io">Practical Systems</a> product</p>
   <p><a href="https://github.com/ucsandman/sidelook/actions/workflows/ci.yml"><img src="https://github.com/ucsandman/sidelook/actions/workflows/ci.yml/badge.svg" alt="Windows and Linux checks"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-2DD4A8" alt="MIT license"></a> <a href="https://github.com/ucsandman/sidelook/releases/latest"><img src="https://img.shields.io/github/v/release/ucsandman/sidelook" alt="Latest release"></a></p>
   <p><a href="https://sidelook.practicalsystems.io/">Website</a> · <a href="https://github.com/ucsandman/sidelook/releases/download/v0.16.0/Sidelook-0.16.0-Windows-x64.exe">Download for Windows</a> · <a href="#getting-started">Get started</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
 </div>
 
-Sidelook sits in the corner of your screen. Hit **Ctrl+Shift+Space** and a small panel opens already knowing which window you were in, with three questions written for it. Pick one, look at the screenshot it took, press **Send with screenshot**. The panel is only as tall as what is in it and grows as you talk. Or hand it something bigger: turn a sketch into a working prototype in the studio, or let it drive a Windows app one approved click at a time. Pick any model in the catalog, OpenAI through ChatGPT or Anthropic through Claude, go. No API key, nothing metered.
+Sidelook sits in the corner of your screen. Hit **Ctrl+Shift+Space** and a small panel opens already knowing which window you were in, with three questions written for it. Pick one, look at the screenshot it took, press **Send with screenshot**. The panel is only as tall as what is in it and grows as you talk. Or hand it something bigger: turn a sketch into a working prototype in the studio, or let it drive a Windows app one approved click at a time. Pick any model in the catalog, OpenAI through ChatGPT, Anthropic through Claude, or a local model in LM Studio or Ollama, go. No API key, nothing metered.
 
 It's experimental and built around how I work. Anthropic models can burn paid Claude usage credits. What your account can reach is up to your plan. The website is a walkthrough, the app is where the sign-in and generation actually happen.
 
@@ -69,6 +69,7 @@ A click or a key in the target app can send, delete, or buy something. Read ever
 | --- | --- | --- |
 | OpenAI models (Astra, GPT-5.6 Sol, Terra, Luna, GPT-5.5, GPT-5.4 Mini, GPT-5.3 Codex Spark) | ChatGPT subscription through Codex | Updates when the CLI finishes a message |
 | Anthropic models (Fable 5.1, Opus 5, Sonnet 5, Haiku 4.5) | Paid Claude subscription through Claude Code | HTML drafts as chunks arrive |
+| Local models (whatever LM Studio or Ollama holds) | Your own computer, through Codex's open-source provider | Updates when the CLI finishes a message |
 
 Model and effort live in **Settings**; effort is under **Advanced**. Start on **low effort** for small changes. High effort can take a while.
 
@@ -103,7 +104,7 @@ The builder makes frontend pages. Computer mode, enabled separately, drives acce
 
 ## Run from source
 
-Needs **Node.js 24+** and a subscription for generation. Setup can install the CLI on Windows. Elsewhere, install the official CLI yourself. [Provider setup](docs/MODELS.md).
+Needs **Node.js 24+** and a subscription, or a local model in LM Studio or Ollama, for generation. Setup can install the CLI on Windows. Elsewhere, install the official CLI yourself. [Provider setup](docs/MODELS.md).
 
 ```sh
 git clone https://github.com/ucsandman/sidelook.git
