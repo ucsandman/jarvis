@@ -232,6 +232,8 @@ The maintainer looked at the 0.14.0 panel and asked for something drastically be
 
 Mid-session the maintainer added two asks before the ship: he did not like the colour scheme, and the dock had to be movable. The dock got press-to-summon, drag-to-move, and a saved anchor corner (`dock.json`). Five palettes were rendered on the same panel with measured contrast; the assistant recommended graphite and mint and the maintainer took it. The retint ran by rule over `style.css`, misfired once on the ink (logged in ERRORS), and was redone with a lightness gate; the mark, dock button, tray and exe icons, WebView backdrop, Screen on border, studio and site changed together. Every synthetic verifier passed again on the retint and the exe repackaged with the new icon.
 
+0.15.0 shipped from 406b972: CI 34026458718 green, release v0.15.0 with the exe and checksums (anonymous download hash matched), deployment dpl_J6Q86ikKM4CpgiynVz791h9BwSxP Ready and verified at the canonical URL.
+
 Owed: the desktop-host check (borderless style, content-sized first panel, growth for the lease dialog), the desktop-content check, a dock drag on a real desktop, and a real look at the panel and the mint over a real window, all of which need the desktop free.
 
 Retro: the mock pattern held for the third time; what worked was writing the verifier's shape assertions from the mock before wiring, so the first failing run pointed at a measurement, not a design. What did not work: measuring a flex child for its content. Change: any "how tall is the content" question is answered from the children, never from the scrolling container.
