@@ -48,10 +48,15 @@ body:not([data-native]) .companion-edges{display:none}
 #companion .companion-evidence{width:40px;min-height:28px;height:28px;padding:0;flex:0 0 auto;border:1px solid var(--line);border-radius:3px;overflow:hidden;background:var(--paper);display:grid;place-items:center;font:12px Georgia,serif;color:#505972;margin-top:2px}#companion .companion-evidence img{width:100%;height:100%;object-fit:cover;display:block}#companion .companion-evidence[aria-expanded=true]{outline:2px solid var(--accent);outline-offset:1px}
 .companion-message>img,.companion-message>pre{flex-basis:100%}.companion-message>img{display:block;max-width:100%;margin:6px 0 0;border:1px solid var(--line)}.companion-message>pre{max-height:160px;overflow:auto;margin:6px 0 0;padding:8px 10px;font-size:12px;line-height:1.45;white-space:pre-wrap}
 #companion .companion-workflow{border:1px solid var(--accent);color:var(--accent);font-size:13px;margin-top:8px}#companion .companion-copy{margin-top:2px;padding:2px 0;min-height:24px;font-size:12px}
+/* A break in the conversation: the messages above it stay on screen, the context does not travel past it. */
+.companion-divider{display:flex;align-items:center;gap:8px;margin:0 0 14px;font-size:12px;color:var(--muted)}.companion-divider::before,.companion-divider::after{content:'';flex:1;border-top:1px solid var(--line)}
 .companion-followups{display:flex;flex-direction:column;margin-top:6px}#companion .companion-followups button{text-align:left;justify-content:flex-start;font-size:13px;color:var(--muted);padding:4px 0;border-radius:0;min-height:28px}#companion .companion-followups button:hover:not(:disabled){background:none;color:var(--accent)}
 
 /* The box. One line at rest, grows a line at a time to eight, then scrolls inside; the grip drags it taller. Attachments sit inside it; the button says what goes. */
 .companion-compose{padding:6px 16px 12px;flex-shrink:0}
+/* Above the box: three plain words for the conversation, then one line saying how full the context is and what the sends cost. */
+.companion-chat-controls{display:flex;align-items:center;gap:2px;margin:0 0 2px}#companion .companion-chat-controls .quiet{padding:4px 6px}
+.companion-meter{font-size:12px;color:var(--muted);margin:0 2px 8px;line-height:1.35}.companion-meter .warn{color:#f2b49e}
 #companion-error{color:#f2b49e;font-size:12px;max-height:60px;overflow:auto;margin:0 0 8px}
 #companion-form{position:relative;border:1px solid #3c4357;border-radius:12px;background:var(--panel);padding:10px 12px 8px}#companion-form:focus-within{border-color:var(--accent)}
 .companion-attach{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}.companion-attach:not(:has(:not([hidden]))){display:none}

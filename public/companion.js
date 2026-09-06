@@ -24,6 +24,10 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   const $=id=>document.getElementById('companion-'+id);
   const settings=document.getElementById('settings'),preview=document.getElementById('send-preview'),tone=document.getElementById('rewrite-tone');
   let history=[],frame=null,text=null,controller=null,dictation=null,capturing=false,reading=false,captureEpoch=0,captureRequest=null,front=null,chips=[],pendingRoute=null,quickAsk=false,copyButton=null;
+  // What the next send would carry, against the server's own limit in lib/assistant.mjs: 12 messages of 2,000 characters.
+  const CONTEXT_BUDGET=24000,COMPACT='Summarize the earlier messages of this conversation in under 150 words so the conversation can continue from the summary alone. Plain text, no markdown.';
+  // The tokens the model reported: the last send, and this chat's running total. Cached input is counted beside each, never inside it. null means nothing has gone yet.
+  let lastTokens=null,lastCached=0,chatTokens=0,chatCached=0,meterKey='';
   // boxHeight is a height the user dragged the box to with the grip; null means the box fits its text. postedHeight is the last panel height sent to the shell.
   let boxHeight=null,postedHeight=0;
   if(native)document.body.dataset.native='';
@@ -53,9 +57,34 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     if(frame)$('frame-time').textContent=`Captured ${clock(frame.capturedAt)} · ${kb(frame.image)}${follow.state.on && follow.state.snapshots?' · replaces itself after each pause':''}`;
     if(text)$('text-volume').textContent=`${text.controls} controls · ${text.characters.toLocaleString()} characters${text.truncated?' · cut short':''}`;
   }
+  // One line under the buttons: how full the context the next send would carry is, what the last send cost, and what this chat has cost.
+  // It rewrites only when a number changes, so an idle panel stays still.
+  const tokenWords=(count,cached,unit='')=>`${count.toLocaleString()}${unit}${cached?` (${cached.toLocaleString()} cached)`:''}`;
+  const contextChars=()=>history.slice(-12).reduce((sum,message)=>sum+message.text.length,0);
+  function renderMeter() {
+    const percent=Math.round(contextChars()/CONTEXT_BUDGET*100);
+    const key=`${percent}|${lastTokens}|${lastCached}|${chatTokens}|${chatCached}`;
+    if(key===meterKey)return;
+    meterKey=key;
+    const value=document.createElement('span');value.textContent=`${percent}%`;if(percent>80)value.className='warn';
+    $('meter').replaceChildren('Context ',value,lastTokens===null?' · no sends yet':` · last send ${tokenWords(lastTokens,lastCached,' tokens')} · this chat ${tokenWords(chatTokens,chatCached)}`);
+  }
+  // What the model reported this send cost. A reply without a count is counted as zero rather than guessed at.
+  function countTokens(result) {
+    lastTokens=Number(result.tokens) || 0;lastCached=Number(result.cachedTokens) || 0;
+    chatTokens+=lastTokens;chatCached+=lastCached;
+  }
+  // A break in the conversation, on the list with the messages: what stays on screen is not what goes to the model.
+  function divider(body) {
+    const li=document.createElement('li');li.className='companion-divider';li.textContent=body;
+    $('messages').append(li);while($('messages').children.length>24)$('messages').firstElementChild.remove();
+    li.scrollIntoView({block:'end',behavior:'smooth'});
+  }
   function render() {
     const s=getState(),locked=!!controller || !!dictation || s.busy || s.live || s.setupBusy || s.inputBusy;
     for(const id of ['clear','import','capture','remove','text-remove'])$(id).disabled=locked || capturing || reading;
+    // Nothing to clear and nothing to summarize when the model would receive nothing.
+    for(const id of ['clear-context','compact'])$(id).disabled=locked || capturing || reading || !history.length;
     host.querySelectorAll('.starter,.companion-followups button').forEach(button=>button.disabled=locked || capturing || reading);
     $('send').disabled=locked || s.checking || !s.configured || !s.token || s.remaining===0;
     // The button says what goes. With only words in the box it is the arrow alone; an attachment puts its name on the button.
@@ -74,7 +103,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     if(activity==='Ready'){const model=document.createElement('b');model.textContent=MODEL_LABEL[s.model];$('goes-text').replaceChildren(model,usesCredits(s.model)?' · may use paid credits':'');}
     else $('goes-text').textContent=activity;
     $('computer').hidden=!s.computerOn;
-    renderStrips();
+    renderStrips();renderMeter();
     $('hide').hidden=!native;$('drag').disabled=!native;
     fitPanel();
   }
@@ -229,7 +258,8 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
       ['Message',body.instruction || '(nothing typed yet)'],['Earlier messages',String(body.history.length)],
       ['Screenshot',evidence?`${evidence.label} · ${kb(evidence.image)} JPEG`:'none'],
       ['Window text',read?`${read.title} · ${read.controls} controls · ${read.characters.toLocaleString()} characters${read.truncated?' · cut short':''}`:'none'],
-      ['Model',`${MODEL_LABEL[s.model]} · ${s.effort}`],['Goes to',`your ${ACCOUNT[s.model]} subscription through ${CLI[s.model]}`]],
+      ['Model',`${MODEL_LABEL[s.model]} · ${s.effort}`],['Goes to',`your ${ACCOUNT[s.model]} subscription through ${CLI[s.model]}`],
+      ['Last send',lastTokens===null?'nothing has gone yet':`${tokenWords(lastTokens,lastCached,' tokens')}`],['This chat',lastTokens===null?'nothing has gone yet':`${tokenWords(chatTokens,chatCached,' tokens')}`]],
       body:{...body,model:s.model,effort:s.effort,...(evidence?{image:`<screenshot: ${evidence.label}>`}:{})}};
   }
   function showPreview() {renderPreview(preview,manifest(),ledger);preview.showModal();}
@@ -246,7 +276,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     try {
       const result=await api('/api/chat',body,request.signal);
       if(request.signal.aborted){outcome='stopped';return;}
-      outcome='sent';record({surface:'chat',ok:true,frame:!!evidence,text:!!read,model:s.model,effort:s.effort,remaining:result.remaining});
+      outcome='sent';countTokens(result);record({surface:'chat',ok:true,frame:!!evidence,text:!!read,model:s.model,effort:s.effort,remaining:result.remaining,tokens:lastTokens,cachedTokens:lastCached});
       history.push({role:'user',text:instruction.slice(0,2000)},{role:'assistant',text:result.result.reply.slice(0,2000)});history=history.slice(-12);
       const reply=addMessage('assistant',result.result.reply);$('input').value='';boxHeight=null;fitBox();
       if(evidence)setFrame(null);if(read)setText(null);
@@ -264,6 +294,30 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     }
     finally{
       if(outcome!=='sent')record({surface:'chat',ok:false,outcome,frame:!!evidence,text:!!read,model:s.model,effort:s.effort,remaining:s.remaining});
+      if(controller===request){controller=null;s.inputBusy=false;updateControls();render();}
+    }
+  }
+  // Compact: one send that trades the earlier messages for a summary of them. Same gate, same Stop, same ledger as a message;
+  // the summary is not a message, so the divider is the only thing that appears on screen.
+  async function compact() {
+    const s=getState();if(controller || dictation || capturing || reading || s.busy || s.live || s.setupBusy || s.inputBusy || !history.length)return;
+    const refusal=gate({surface:'chat',configured:s.configured,token:s.token,remaining:s.remaining});
+    if(refusal){error(refusal);return;}
+    error('');const request=new AbortController();controller=request;s.inputBusy=true;updateControls();render();
+    const before=contextChars();
+    let outcome='refused';
+    try {
+      const result=await api('/api/chat',{instruction:COMPACT,history:history.slice(-12),consent:true},request.signal);
+      if(request.signal.aborted){outcome='stopped';return;}
+      outcome='sent';countTokens(result);record({surface:'chat',ok:true,frame:false,text:false,model:s.model,effort:s.effort,remaining:result.remaining,tokens:lastTokens,cachedTokens:lastCached});
+      history=[{role:'assistant',text:`Summary of the earlier conversation: ${result.result.reply}`.slice(0,2000)}];
+      divider(`Compacted: ${before.toLocaleString()} to ${contextChars().toLocaleString()} characters`);
+    }catch(e){
+      if(e.name==='AbortError'){outcome='stopped';error('Stopped. The conversation is unchanged.');}
+      else error(e.message);
+    }
+    finally{
+      if(outcome!=='sent')record({surface:'chat',ok:false,outcome,frame:false,text:false,model:s.model,effort:s.effort,remaining:s.remaining});
       if(controller===request){controller=null;s.inputBusy=false;updateControls();render();}
     }
   }
@@ -399,7 +453,10 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   $('hide').onclick=()=>{stop();showSurface('dock');};$('drag').onpointerdown=()=>post({type:'drag'});
   $('front').onclick=()=>{if($('targets').hidden)openPicker();else closePicker();};
   document.getElementById('model-choice').addEventListener('change',render);
-  $('clear').onclick=()=>{history=[];$('messages').replaceChildren();slimDeck(false);renderTile();setFrame(null);setText(null);error('');$('input').value='';boxHeight=null;fitBox();};
+  // New chat empties the screen and the context; Clear context keeps the screen and drops what the next send would carry.
+  $('clear').onclick=()=>{history=[];lastTokens=null;lastCached=0;chatTokens=0;chatCached=0;$('messages').replaceChildren();slimDeck(false);renderTile();setFrame(null);setText(null);error('');$('input').value='';boxHeight=null;fitBox();};
+  $('clear-context').onclick=()=>{if(!history.length)return;history=[];error('');divider('Context cleared');render();};
+  $('compact').onclick=compact;
   $('spoken').onchange=()=>{if(!$('spoken').checked){post({type:'stop-speaking'});window.speechSynthesis?.cancel();}};
   $('voice').onchange=()=>{if(!$('voice').checked)dictation?.abort();};
   $('sense').onclick=()=>{if(follow.state.on)stopFollow();else openLease();};document.getElementById('screen-follow').onclick=()=>startFollow(false);document.getElementById('screen-snapshots').onclick=()=>startFollow(true);

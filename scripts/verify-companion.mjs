@@ -10,8 +10,9 @@ let requests=[],aborted=false;
 const vision=new Vision({status:async()=>({configured:true,cli:true,model:'gpt-6-astra'}),inference:async(request,signal)=>{
   const input=JSON.parse(request.prompt);requests.push(input);
   if(input.instruction==='Wait for cancellation')await new Promise((resolve,reject)=>signal.addEventListener('abort',()=>{aborted=true;reject(new DOMException('Canceled','AbortError'));},{once:true}));
-  if(input.instruction==='List two things')return {model:'gpt-6-astra',result:{reply:'Two things stand out:\n1. The heading is too small.\n2. The button has no label.',suggestion:'none',followUps:[]}};
-  return {model:'gpt-6-astra',result:{reply:input.instruction.includes('prototype')?'Let’s turn that idea into a working prototype. Open the studio to describe the details and review what gets shared.':input.instruction.includes('setup')?'I can help with supported Windows controls. Choose the window and review each proposed action.':'The selected frame shows a clear starting point. I would simplify the main action and give the content a little more space.',suggestion:input.instruction.includes('prototype')?'build':input.instruction.includes('setup')?'computer':'none',followUps:input.screenEvidenceIncluded?['Show me the steps','Why did it fail','What else stands out']:[]}};
+  if(input.instruction==='List two things')return {model:'gpt-6-astra',tokens:1240,cachedTokens:310,result:{reply:'Two things stand out:\n1. The heading is too small.\n2. The button has no label.',suggestion:'none',followUps:[]}};
+  if(input.instruction.startsWith('Summarize the earlier messages'))return {model:'gpt-6-astra',tokens:900,cachedTokens:0,result:{reply:'You asked two short questions about the window and got two short answers.',suggestion:'none',followUps:[]}};
+  return {model:'gpt-6-astra',tokens:1240,cachedTokens:310,result:{reply:input.instruction.includes('prototype')?'Let’s turn that idea into a working prototype. Open the studio to describe the details and review what gets shared.':input.instruction.includes('setup')?'I can help with supported Windows controls. Choose the window and review each proposed action.':'The selected frame shows a clear starting point. I would simplify the main action and give the content a little more space.',suggestion:input.instruction.includes('prototype')?'build':input.instruction.includes('setup')?'computer':'none',followUps:input.screenEvidenceIncluded?['Show me the steps','Why did it fail','What else stands out']:[]}};
 }});
 // A synthetic Windows broker: reads answer with fixture text, and every native op is recorded so the verifier can prove a read never arms.
 const nativeOps=[];
@@ -142,7 +143,35 @@ try{
   await $('settings').click();await page.locator('#advanced').evaluate(el=>{el.open=true;});await $('voice').check();await page.locator('#settings-close').click();await page.route('**/api/dictate',route=>route.fulfill({json:{text:'A locally dictated question'}}));await $('mic').click();await page.waitForFunction(()=>document.getElementById('companion-input').value.includes('locally dictated'));assert.equal(requests.length,6);checks.push('dictation fills message without sending');
   await $('input').fill('Wait for cancellation');await $('send').click();await page.waitForFunction(()=>document.getElementById('companion-activity').textContent.startsWith('Thinking'));assert.ok(await $('stop').isVisible(),'Stop shows only while something runs');assert.equal(await $('goes').isHidden(),true);
   await $('stop').click();await idle();await new Promise(resolve=>setTimeout(resolve,200));assert.equal(aborted,true);assert.equal(await $('input').inputValue(),'Wait for cancellation');assert.equal(await $('running').isHidden(),true);checks.push('stop aborts inference, retains retry text, and leaves with the running line');
-  await $('settings').click();await $('clear').click();assert.equal(await page.locator('.companion-message').count(),0);assert.equal(await $('context').isVisible(),false);assert.equal(await $('text').isVisible(),false);assert.equal(await $('deck').isVisible(),true);await page.locator('#settings-close').click();checks.push('clear removes conversation and attachments and brings the starters back');
+  // The three chat controls sit under the conversation: New chat empties the screen and the context, Clear context keeps the screen and drops what travels, Compact trades the earlier messages for one summary.
+  assert.deepEqual(await page.locator('.companion-chat-controls button').allInnerTexts(),['New chat','Clear context','Compact']);
+  assert.equal(await page.locator('.companion-compose input[type=checkbox], .companion-compose select, .companion-compose details').count(),0,'the chat controls add no checkbox, dropdown or arrow');
+  await $('clear').click();assert.equal(await page.locator('.companion-message').count(),0);assert.equal(await $('context').isVisible(),false);assert.equal(await $('text').isVisible(),false);assert.equal(await $('deck').isVisible(),true);
+  assert.equal(await $('meter').innerText(),'Context 0% · no sends yet');assert.equal(await $('clear-context').isDisabled(),true);assert.equal(await $('compact').isDisabled(),true,'nothing to clear or compact on an empty chat');
+  checks.push('New chat removes conversation, attachments and context, brings the starters back, and resets the meter');
+  await $('input').fill('A fresh question');await $('send').click();await idle();assert.equal(requests.at(-1).history.length,0);
+  assert.equal(await page.locator('.companion-message').count(),2);
+  await $('clear-context').click();
+  assert.equal(await page.locator('.companion-message').count(),2,'clearing the context leaves the messages on screen');
+  assert.equal(await page.locator('#companion-messages .companion-divider').last().innerText(),'Context cleared');
+  await $('input').fill('After the break');await $('send').click();await idle();assert.equal(requests.at(-1).history.length,0,'the cleared context never travels');
+  checks.push('Clear context keeps the messages on screen, marks the break, and sends none of them');
+  await $('input').fill('List two things');await $('send').click();await idle();assert.equal(requests.at(-1).history.length,2);
+  const meter=await $('meter').innerText();
+  assert.match(meter,/^Context [1-9]\d?% · last send [\d,]+ tokens \([\d,]+ cached\) · this chat [\d,]+ \([\d,]+ cached\)$/,`after four sends the meter reads "${meter}"`);
+  checks.push(`the meter reads "${meter}"`);
+  const sends=requests.length;
+  await $('compact').click();await idle();
+  assert.equal(requests.length,sends+1,'Compact is one send');assert.equal(requests.at(-1).instruction,'Summarize the earlier messages of this conversation in under 150 words so the conversation can continue from the summary alone. Plain text, no markdown.');
+  assert.equal(requests.at(-1).history.length,4,'the summary is made from the messages it replaces');
+  assert.equal(await page.locator('.companion-message').count(),6,'the summary is not a message; the divider says what happened');
+  assert.match(await page.locator('#companion-messages .companion-divider').last().innerText(),/^Compacted: \d[\d,]* to \d[\d,]* characters$/);
+  await page.locator('#companion-messages .companion-divider').last().scrollIntoViewIfNeeded();await page.screenshot({path:'.artifacts/companion-controls.png'});
+  await $('input').fill('And after the summary');await $('send').click();await idle();
+  assert.deepEqual(requests.at(-1).history.map(m=>m.role),['assistant'],'one assistant entry carries the whole earlier conversation');
+  assert.match(requests.at(-1).history[0].text,/^Summary of the earlier conversation: /);
+  checks.push('Compact sends the summarize instruction once and replaces the earlier messages with one assistant summary');
+  await $('clear').click();assert.equal(await page.locator('#companion-messages').innerHTML(),'','New chat leaves the list empty');
   await $('input').fill('A fresh question');await $('send').click();await idle();assert.equal(requests.at(-1).history.length,0);
   await $('settings').click();const html=await readFile('public/demo.html');await $('import-file').setInputFiles({name:'My prototype.html',mimeType:'text/html',buffer:html});await page.locator('#version-label').filter({hasText:'VERSION 01'}).waitFor();assert.equal(await page.locator('#prototype-title').innerText(),'My prototype');assert.equal(await page.locator('#preview').getAttribute('sandbox'),'allow-scripts allow-forms');checks.push('HTML import preserves sandbox and saves a version');
   await $('back').click();await page.setViewportSize({width:360,height:600});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);assert.ok(await $('send').isVisible());await page.screenshot({path:'.artifacts/companion-small.png'});checks.push('compact viewport has no horizontal overflow');
