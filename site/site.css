@@ -1,4 +1,5 @@
 :root{color-scheme:dark;--ink:#F8FAFC;--muted:#B3BCCA;--accent:#2DD4A8;--accent-hover:#4EE0B8;--on-accent:#0B1F1A;--line:#303A50;--panel:#12172A;--raised:#222A3D;--bg:#171D2D;--hub:#FFFFFF;--ease:cubic-bezier(.22,1,.36,1)}
+@font-face{font-family:'Plus Jakarta Sans';src:url(/plus-jakarta-sans-700.woff2) format('woff2');font-weight:700;font-style:normal;font-display:swap}
 *{box-sizing:border-box}
 html{scroll-padding-top:24px}
 body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.65 Georgia,serif}
@@ -10,8 +11,9 @@ a:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var
 .skip:focus{top:12px}
 .masthead,main,footer{max-width:1360px;margin:auto;padding-left:48px;padding-right:48px}
 .masthead{display:flex;align-items:center;justify-content:space-between;padding-top:28px;padding-bottom:28px;border-bottom:1px solid var(--line)}
-.wordmark{display:flex;gap:12px;align-items:center;font:500 20px/1 'Segoe UI',sans-serif;text-decoration:none}
+.wordmark{display:flex;gap:10px;align-items:center;font:700 22px/1 'Plus Jakarta Sans','Segoe UI',sans-serif;letter-spacing:-.02em;text-decoration:none}
 .wordmark img{border-radius:7px}
+.family{font:13px 'Segoe UI',sans-serif;color:var(--muted);margin-left:14px}
 nav{display:flex;gap:30px;font:15px 'Segoe UI',sans-serif}
 nav a{text-decoration:none}
 h1,h2,h3{font-weight:400;letter-spacing:-.02em;line-height:1.08;margin:0 0 24px;text-wrap:balance}

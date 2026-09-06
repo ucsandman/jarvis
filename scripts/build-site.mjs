@@ -3,22 +3,23 @@ import { join } from 'node:path';
 
 // A fixed allowlist keeps the local server, credentials and artifacts out of hosting.
 const out = '.artifacts/site';
-const origin = 'https://jarvis-workbench.vercel.app';
+const origin = 'https://sidelook.practicalsystems.io';
 await mkdir(out, { recursive:true });
 // Remove the obsolete generated sample; the local app keeps its own example.
 for (const file of ['demo.html','reference.svg','workbench.png','revision.png']) await unlink(join(out,file)).catch(error=>{if(error.code!=='ENOENT') throw error;});
-const allowed = new Set(['index.html','site.css','site.js','vercel.json','mark.svg','streaming.png','computer.png','companion.png','og.png','robots.txt','sitemap.xml','llms.txt','.vercel','.env.local','.gitignore']);
+const allowed = new Set(['index.html','site.css','site.js','vercel.json','mark.svg','plus-jakarta-sans-700.woff2','streaming.png','computer.png','companion.png','og.png','robots.txt','sitemap.xml','llms.txt','.vercel','.env.local','.gitignore']);
 for (const name of await readdir(out)) if (!allowed.has(name)) throw new Error(`Unexpected deployment file: ${name}. Review it before building.`);
-for (const file of ['index.html','site.css','site.js','vercel.json']) await copyFile(join('site',file),join(out,file));
+for (const file of ['index.html','site.css','site.js','vercel.json','plus-jakarta-sans-700.woff2']) await copyFile(join('site',file),join(out,file));
 for (const [source,target] of [['public/mark.svg','mark.svg'],['docs/images/streaming.png','streaming.png'],['docs/images/social.png','og.png'],['docs/images/computer.png','computer.png'],['docs/images/companion.png','companion.png']]) await copyFile(source,join(out,target));
 await writeFile(join(out,'robots.txt'),`User-agent: *\nAllow: /\nDisallow: /demo.html\nDisallow: /api/\nDisallow: /dashboard/\nDisallow: /thanks/\nSitemap: ${origin}/sitemap.xml\n`);
 await writeFile(join(out,'sitemap.xml'),`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>${origin}/</loc></url></urlset>\n`);
-await writeFile(join(out,'llms.txt'),`# Jarvis
+await writeFile(join(out,'llms.txt'),`# sidelook
 
 > A local Windows desktop companion. Ask about the window you're in, turn a sketch into a working web prototype, or work a Windows app one approved action at a time. Runs on the user's own ChatGPT (OpenAI models through Codex) or Claude (Anthropic models through Claude Code) subscription, any model in the catalog. No API key, no metered model API, no model fallback.
 
 - [Website](${origin}/): A prepared walkthrough with captured screenshots of the companion, the builder and Computer mode. The site does not run inference, take a login, or control anything.
-- [Source and download](https://github.com/ucsandman/jarvis): MIT-licensed Node.js server plus a Windows launcher that bundles Node and the official Codex CLI. Setup downloads and verifies Claude Code from Anthropic when Fable is chosen. Fable can spend paid Claude usage credits.
+- [Source and download](https://github.com/ucsandman/sidelook): MIT-licensed Node.js server plus a Windows launcher that bundles Node and the official Codex CLI. Setup downloads and verifies Claude Code from Anthropic when Fable is chosen. Fable can spend paid Claude usage credits.
+- [Practical Systems](https://practicalsystems.io): the company behind Sidelook.
 
 ## Companion
 

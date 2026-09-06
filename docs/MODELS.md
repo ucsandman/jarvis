@@ -22,26 +22,26 @@ GPT-5.5, GPT-5.4 Mini and GPT-5.3 Codex Spark stop at xhigh; the rest go to max.
 
 Anthropic models can spend paid Claude usage credits under your account settings. The notice sits beside the selector and shows again before sharing consent. An OAuth login doesn't guarantee included-only billing. See [Anthropic's usage credits documentation](https://code.claude.com/docs/en/model-config#fable-and-usage-credits).
 
-Jarvis has no direct model API, no API-key route, and no automatic model fallback. Missing subscription auth, model access or allowance fails closed.
+Sidelook has no direct model API, no API-key route, and no automatic model fallback. Missing subscription auth, model access or allowance fails closed.
 
 ## Setup
 
-Windows ships with Codex bundled. For any Anthropic model, Setup's install button downloads official Claude Code 2.1.261 from Anthropic's npm package, checks its pinned SHA-512 integrity and publisher signature, and installs it per user. No Anthropic binaries are redistributed inside Jarvis. Supported existing installs and logins are reused. A different Claude Code version means installing the verified runtime from Setup.
+Windows ships with Codex bundled. For any Anthropic model, Setup's install button downloads official Claude Code 2.1.261 from Anthropic's npm package, checks its pinned SHA-512 integrity and publisher signature, and installs it per user. No Anthropic binaries are redistributed inside Sidelook. Supported existing installs and logins are reused. A different Claude Code version means installing the verified runtime from Setup.
 
 For source installs, Codex discovery supports official npm layouts on PATH. Claude Code discovery supports its native user install and official native npm package layouts. The graphical installer is Windows x64 only.
 
 ## Streaming
 
-Anthropic models use Claude Code's partial structured-output messages. Jarvis forwards only the HTML field from an active StructuredOutput block, never thinking text, tool logs or auth output. It asks for HTML first and calls StructuredOutput directly instead of writing the JSON twice. The draft updates as real chunks arrive. The initial reasoning still takes its time.
+Anthropic models use Claude Code's partial structured-output messages. Sidelook forwards only the HTML field from an active StructuredOutput block, never thinking text, tool logs or auth output. It asks for HTML first and calls StructuredOutput directly instead of writing the JSON twice. The draft updates as real chunks arrive. The initial reasoning still takes its time.
 
-The installed Codex exec interface releases finished agent messages. Jarvis shows their HTML when it has some, and doesn't fake token streaming. Codex's separate app-server interface needs an equivalent config-isolation boundary before it can replace the current transport.
+The installed Codex exec interface releases finished agent messages. Sidelook shows their HTML when it has some, and doesn't fake token streaming. Codex's separate app-server interface needs an equivalent config-isolation boundary before it can replace the current transport.
 
 Drafts are labeled and run in a script-disabled sandbox. Switch to the last working version any time. Only a successful, validated final result enters history. Canceled, failed or completed builds revoke their temporary draft URLs.
 
 ## Local protocol
 
 - `GET /api/local-session` returns the model catalog and local session token.
-- `GET /api/session` accepts `X-Jarvis-Model` and `X-Jarvis-Effort` headers.
+- `GET /api/session` accepts `X-Jarvis-Model` and `X-Jarvis-Effort` headers (legacy header names, unchanged from the wire protocol).
 - Build/observe and setup bodies accept `model` and `effort`. Leaving them out keeps the Astra/medium compatibility behavior.
 - `POST /api/build` with `Accept: application/x-ndjson` streams `phase`, `draft`, and a terminal `result` or `error` record. Without that header you get the existing JSON response.
 - The initial phase carries a temporary `draftSession`. An authenticated `POST /api/preview` with `draft: true`, that session, and bounded HTML creates a non-executable preview. Sessions expire when the build ends.

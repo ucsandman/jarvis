@@ -4,7 +4,7 @@
 
 product
 
-The downloaded app (companion, workbench, Computer mode) is the primary surface and reads as product. The one-page site at jarvis-workbench.vercel.app and the README are brand surfaces for the same identity; treat them as `brand` per task.
+The downloaded app (companion, workbench, Computer mode) is the primary surface and reads as product. The one-page site at sidelook.practicalsystems.io and the README are brand surfaces for the same identity; treat them as `brand` per task.
 
 ## Users
 
@@ -12,22 +12,22 @@ Windows users who are already working in another application: drawing in a desig
 
 ## Product Purpose
 
-Jarvis is a local desktop companion. A small dock sits in the corner, Ctrl+Shift+Space opens a compact conversation panel, and from there the user can open the prototype workbench or Computer mode. Every model call goes through the user's own subscription via the official Codex or Claude Code CLI. Every desktop action waits for a per-action approval. Success is a user who trusts what Jarvis saw, what it sent, and what it is about to do, because each of those is shown before it happens.
+Sidelook is a local desktop companion. A small dock sits in the corner, Ctrl+Shift+Space opens a compact conversation panel, and from there the user can open the prototype workbench or Computer mode. Every model call goes through the user's own subscription via the official Codex or Claude Code CLI. Every desktop action waits for a per-action approval. Success is a user who trusts what Sidelook saw, what it sent, and what it is about to do, because each of those is shown before it happens.
 
 ## Brand Personality
 
-Quiet, attentive, capable. Plain language, no hype, and visible evidence (the exact frame sent, the exact control targeted, the exact version restored). Jarvis speaks like a careful colleague at the next desk, not a product launch. Written by one person (Wes) and it should sound like it.
+Quiet, attentive, capable. Plain language, no hype, and visible evidence (the exact frame sent, the exact control targeted, the exact version restored). Sidelook speaks like a careful colleague at the next desk, not a product launch. Written by one person (Wes) and it should sound like it. Sidelook is a Practical Systems product and shares the family's navy, teal and hexagon node.
 
 ## Anti-references
 
 - Generic AI-assistant landing pages: indigo gradients, glassmorphism, "supercharge your workflow" copy, a chat bubble mascot.
-- Surveillance framing: anything that implies Jarvis is always watching or always listening. It is not.
+- Surveillance framing: anything that implies Sidelook is always watching or always listening. It is not.
 - Dashboard SaaS: hero metric templates, identical icon-card grids, tiny uppercase tracked eyebrows above every section, numbered 01/02/03 scaffolding on sections that are not sequences.
-- Letter-in-a-circle logos. The mark is a shape, not a "J".
+- A cartoon ghost. The node has eyes and nothing else: no mouth, no arms, no sheet, no name tag. It never "haunts" or "watches"; it is summoned.
 
 ## Design Principles
 
-- Keep the user's current work primary. Jarvis is small until asked to be bigger.
+- Keep the user's current work primary. Sidelook is small until asked to be bigger.
 - Show the evidence at the moment it matters: the frame, the target, the version.
 - Powerful tools live behind a simple conversation surface and an explicit button.
 - A reachable Stop is always visible when something is running.

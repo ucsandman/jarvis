@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.0: Sidelook
+
+- Jarvis is now Sidelook, a Practical Systems product. Same app, same shortcuts, same port, same twelve versions. The exe is `Sidelook-0.16.0-Windows-x64.exe`; the site is https://sidelook.practicalsystems.io and the old address redirects.
+- The mark is one node of the Practical Systems mark: a white hexagon with two navy eyes. In the dock and in the panel header the eyes follow your mouse anywhere on the screen. Under Windows' animation switch they hold the sidelong look and nothing moves.
+- Graphite and mint became the family navy and teal. Every control was re-measured at rest and under the mouse.
+- Saved prototypes survive: the first start moves the old Jarvis profile folder to Sidelook once, or copies the profile and the dock position if a file is locked.
+- Summon fades the panel in, dismiss fades it out.
+- `npm run lint` refuses the old name outside history and marked legacy lines; `npm run verify:mark` compiles the mark and the profile move and checks the SVG, the C# and the icon build agree.
+
 ## 0.15.1: Buttons that stay under the mouse
 
 - Every filled button (Send, Follow my clicks, Start 10 minutes, Build, Sign in) lost its fill under the mouse in 0.15.0 and read as faint text on the dark surface. The retint had rewritten the hover token to refer to itself, `--accent-hover: var(--accent-hover)`, which is invalid at computed-value time and makes the hover background fall to transparent. Fixed to `#8eeccf`. The error banner's leftover brown background is a dark mint tint now.
