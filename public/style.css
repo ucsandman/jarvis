@@ -253,6 +253,8 @@
   @keyframes rotate { to { transform:rotate(360deg); } }
   @keyframes breathe { 50% { opacity:.5; } }
   @keyframes grind { 50% {transform:rotate(90deg) scale(.8);opacity:.55;} 100% {transform:rotate(180deg);} }
+  .mark-live .eye { fill:var(--bg); }
+  .toolbar-mark { display:flex; align-items:center; padding:0 4px 0 2px; }
 }
 @layer responsive {
   @media(max-width:1180px) { body[data-surface=studio] { grid-template-columns:1fr; } body[data-surface=studio] #companion { display:none; } }

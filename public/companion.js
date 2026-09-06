@@ -1,6 +1,20 @@
 import {activityLine,sensorLine,sendLabel,gate,record,ledger,renderPreview,MODEL_LABEL,ACCOUNT,CLI,usesCredits} from './harness.js';
 import {families,chipsFor,captureFor,UNKNOWN_CHIPS,TONES} from './chips.js';
 import {Follow} from './follow.js';
+import {eyeOffset,eyeCenters} from './eyes.js';
+
+// The mark's eyes look toward the cursor: in-page moves drive them here; when the pointer is outside the window the shell posts it (type 'cursor').
+const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
+let lastLook=0;
+function lookAt(cursor){
+  for(const svg of document.querySelectorAll('.mark-live')){
+    const r=svg.getBoundingClientRect();if(!r.width)continue;
+    const eyes=svg.querySelectorAll('.eye');
+    eyeCenters(eyeOffset({size:r.width,left:r.left,top:r.top,cursor,reducedMotion:reducedMotion.matches})).forEach(([x,y],i)=>{eyes[i].setAttribute('cx',x.toFixed(2));eyes[i].setAttribute('cy',y.toFixed(2));});
+  }
+}
+document.addEventListener('mousemove',e=>{const now=performance.now();if(now-lastLook<40)return;lastLook=now;lookAt({x:e.clientX,y:e.clientY});});
+lookAt(null);
 
 // The panel. Its markup lives in index.html; this file only queries and wires it.
 // One box, one button. Attached means it goes; the Send button says what goes; there is no tick.
@@ -442,6 +456,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
       armFollow();render();if(!wasFollow)afterCapture(false);
     }
     if(data.type==='speech-error')error(data.error || 'Local speech is unavailable.');
+    if(data.type==='cursor')lookAt({x:data.x-data.left,y:data.y-data.top});
   });
   document.addEventListener('jarvis-state',render);
   window.addEventListener('pagehide',()=>{controller?.abort();dictation?.abort();post({type:'cancel-capture',requestId:captureRequest});post({type:'stop-speaking'});post({type:'screen-off'});});
