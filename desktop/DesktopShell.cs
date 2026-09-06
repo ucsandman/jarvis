@@ -58,6 +58,8 @@ internal sealed class DesktopShell : Form {
     bool animations = true;   // Windows' animation switch, refreshed on preference change; false means the eyes stay at the static right
     readonly Timer fadeTimer = new Timer { Interval = 15 };
     DateTime fadeStart; double fadeFrom, fadeTo, fadeMs; Action fadeDone;
+    bool capturingDesktop;   // the panel is deliberately at opacity 0 for a whole-desktop shot; nothing else may touch the opacity
+    Action afterCapture;     // a summon or a fade asked for during that shot, run once the shot is done
     string mode = "dock";
     bool ready;
     bool allowClose;
@@ -157,11 +159,14 @@ internal sealed class DesktopShell : Form {
     public void ShowDock() { SetMode("dock"); }
 
     public void SummonPanel() {
+        // A summon mid-capture would fade the panel back in while the desktop shot is being taken, putting Sidelook in its own screenshot.
+        if (capturingDesktop) { afterCapture = SummonPanel; return; }
         // A new summon is a new context: a window picked from the list is forgotten and the window in front is the default again.
         capture.ClearPick();
         capture.RememberForeground();
         panelSized = false;
-        if (animations) Opacity = 0;
+        // Re-summoning a panel that is already open does not blink: only a panel arriving from another mode starts transparent.
+        if (animations && mode != "panel") Opacity = 0;
         SetMode("panel");
         Show();
         Activate();
@@ -177,6 +182,8 @@ internal sealed class DesktopShell : Form {
         StopSpeaking();
         if (speech != null && Marshal.IsComObject(speech)) Marshal.FinalReleaseComObject(speech);
         eyeTimer.Stop();
+        fadeTimer.Stop();
+        panelTimer.Stop();
         Microsoft.Win32.SystemEvents.UserPreferenceChanged -= OnPreferenceChanged;
         Microsoft.Win32.SystemEvents.SessionSwitch -= OnSessionSwitch;
         Close();
@@ -277,6 +284,8 @@ internal sealed class DesktopShell : Form {
 
     // Summon fades in over 150 ms, dismiss out over 120 ms, opacity only, ease-out. Under Windows' animation switch both are instant.
     void Fade(double from, double to, double ms, Action done) {
+        // The desktop shot owns the opacity while it is being taken; the fade waits and starts from wherever the panel is afterwards.
+        if (capturingDesktop) { afterCapture = delegate { Fade(Opacity, to, ms, done); }; return; }
         if (!animations) { Opacity = to; if (done != null) done(); return; }
         fadeFrom = from; fadeTo = to; fadeMs = ms; fadeDone = done; fadeStart = DateTime.UtcNow;
         Opacity = from;
@@ -308,7 +317,8 @@ internal sealed class DesktopShell : Form {
         lastCursor = cursor;
         if (mode == "dock") {
             SetEyes(SidelookMark.EyeOffset(dockButton.RectangleToScreen(dockButton.ClientRectangle), cursor, !animations));
-        } else if (Visible && ready && animations) {
+        } else if (Visible && ready && animations && !Bounds.Contains(cursor)) {
+            // Inside the window the page's own mousemove already drives the eyes; posting the screen position too would fight it.
             Point origin = web.PointToScreen(Point.Empty);
             Post(new Dictionary<string, object> { {"type", "cursor"}, {"x", cursor.X}, {"y", cursor.Y}, {"left", origin.X}, {"top", origin.Y} });
         }
@@ -348,7 +358,7 @@ internal sealed class DesktopShell : Form {
             object rawMode, rawHeight;
             string requested = message.TryGetValue("mode", out rawMode) ? rawMode as string : null;
             if (requested == "dock" || requested == "panel" || requested == "workbench") {
-                if (requested == "dock" && mode != "dock") Fade(1, 0, 120, delegate { SetMode("dock"); Opacity = 1; });
+                if (requested == "dock" && mode != "dock") Fade(Opacity, 0, 120, delegate { SetMode("dock"); Opacity = 1; });
                 else SetMode(requested);
             }
             else if (message.TryGetValue("height", out rawHeight) && (rawHeight is int || rawHeight is long || rawHeight is decimal || rawHeight is double)) FitPanel(Convert.ToInt32(rawHeight));
@@ -447,9 +457,17 @@ internal sealed class DesktopShell : Form {
             CaptureResult result;
             if (target.Desktop) {
                 // The whole desktop without Sidelook in it: the panel goes transparent for the capture and comes straight back.
+                // A fade in flight would step the opacity back up mid-shot, and so would a summon, so both wait for the finally.
+                capturingDesktop = true;
+                fadeTimer.Stop();
                 Opacity = 0;
                 try { await Task.Delay(180); result = await Task.Run(() => capture.Capture(target)); }
-                finally { Opacity = 1; }
+                finally {
+                    capturingDesktop = false;
+                    Opacity = 1;
+                    Action queued = afterCapture; afterCapture = null;
+                    if (queued != null) queued();
+                }
             } else result = await Task.Run(() => capture.Capture(target));
             if (generation != captureGeneration || pendingCaptureId != requestId || mode == "dock") return;
             pendingCaptureId = null;
