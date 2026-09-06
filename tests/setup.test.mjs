@@ -9,7 +9,7 @@ import { Vision } from '../lib/vision.mjs';
 import { createApp } from '../server.mjs';
 
 test('discovery ignores arbitrary native binaries and accepts a custom npm prefix',async t=> {
-  const dir=await mkdtemp(join(tmpdir(),'jarvis-discovery-test-'));
+  const dir=await mkdtemp(join(tmpdir(),'sidelook-discovery-test-'));
   t.after(()=>rm(dir,{recursive:true,force:true}));
   await writeFile(join(dir,process.platform==='win32'?'codex.exe':'codex'),'not an official installation');
   const url=new URL('../lib/subscription.mjs',import.meta.url).href;

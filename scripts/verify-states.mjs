@@ -70,5 +70,10 @@ try{
   await measure('body','site');
   assert.deepEqual(errors,[]);
   assert.deepEqual(findings,[],`\n${findings.join('\n')}`);
-  console.log(`PASS: ${controls} controls at rest and under the mouse, ${texts} text nodes at rest, across the panel, four panel dialogs, Computer mode, the studio, four studio dialogs and the built site; ${used.size} tokens all defined, none self-referential; 0 findings, 0 page errors.`);
+  // The mark's geometry lives in mark.svg, SidelookMark.cs and build-icon.ps1; verify-mark.ps1 compiles the C#, this checks the text agrees on Linux too.
+  const hex='32,10 51,21 51,43 32,54 13,43 13,21';
+  for(const [file,pattern] of [['public/mark.svg',hex],['public/mark.svg','cx="31" cy="32"'],['public/mark.svg','cx="43" cy="32"'],['scripts/build-icon.ps1',hex],['public/index.html',hex],['desktop/SidelookMark.cs','new PointF(32, 10), new PointF(51, 21), new PointF(51, 43), new PointF(32, 54), new PointF(13, 43), new PointF(13, 21)']]){
+    assert.ok((await readFile(file,'utf8')).includes(pattern),`${file} lost the mark geometry: ${pattern}`);
+  }
+  console.log(`PASS: ${controls} controls at rest and under the mouse, ${texts} text nodes at rest, across the panel, four panel dialogs, Computer mode, the studio, four studio dialogs and the built site; ${used.size} tokens all defined, none self-referential; 0 findings, 0 page errors.; mark geometry agrees in 4 files`);
 }finally{await browser.close();site.close();server.closeAllConnections();await new Promise(resolve=>server.close(resolve));}

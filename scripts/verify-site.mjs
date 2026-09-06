@@ -26,7 +26,7 @@ try {
   await page.getByRole('link',{name:'Walk through an example'}).click();
   const steps = ['Share a window','Choose & direct','Watch it build','Refine & keep'];
   assert.equal(await page.getByRole('tab',{name:steps[0]}).getAttribute('aria-selected'),'true');
-  assert.ok(await page.getByText('Keep your design tool open beside Jarvis.',{exact:true}).isVisible());
+  assert.ok(await page.getByText('Keep your design tool open beside Sidelook.',{exact:true}).isVisible());
   await page.getByRole('tab',{name:steps[1]}).click();
   assert.ok(await page.getByText('Say what should work, not just how it should look.',{exact:true}).isVisible());
   await page.getByRole('tab',{name:steps[1]}).press('ArrowRight');
@@ -47,10 +47,13 @@ try {
   await faq.press('Enter');
   assert.ok(await page.getByText('This website provides a prepared walkthrough.',{exact:false}).isVisible());
   const href=await page.locator('#download-zip').getAttribute('href');
-  assert.equal(href,`https://github.com/ucsandman/jarvis/releases/download/v${version}/Jarvis-${version}-Windows-x64.exe`);
-  // Every version string on the page is the current one; 0.15.0 shipped with "Open Jarvis-0.14.0-Windows-x64.exe" in the install steps while the download link was right.
-  const stale=[...new Set((await page.locator('body').innerText()).match(/Jarvis[ -]0\.\d+\.\d+/g) || [])].filter(v=>!v.endsWith(version));
+  assert.equal(href,`https://github.com/ucsandman/sidelook/releases/download/v${version}/Sidelook-${version}-Windows-x64.exe`);
+  // Every version string on the page is the current one, and the old product name is gone; 0.15.0 shipped with "Open Jarvis-0.14.0-Windows-x64.exe" in the install steps.
+  const bodyText=await page.locator('body').innerText();
+  const stale=[...new Set(bodyText.match(/Sidelook[ -]0\.\d+\.\d+/g) || [])].filter(v=>!v.endsWith(version));
   assert.deepEqual(stale,[],`stale version strings on the page: ${stale.join(', ')}`);
+  assert.doesNotMatch(bodyText,/jarvis/i,'the old product name is on the page');
+  assert.doesNotMatch(await page.content(),/jarvis/i,'the old product name is in the page source');
   for(const path of ['/robots.txt','/sitemap.xml','/llms.txt','/og.png','/mark.svg','/streaming.png','/computer.png']) assert.equal((await page.request.get(`${base}${path}`)).status(),200,path);
   for(const path of ['/api/session','/server.mjs','/.env','/demo.html','/reference.svg','/workbench.png','/revision.png']) assert.equal((await page.request.get(`${base}${path}`)).status(),404,path);
   await page.getByRole('link',{name:'Computer mode',exact:true}).click();

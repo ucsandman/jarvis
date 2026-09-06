@@ -9,8 +9,8 @@ import { createSession, selectionChange } from './session.js';
 let launchKey = new URLSearchParams(location.hash.slice(1)).get('launch');
 if (launchKey) history.replaceState(null,'',location.pathname+location.search);
 try {
-  if (launchKey && /^[a-f0-9]{64}$/.test(launchKey)) sessionStorage.setItem('jarvisLaunch',launchKey);
-  else launchKey = sessionStorage.getItem('jarvisLaunch');
+  if (launchKey && /^[a-f0-9]{64}$/.test(launchKey)) sessionStorage.setItem('sidelookLaunch',launchKey);
+  else launchKey = sessionStorage.getItem('sidelookLaunch');
 } catch { /* This tab can still work when browser storage is unavailable. */ }
 const launchHeaders = () => launchKey ? {'X-Sidelook-Launch':launchKey} : {};
 
@@ -21,7 +21,7 @@ const state = { token:'', configured:false, stream:null, image:null, imageLabel:
 state.live=false; state.liveCount=0; state.captureKind=null; state.liveFrames=new LiveFrames(); state.liveTimer=null;
 state.model='astra'; state.effort='medium'; state.checking=false;
 try {
-  const saved=JSON.parse(localStorage.getItem('jarvisModelPreferences') || '{}');
+  const saved=JSON.parse(localStorage.getItem('sidelookModelPreferences') || '{}');
   if (choice(saved.model)) state.model=saved.model;
   if (['low','medium','high','xhigh','max'].includes(saved.effort)) state.effort=saved.effort;
 } catch { /* Preferences are optional when browser storage is unavailable. */ }
@@ -30,7 +30,7 @@ const selectedAccount = () => ACCOUNT[state.model];
 const selectedIsClaude = () => choice(state.model).provider==='anthropic';
 const effortNotes = {low:'Faster, with lighter reasoning.',medium:'Balances speed and depth.',high:'More reasoning for complex changes.',xhigh:'Extra reasoning; expect a longer wait.',max:'Deepest reasoning; may take much longer and use more allowance.'};
 const openSettings = () => { if (!$('settings').open) $('settings').showModal(); };
-const notifyState = () => document.dispatchEvent(new Event('jarvis-state'));
+const notifyState = () => document.dispatchEvent(new Event('sidelook-state'));
 // The selector lists the whole catalog, grouped by the CLI and account each model runs on. A model that lacks an effort greys it out;
 // a saved effort the new model does not offer moves to that model's deepest level, and the note says so.
 $('model-choice').replaceChildren(...Object.entries(PROVIDERS).map(([key,provider])=>{
@@ -561,7 +561,7 @@ $('source').addEventListener('click',() => { if (!current()) return; $('source-c
 $('download').addEventListener('click',() => {
   const revision = current(); if (!revision) return;
   const url = URL.createObjectURL(new Blob([revision.html],{ type:'text/html' }));
-  const link = document.createElement('a'); link.href = url; link.download = `${revision.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,60) || 'jarvis-prototype'}.html`;
+  const link = document.createElement('a'); link.href = url; link.download = `${revision.title.toLowerCase().replace(/[^a-z0-9]+/g,'-').slice(0,60) || 'sidelook-prototype'}.html`;
   document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url),10000);
 });
 $('new-session').addEventListener('click',() => { if (!state.busy) $('reset-dialog').showModal(); });
@@ -653,7 +653,7 @@ for (const id of ['model-choice','effort-choice']) $(id).addEventListener('chang
   const change=selectionChange({model:state.model,effort:state.effort},{model:$('model-choice').value,effort:$('effort-choice').value});
   state.model=$('model-choice').value; state.effort=$('effort-choice').value; state.consent=false;
   renderSelection();
-  try {localStorage.setItem('jarvisModelPreferences',JSON.stringify({model:state.model,effort:state.effort}));} catch { }
+  try {localStorage.setItem('sidelookModelPreferences',JSON.stringify({model:state.model,effort:state.effort}));} catch { }
   if (change==='model') { hideError(); await refreshSession(); }
   else if (state.configured) renderProviderStatus();
 });

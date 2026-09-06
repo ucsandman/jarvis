@@ -34,8 +34,8 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
   const error=message=>{$('error').textContent=message;$('error').hidden=!message;};
   const clock=value=>new Date(value).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
   const kb=image=>`${Math.round(image.length*3/4/1024)} KB`;
-  try {tone.value=localStorage.getItem('jarvisTone') in TONES?localStorage.getItem('jarvisTone'):'plainer';} catch {tone.value='plainer';}
-  tone.onchange=()=>{try{localStorage.setItem('jarvisTone',tone.value);}catch{}};
+  try {tone.value=localStorage.getItem('sidelookTone') in TONES?localStorage.getItem('sidelookTone'):'plainer';} catch {tone.value='plainer';}
+  tone.onchange=()=>{try{localStorage.setItem('sidelookTone',tone.value);}catch{}};
   function showSurface(next,notify=true) {
     document.body.dataset.surface=next==='studio'?'studio':'companion';
     $('expand').hidden=next==='studio';
@@ -458,7 +458,7 @@ export function initCompanion({api,getState,updateControls,openWorkflow,stopWork
     if(data.type==='speech-error')error(data.error || 'Local speech is unavailable.');
     if(data.type==='cursor')lookAt({x:data.x-data.left,y:data.y-data.top});
   });
-  document.addEventListener('jarvis-state',render);
+  document.addEventListener('sidelook-state',render);
   window.addEventListener('pagehide',()=>{controller?.abort();dictation?.abort();post({type:'cancel-capture',requestId:captureRequest});post({type:'stop-speaking'});post({type:'screen-off'});});
   document.addEventListener('visibilitychange',()=>{if(document.hidden)dictation?.abort();});
   showSurface(native || new URLSearchParams(location.search).has('companion')?'companion':'studio',false);renderDeck();fitBox();render();
