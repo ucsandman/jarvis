@@ -623,7 +623,7 @@ git commit -m "Claude: [FEAT] the dock's eyes follow the cursor; the shell posts
         Directory.Delete(temp, true);
 ```
 
-Change the PASS line's count to `19` (14 mark, 5 migration), and add `desktop/ProfileMigration.cs` to the `& $csc` arguments.
+Change the PASS line's count to `20` (15 mark, 5 migration), and add `desktop/ProfileMigration.cs` to the `& $csc` arguments.
 
 Run `npm run verify:mark`. Expected: compile error, `ProfileMigration` does not exist.
 
@@ -666,7 +666,7 @@ internal static class ProfileMigration {
 }
 ```
 
-Run `npm run verify:mark`. Expected: `PASS: 7 source checks, 19 compiled assertions, ...`.
+Run `npm run verify:mark`. Expected: `PASS: 7 source checks, 20 compiled assertions, ...`.
 
 - [ ] **Step 3: Rename in `desktop/Launcher.cs`**
 
