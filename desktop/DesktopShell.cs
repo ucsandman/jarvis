@@ -52,6 +52,10 @@ internal sealed class DesktopShell : Form {
         FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, TabStop = false, AccessibleName = "Open Jarvis"
     };
     bool dockHover;
+    readonly Timer eyeTimer = new Timer { Interval = 40 };
+    PointF eyes = new PointF(SidelookMark.EyeTravel, 0);
+    Point lastCursor = new Point(int.MinValue, int.MinValue);
+    bool animations = true;   // Windows' animation switch, refreshed on preference change; false means the eyes stay at the static right
     string mode = "dock";
     bool ready;
     bool allowClose;
@@ -82,7 +86,7 @@ internal sealed class DesktopShell : Form {
         dockButton.FlatAppearance.MouseOverBackColor = SidelookMark.Navy;
         dockButton.FlatAppearance.MouseDownBackColor = SidelookMark.Navy;
         dockButton.Paint += delegate(object sender, PaintEventArgs args) {
-            SidelookMark.Draw(args.Graphics, dockButton.ClientRectangle, new PointF(SidelookMark.EyeTravel, 0), false, dockHover);
+            SidelookMark.Draw(args.Graphics, dockButton.ClientRectangle, eyes, false, dockHover);
         };
         dockButton.MouseEnter += delegate { dockHover = true; dockButton.Invalidate(); };
         dockButton.MouseLeave += delegate { dockHover = false; dockButton.Invalidate(); };
@@ -106,6 +110,11 @@ internal sealed class DesktopShell : Form {
         follow.Clicked += OnFollowClick;
         followTimer.Tick += delegate { if (DateTime.UtcNow >= followExpires) EndFollow("expired"); };
         panelTimer.Tick += delegate { StepPanel(); };
+        animations = AnimationsEnabled();
+        Microsoft.Win32.SystemEvents.UserPreferenceChanged += OnPreferenceChanged;
+        Microsoft.Win32.SystemEvents.SessionSwitch += OnSessionSwitch;
+        eyeTimer.Tick += delegate { TrackEyes(); };
+        eyeTimer.Start();
         FormClosing += OnShellClosing;
         Shown += delegate { PositionForMode(); };
         ProfileDirectory = Path.Combine(dataRoot, "WebView2");
@@ -162,6 +171,9 @@ internal sealed class DesktopShell : Form {
         foregroundTimer.Stop();
         StopSpeaking();
         if (speech != null && Marshal.IsComObject(speech)) Marshal.FinalReleaseComObject(speech);
+        eyeTimer.Stop();
+        Microsoft.Win32.SystemEvents.UserPreferenceChanged -= OnPreferenceChanged;
+        Microsoft.Win32.SystemEvents.SessionSwitch -= OnSessionSwitch;
         Close();
     }
 
@@ -256,6 +268,34 @@ internal sealed class DesktopShell : Form {
         bool enabled = true;
         try { if (!SystemParametersInfo(0x1042, 0, ref enabled, 0)) return true; } catch { return true; }
         return enabled;
+    }
+
+    void OnPreferenceChanged(object sender, Microsoft.Win32.UserPreferenceChangedEventArgs args) { animations = AnimationsEnabled(); lastCursor = new Point(int.MinValue, int.MinValue); }
+
+    // A locked session has no cursor to follow; the eyes rest and the timer stops until the desktop is back.
+    void OnSessionSwitch(object sender, Microsoft.Win32.SessionSwitchEventArgs args) {
+        if (args.Reason == Microsoft.Win32.SessionSwitchReason.SessionLock) { eyeTimer.Stop(); SetEyes(new PointF(SidelookMark.EyeTravel, 0)); }
+        else if (args.Reason == Microsoft.Win32.SessionSwitchReason.SessionUnlock) eyeTimer.Start();
+    }
+
+    // 25 times a second: read the cursor, and only when it moved either turn the dock's eyes or tell the page where it is.
+    void TrackEyes() {
+        Point cursor = Cursor.Position;
+        if (cursor == lastCursor) return;
+        lastCursor = cursor;
+        if (mode == "dock") {
+            SetEyes(SidelookMark.EyeOffset(dockButton.RectangleToScreen(dockButton.ClientRectangle), cursor, !animations));
+        } else if (Visible && ready && animations) {
+            Point origin = web.PointToScreen(Point.Empty);
+            Post(new Dictionary<string, object> { {"type", "cursor"}, {"x", cursor.X}, {"y", cursor.Y}, {"left", origin.X}, {"top", origin.Y} });
+        }
+    }
+
+    void SetEyes(PointF next) {
+        // Redraw only when an eye moves a quarter unit; the dock is 76px so that is under a pixel.
+        if (Math.Round(next.X * 4) == Math.Round(eyes.X * 4) && Math.Round(next.Y * 4) == Math.Round(eyes.Y * 4)) return;
+        eyes = next;
+        dockButton.Invalidate();
     }
 
     void OnShellClosing(object sender, FormClosingEventArgs args) {
