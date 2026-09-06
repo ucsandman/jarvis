@@ -3,7 +3,7 @@
   <h1>Jarvis</h1>
   <p><strong>A desktop companion for Windows that runs on the ChatGPT or Claude subscription you already pay for.</strong></p>
   <p><a href="https://github.com/ucsandman/jarvis/actions/workflows/ci.yml"><img src="https://github.com/ucsandman/jarvis/actions/workflows/ci.yml/badge.svg" alt="Windows and Linux checks"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-e5b977" alt="MIT license"></a> <a href="https://github.com/ucsandman/jarvis/releases/latest"><img src="https://img.shields.io/github/v/release/ucsandman/jarvis" alt="Latest release"></a></p>
-  <p><a href="https://jarvis-workbench.vercel.app/">Website</a> · <a href="https://github.com/ucsandman/jarvis/releases/download/v0.15.0/Jarvis-0.15.0-Windows-x64.exe">Download for Windows</a> · <a href="#getting-started">Get started</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
+  <p><a href="https://jarvis-workbench.vercel.app/">Website</a> · <a href="https://github.com/ucsandman/jarvis/releases/download/v0.15.1/Jarvis-0.15.1-Windows-x64.exe">Download for Windows</a> · <a href="#getting-started">Get started</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
 </div>
 
 Jarvis sits in the corner of your screen. Hit **Ctrl+Shift+Space** and a small panel opens already knowing which window you were in, with three questions written for it. Pick one, look at the screenshot it took, press **Send with screenshot**. The panel is only as tall as what is in it and grows as you talk. Or hand it something bigger: turn a sketch into a working prototype in the studio, or let it drive a Windows app one approved click at a time. Pick any model in the catalog, OpenAI through ChatGPT or Anthropic through Claude, go. No API key, nothing metered.
@@ -35,14 +35,14 @@ It's experimental and built around how I work. Anthropic models can burn paid Cl
 
 ## Getting started
 
-1. [Download Jarvis 0.15.0](https://github.com/ucsandman/jarvis/releases/download/v0.15.0/Jarvis-0.15.0-Windows-x64.exe) and open it. No terminal, no Node, no admin.
+1. [Download Jarvis 0.15.1](https://github.com/ucsandman/jarvis/releases/download/v0.15.1/Jarvis-0.15.1-Windows-x64.exe) and open it. No terminal, no Node, no admin.
 2. Settings opens by itself until you're signed in. Pick an OpenAI or Anthropic model and use the sign-in button. Codex ships inside. For Anthropic models, **Install official Claude Code** downloads and verifies Anthropic's runtime.
 3. Press a starter or type a question, then **↑**. **Screenshot** grabs the window you came from and shows it in the box before anything leaves; the button then reads **Send with screenshot**.
 4. For a prototype, open the studio from Settings. **Share window**, press **Use this frame** to put one still in the box, describe the product, and press **Build with frame**. The line under the box names what goes, including the selected version's source once you have one. For hands-off updates, **Live build** has its own permission dialog.
 
 **Ctrl+Shift+Space** brings the panel back. So does the desktop or Start menu shortcut. Closing the panel leaves Jarvis in the tray; **Quit Jarvis** from the tray menu stops the server.
 
-Windows 10/11 x64 only. Chrome or Edge for screen sharing. The download is about 164 MiB. **The exe is unsigned**, so expect the unknown-publisher prompt. The [release has a SHA-256 checksum](https://github.com/ucsandman/jarvis/releases/tag/v0.15.0) and the bundled Node and Codex are publisher-verified. [Install, update, remove](docs/WINDOWS.md).
+Windows 10/11 x64 only. Chrome or Edge for screen sharing. The download is about 164 MiB. **The exe is unsigned**, so expect the unknown-publisher prompt. The [release has a SHA-256 checksum](https://github.com/ucsandman/jarvis/releases/tag/v0.15.1) and the bundled Node and Codex are publisher-verified. [Install, update, remove](docs/WINDOWS.md).
 
 The companion needs the Microsoft Edge WebView2 Runtime. Jarvis checks on launch and tells you where to get it if it's missing. Its WebView profile is separate from any browser profile you used with an older install, so old revisions don't show up on their own. Export the HTML from the old profile, then **Settings, Advanced, Import a saved HTML prototype**. Imports cap at 120,000 bytes and add a version when the 12-slot history has room.
 
@@ -119,6 +119,7 @@ npm run lint
 npm run build
 npm run verify:assistant
 npm run verify:companion
+npm run verify:states
 npm run verify:computer
 npm run verify:recovery
 npm run verify:stream

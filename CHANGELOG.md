@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.1: Buttons that stay under the mouse
+
+- Every filled button (Send, Follow my clicks, Start 10 minutes, Build, Sign in) lost its fill under the mouse in 0.15.0 and read as faint text on the dark surface. The retint had rewritten the hover token to refer to itself, `--accent-hover: var(--accent-hover)`, which is invalid at computed-value time and makes the hover background fall to transparent. Fixed to `#8eeccf`. The error banner's leftover brown background is a dark mint tint now.
+- New verifier, `npm run verify:states`, so this class of error fails a check instead of a glance: every control in the panel, its four dialogs, Computer mode, the studio, its four dialogs and the built site is measured at rest and under the mouse with transitions off, every text node at rest, contrast under 4.5:1 or a fill that goes transparent fails, and every `var(--token)` in the three stylesheets must be defined and must not define itself. 281 controls and every text node pass; with the 0.15.0 token put back on purpose it reports seven vanishing buttons.
+- The site verifier now fails on any version string that is not the current one; the install steps still said "Open Jarvis-0.14.0-Windows-x64.exe". The FAQ line that still described a tick reads "The button says what goes" now.
+
 ## 0.15.0: The panel, quiet
 
 - New palette: graphite and mint. Cool neutrals tinted toward one hue at the same depths as before, and a mint accent (`#6fe3c1`) on exactly three things: the mark, the primary button, and the thing under the cursor. Chosen from five rendered options on the same panel (`.artifacts/palette-mock.html`); contrast measured at 6.9:1 for muted text on the body and 9.8:1 for text on the accent. The mark, the dock button, the tray icon, the exe icon, the WebView backdrop, the Screen on border, the studio and the site all changed together. The prototype preview background is a neutral off-white now instead of cream.

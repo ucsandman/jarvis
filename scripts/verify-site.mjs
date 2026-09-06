@@ -48,6 +48,9 @@ try {
   assert.ok(await page.getByText('This website provides a prepared walkthrough.',{exact:false}).isVisible());
   const href=await page.locator('#download-zip').getAttribute('href');
   assert.equal(href,`https://github.com/ucsandman/jarvis/releases/download/v${version}/Jarvis-${version}-Windows-x64.exe`);
+  // Every version string on the page is the current one; 0.15.0 shipped with "Open Jarvis-0.14.0-Windows-x64.exe" in the install steps while the download link was right.
+  const stale=[...new Set((await page.locator('body').innerText()).match(/Jarvis[ -]0\.\d+\.\d+/g) || [])].filter(v=>!v.endsWith(version));
+  assert.deepEqual(stale,[],`stale version strings on the page: ${stale.join(', ')}`);
   for(const path of ['/robots.txt','/sitemap.xml','/llms.txt','/og.png','/mark.svg','/streaming.png','/computer.png']) assert.equal((await page.request.get(`${base}${path}`)).status(),200,path);
   for(const path of ['/api/session','/server.mjs','/.env','/demo.html','/reference.svg','/workbench.png','/revision.png']) assert.equal((await page.request.get(`${base}${path}`)).status(),404,path);
   await page.getByRole('link',{name:'Computer mode',exact:true}).click();

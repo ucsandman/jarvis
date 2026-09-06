@@ -9,7 +9,7 @@ The public site is a static walkthrough and Windows download page. It doesn't ru
 
 1. Verify tests, browser behavior and the final Windows executable. Publish the versioned GitHub release and checksum.
 2. Update the pinned download and release links in the README and site. Keep the desktop-runtime, model, streaming, credit and signing disclosures accurate.
-3. Run `node scripts/build-site.mjs` and `node scripts/verify-site.mjs`. If the companion UI or the mark changed, regenerate `docs/images/companion.png` from the packaged app and `docs/images/social.png` with `node scripts/build-social.mjs` first.
+3. Run `node scripts/build-site.mjs`, `node scripts/verify-site.mjs` and `node scripts/verify-states.mjs` (every control under the mouse, every text node, every token, across the app and the built site). If the companion UI or the mark changed, regenerate `docs/images/companion.png` from the packaged app and `docs/images/social.png` with `node scripts/build-social.mjs` first.
 4. Inspect `vercel deploy --dry --json --cwd .artifacts/site --scope ucsandmans-projects`. It must contain only allowlisted public files, including the verified `companion.png` capture, and no environment or configuration data.
 5. Deploy the approved release with `vercel deploy --prod --yes --cwd .artifacts/site --scope ucsandmans-projects`.
 6. Run `node scripts/verify-site.mjs https://jarvis-workbench.vercel.app`. Confirm the anonymous executable download hash, metadata, website link and GitHub About text.

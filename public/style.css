@@ -1,6 +1,6 @@
 @layer base, layout, components, responsive;
 @layer base {
-  :root { color-scheme: dark; --bg:#141719; --panel:#1b1f22; --line:#2b3135; --ink:#e9edee; --muted:#97a2a6; --accent:#6fe3c1; --accent-hover:var(--accent-hover); --on-accent:#0f2a22; --paper:#eef0f0; --green:#7fc9b1; --ease:cubic-bezier(.22,1,.36,1); }
+  :root { color-scheme: dark; --bg:#141719; --panel:#1b1f22; --line:#2b3135; --ink:#e9edee; --muted:#97a2a6; --accent:#6fe3c1; --accent-hover:#8eeccf; --on-accent:#0f2a22; --paper:#eef0f0; --green:#7fc9b1; --ease:cubic-bezier(.22,1,.36,1); }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.55 'Segoe UI', sans-serif; }
   button, textarea, select { font:inherit; }
@@ -168,7 +168,7 @@
   textarea::placeholder { color:#9ea8ad; }
   .build-button { min-width:149px; padding:12px 15px; }
   #activity { font-size:12px; color:#97a1a6; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .error-banner { display:flex; justify-content:space-between; align-items:center; gap:16px; color:var(--accent-hover); border:1px solid #418773; background:#35271e; border-radius:5px; padding:12px 16px; margin-top:12px; flex-wrap:wrap; }
+  .error-banner { display:flex; justify-content:space-between; align-items:center; gap:16px; color:var(--accent-hover); border:1px solid #418773; background:#16211f; border-radius:5px; padding:12px 16px; margin-top:12px; flex-wrap:wrap; }
   .error-banner #error-text { flex:1; min-width:180px; }
   .error-banner button { background:none; color:inherit; font-size:22px; }
   .error-banner .quiet { font-size:12px; }
