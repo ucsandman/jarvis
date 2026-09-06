@@ -239,7 +239,7 @@ internal sealed class DesktopShell : Form {
             followSnapshots = message.TryGetValue("snapshots", out rawSnapshots) && rawSnapshots is bool && (bool)rawSnapshots;
             if (!follow.Start()) { Post(new Dictionary<string, object> { {"type", "screen"}, {"on", false}, {"reason", "unavailable"} }); return; }
             stopHotkeyRegistered = RegisterHotKey(Handle, StopHotkeyId, ModControl | ModShift | ModNoRepeat, VkF12);
-            followExpires = DateTime.UtcNow.AddMinutes(10);
+            followExpires = DateTime.UtcNow.AddSeconds(LeaseSeconds());
             followTimer.Start();
             Post(new Dictionary<string, object> { {"type", "screen"}, {"on", true}, {"snapshots", followSnapshots}, {"expires", (long)(followExpires - new DateTime(1970, 1, 1)).TotalMilliseconds}, {"hotkey", stopHotkeyRegistered} });
         } else if (type == "screen-off") {
@@ -400,6 +400,13 @@ internal sealed class DesktopShell : Form {
         if (host == "developers.openai.com") return parsed.AbsolutePath.TrimEnd('/') == "/codex/auth";
         if (host == "code.claude.com") return parsed.AbsolutePath.TrimEnd('/') == "/docs/en/authentication" || parsed.AbsolutePath.TrimEnd('/') == "/docs/en/legal-and-compliance";
         return false;
+    }
+
+    // Ten minutes, unless a check shortens the lease so it can watch the expiry without waiting ten minutes.
+    static int LeaseSeconds() {
+        int seconds;
+        string raw = Environment.GetEnvironmentVariable("JARVIS_FOLLOW_LEASE_SECONDS");
+        return Int32.TryParse(raw, out seconds) && seconds > 0 && seconds <= 600 ? seconds : 600;
     }
 
     static bool ValidRequestId(string value) {

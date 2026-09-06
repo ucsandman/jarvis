@@ -17,6 +17,28 @@ public static class JarvisWindowProbe {
   [DllImport("user32.dll")] public static extern bool RegisterHotKey(IntPtr window, int id, uint modifiers, uint key);
   [DllImport("user32.dll")] public static extern bool UnregisterHotKey(IntPtr window, int id);
   [DllImport("user32.dll")] public static extern bool PostMessage(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
+  [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+  [DllImport("user32.dll")] public static extern void mouse_event(uint flags, uint dx, uint dy, uint data, IntPtr extra);
+  [DllImport("user32.dll", EntryPoint="GetWindowLongPtrW")] public static extern IntPtr GetWindowLongPtr(IntPtr window, int index);
+  [DllImport("user32.dll")] public static extern bool GetClientRect(IntPtr window, out Rect rect);
+  [DllImport("user32.dll")] static extern bool ClientToScreen(IntPtr window, ref ClientPoint point);
+  [DllImport("user32.dll")] static extern bool IsWindowVisible(IntPtr window);
+  [StructLayout(LayoutKind.Sequential)] public struct ClientPoint { public int X, Y; }
+  public static void ClickAt(int x, int y) { SetCursorPos(x, y); mouse_event(0x0002, 0, 0, 0, IntPtr.Zero); mouse_event(0x0004, 0, 0, 0, IntPtr.Zero); }
+  // The panel's tool-window frame is not its content, so every panel coordinate below is client space and lands here.
+  public static void ClickClient(IntPtr window, int x, int y) { ClientPoint point; point.X = x; point.Y = y; ClientToScreen(window, ref point); ClickAt(point.X, point.Y); }
+  public static int CountBorders(int processId, Rect around) {
+    int count = 0;
+    EnumWindows(delegate(IntPtr window, IntPtr value) {
+      int pid; GetWindowThreadProcessId(window, out pid); if (pid != processId) return true;
+      if (!IsWindowVisible(window)) return true;   // the border form keeps its handle and its last bounds after it hides
+      long ex = (long)GetWindowLongPtr(window, -20); if ((ex & 0x20) == 0 || (ex & 0x80000) == 0) return true;   // WS_EX_TRANSPARENT and WS_EX_LAYERED
+      Rect r; if (!GetWindowRect(window, out r)) return true;
+      if (Math.Abs(r.Left - around.Left) <= 2 && Math.Abs(r.Top - around.Top) <= 2 && Math.Abs(r.Right - around.Right) <= 2 && Math.Abs(r.Bottom - around.Bottom) <= 2) count++;
+      return true;
+    }, IntPtr.Zero);
+    return count;
+  }
   public static IntPtr Find(int expectedProcessId) {
     IntPtr found = IntPtr.Zero;
     EnumWindows(delegate(IntPtr window, IntPtr value) {
@@ -43,7 +65,9 @@ function Get-JarvisBounds($process) {
     return @{ Width = $rect.Right - $rect.Left; Height = $rect.Bottom - $rect.Top }
 }
 
+$env:JARVIS_FOLLOW_LEASE_SECONDS = '8'   # the shell reads the lease length from its own environment, once per screen-on
 $jarvisProbe = Start-Process -FilePath $jarvisExe -PassThru
+$fixture = $null
 try {
     Wait-JarvisCondition { $jarvisProbe.Refresh(); $jarvisProbe.MainWindowTitle -eq 'Jarvis' } 'Embedded Jarvis window did not render.'
     Wait-JarvisCondition { $bounds = Get-JarvisBounds $jarvisProbe; $bounds -and $bounds.Width -ge 440 -and $bounds.Height -ge 700 } 'Jarvis did not open the companion panel on first launch.'
@@ -57,8 +81,27 @@ try {
     $open.Set() | Out-Null
     $open.Dispose()
     Wait-JarvisCondition { $bounds = Get-JarvisBounds $jarvisProbe; $bounds -and $bounds.Width -ge 440 -and $bounds.Height -ge 700 } 'Open signal did not summon the companion panel.'
-    Write-Output 'PASS: embedded WebView2 host rendered the first-launch companion panel, collapsed to a 76x76 dock, registered Ctrl+Shift+Space and Ctrl+Shift+E, and reopened from its named signal.'
+    # Character Map is the fixture window: a plain Win32 top-level window, unlike Notepad, which is an app alias Start-Process cannot hand back.
+    $fixture = Start-Process charmap -PassThru
+    Wait-JarvisCondition { $fixture.Refresh(); $fixture.MainWindowHandle -ne 0 } 'Character Map fixture did not open.'
+    $panel = [JarvisWindowProbe]::Find($jarvisProbe.Id)
+    $client = New-Object JarvisWindowProbe+Rect; [JarvisWindowProbe]::GetClientRect($panel,[ref]$client) | Out-Null
+    # The header line is the last item before the two icon buttons: 150px in from the panel's right edge, on the 52px header's centre line.
+    [JarvisWindowProbe]::ClickClient($panel, $client.Right - 150, 26); Start-Sleep -Milliseconds 800
+    # The lease dialog is centred in the panel; "Follow my clicks" is the middle of its three stacked actions, 435-476px down a 700px client.
+    [JarvisWindowProbe]::ClickClient($panel, [int]($client.Right / 2), $client.Bottom - 244); Start-Sleep -Milliseconds 1200
+    $held = [JarvisWindowProbe]::RegisterHotKey([IntPtr]::Zero,0x4A46,0x0002 -bor 0x0004,0x7B)
+    if ($held) { [JarvisWindowProbe]::UnregisterHotKey([IntPtr]::Zero,0x4A46) | Out-Null; throw 'Screen on did not take Ctrl+Shift+F12.' }
+    $frect = New-Object JarvisWindowProbe+Rect; [JarvisWindowProbe]::GetWindowRect($fixture.MainWindowHandle,[ref]$frect) | Out-Null
+    [JarvisWindowProbe]::ClickAt([int](($frect.Left + $frect.Right) / 2), [int](($frect.Top + $frect.Bottom) / 2))
+    Wait-JarvisCondition { [JarvisWindowProbe]::CountBorders($jarvisProbe.Id, $frect) -eq 1 } 'No amber border appeared around the clicked Character Map window.'
+    Wait-JarvisCondition { [JarvisWindowProbe]::RegisterHotKey([IntPtr]::Zero,0x4A46,0x0002 -bor 0x0004,0x7B) } 'The shortened lease did not release Ctrl+Shift+F12.'
+    [JarvisWindowProbe]::UnregisterHotKey([IntPtr]::Zero,0x4A46) | Out-Null
+    if ([JarvisWindowProbe]::CountBorders($jarvisProbe.Id, $frect) -ne 0) { throw 'The border outlived the lease.' }
+    Write-Output 'PASS: embedded WebView2 host rendered the first-launch companion panel, collapsed to a 76x76 dock, registered Ctrl+Shift+Space and Ctrl+Shift+E, reopened from its named signal, leased Screen on from the header line, took and released Ctrl+Shift+F12, outlined a clicked Character Map window, and dropped the border at expiry.'
 } finally {
+    if ($fixture) { Stop-Process -Id $fixture.Id -ErrorAction SilentlyContinue }
+    Remove-Item Env:JARVIS_FOLLOW_LEASE_SECONDS -ErrorAction SilentlyContinue
     try { $quit = [Threading.EventWaitHandle]::OpenExisting('Local\JarvisDesktopQuit'); $quit.Set() | Out-Null; $quit.Dispose() } catch { }
     if (-not $jarvisProbe.WaitForExit(15000)) { Stop-Process -Id $jarvisProbe.Id }
 }
