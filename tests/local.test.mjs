@@ -97,14 +97,41 @@ test('LM Studio models are loaded with a Codex-sized context before inference',a
   setLocalModels([{provider:'lmstudio',model:'qwen/qwen3-8b'}]);
   const chosen=choice('lmstudio:qwen/qwen3-8b');
   // Not loaded: one load with the wide context. Loaded wide: nothing runs. Loaded narrow (LM Studio's 4,096 default): unload, then load wide.
-  assert.deepEqual(await ensureLoaded(chosen,undefined,{fetchImpl,run}),{loaded:true,context:LOCAL_CONTEXT});
-  assert.deepEqual(runs,[['load','qwen/qwen3-8b','--context-length',String(LOCAL_CONTEXT),'--yes']]);
-  runs.length=0;assert.deepEqual(await ensureLoaded(chosen,undefined,{fetchImpl,run}),{loaded:true,context:LOCAL_CONTEXT});assert.deepEqual(runs,[]);
+  assert.deepEqual(await ensureLoaded(chosen,undefined,{fetchImpl,run,vram:null}),{loaded:true,context:LOCAL_CONTEXT});
+  assert.deepEqual(runs,[['load','qwen/qwen3-8b','--context-length',String(LOCAL_CONTEXT),'--yes']]); // vram null: LM Studio chooses the offload
+  runs.length=0;assert.deepEqual(await ensureLoaded(chosen,undefined,{fetchImpl,run,vram:null}),{loaded:true,context:LOCAL_CONTEXT});assert.deepEqual(runs,[]);
   state={...state,loaded_context_length:4096};
-  await ensureLoaded(chosen,undefined,{fetchImpl,run});
+  await ensureLoaded(chosen,undefined,{fetchImpl,run,vram:null});
   assert.deepEqual(runs.map(a=>a[0]),['unload','load']);
   assert.equal(LOCAL_CONTEXT>=16384,true);
   // Only LM Studio needs this; Ollama entries pass straight through.
   setLocalModels([{provider:'ollama',model:'gemma3:4b'}]);
-  assert.deepEqual(await ensureLoaded(choice('ollama:gemma3:4b'),undefined,{fetchImpl,run}),{loaded:true,context:null});
+  assert.deepEqual(await ensureLoaded(choice('ollama:gemma3:4b'),undefined,{fetchImpl,run,vram:null}),{loaded:true,context:null});
+});
+
+test('a local reply is read as its one JSON object, fenced or wrapped, and prose alone is refused',async()=>{
+  const {extractJson}=await import('../lib/subscription.mjs');
+  assert.deepEqual(extractJson('{"reply":"Four.","suggestion":"none","followUps":[]}'),{reply:'Four.',suggestion:'none',followUps:[]});
+  assert.deepEqual(extractJson('Here you go:\n```json\n{"reply":"Four."}\n```\nHope that helps.'),{reply:'Four.'});
+  assert.deepEqual(extractJson('Sure. {"reply":"A {curly} one","followUps":["a","b"]} Done.'),{reply:'A {curly} one',followUps:['a','b']});
+  assert.throws(()=>extractJson('A hexagon is a six-sided polygon.\n\n**Follow-ups**:\n- "What else?"'),/No JSON object/);
+  assert.throws(()=>extractJson('[1,2,3]'),/No JSON object/);
+});
+
+test('the GPU share comes from the card and the model, and low effort turns a local model reasoning off',async()=>{
+  const {gpuRatio,ensureLoaded,LOCAL_CONTEXT}=await import('../lib/local.mjs');
+  const GiB=1024**3;
+  assert.equal(gpuRatio(8*GiB,5.03*GiB),'0.6');   // the 3070 Ti and Qwen3 8B: measured to fit
+  assert.equal(gpuRatio(24*GiB,5*GiB),'max');
+  assert.equal(gpuRatio(6*GiB,5*GiB),'0.3');
+  assert.equal(gpuRatio(null,5*GiB),null);assert.equal(gpuRatio(8*GiB,0),null);
+  const runs=[];let state={id:'qwen/qwen3-8b',type:'llm',state:'not-loaded',size_bytes:5.03*GiB};
+  const fetchImpl=async()=>({ok:true,json:async()=>({data:[state]})});
+  const run=async(command,args)=>{runs.push([command,...args]);if(args[0]==='load') state={...state,state:'loaded',loaded_context_length:LOCAL_CONTEXT};return {code:0,stdout:'',stderr:''};};
+  setLocalModels([{provider:'lmstudio',model:'qwen/qwen3-8b'}]);
+  await ensureLoaded(choice('lmstudio:qwen/qwen3-8b'),undefined,{fetchImpl,run,vram:8*GiB});
+  assert.ok(runs.some(r=>r.includes('--gpu') && r[r.indexOf('--gpu')+1]==='0.6'));
+  const low=inferenceArgs('s','r',null,null,{model:'lmstudio:qwen/qwen3-8b',effort:'low'}),medium=inferenceArgs('s','r',null,null,{model:'lmstudio:qwen/qwen3-8b',effort:'medium'});
+  assert.ok(low.includes('model_reasoning_effort="none"'));assert.ok(medium.includes('model_reasoning_effort="medium"'));
+  assert.ok(inferenceArgs('s','r',null,null,{model:'astra',effort:'low'}).includes('model_reasoning_effort="low"'));
 });

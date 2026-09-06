@@ -6,7 +6,7 @@ import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { AppError, Vision } from './lib/vision.mjs';
 import { Assistant } from './lib/assistant.mjs';
 import { runProcess, subscriptionLogin, installCodex, SubscriptionError } from './lib/subscription.mjs';
-import { MODELS, selection, SelectionError } from './lib/models.mjs';
+import { MODELS, selection, SelectionError, choice } from './lib/models.mjs';
 import { localModels } from './lib/local.mjs';
 import { Computer } from './lib/computer.mjs';
 
@@ -21,6 +21,8 @@ export const assets = new Map([
   ['/mark.svg',['mark.svg','image/svg+xml']], ['/reference.svg',['reference.svg','image/svg+xml']],
   ['/demo.html',['demo.html','text/html']]
 ]);
+
+const isLocalSelection = data => !!choice(data?.model)?.local;
 
 async function readJson(req) {
   if (!req.headers['content-type']?.startsWith('application/json')) throw new AppError('Send JSON.',415);
@@ -150,7 +152,8 @@ export function createApp({ vision = new Vision(), assistant = new Assistant({vi
         res.once('close',abort);
         try {
           calls++;
-          return send(200,{ ...await assistant.chat(data,AbortSignal.any([controller.signal,AbortSignal.timeout(120000)])),remaining:maxCalls-calls });
+          // A local model on a small GPU pays a cold prefill of Codex's prompt; measured 2026-09-06 at up to 154 s, so it gets the build's budget.
+          return send(200,{ ...await assistant.chat(data,AbortSignal.any([controller.signal,AbortSignal.timeout(isLocalSelection(data) ? 300000 : 120000)])),remaining:maxCalls-calls });
         } finally { busy=false;res.removeListener('close',abort); }
       }
       if (data.consent !== true) throw new AppError('Allow sharing through your OpenAI subscription before building.',403);
@@ -161,7 +164,7 @@ export function createApp({ vision = new Vision(), assistant = new Assistant({vi
       const controller = new AbortController();
       const abort = () => controller.abort();
       res.once('close',abort);
-      const signal = AbortSignal.any([controller.signal,AbortSignal.timeout(url.pathname === '/api/build' ? 300000 : 120000)]);
+      const signal = AbortSignal.any([controller.signal,AbortSignal.timeout(url.pathname === '/api/build' || isLocalSelection(data) ? 300000 : 120000)]);
       try {
         calls++;
         const streaming=url.pathname==='/api/build' && req.headers.accept==='application/x-ndjson';

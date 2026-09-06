@@ -30,7 +30,11 @@ LM Studio and Ollama models run on your own computer and cost nothing per reques
 
 Setup for a local model checks that Codex is available, that the runtime answers, and that the chosen model is still listed. If LM Studio's server is off, Setup offers **Start LM Studio server**, which runs LM Studio's own `lms server start`. Ollama is started by you (`ollama serve`). A model that disappears from the runtime fails closed with a message; Sidelook never picks another one.
 
-Quality depends on the model. Structured output is requested through Codex's `--output-schema`, and a local model that cannot follow the schema gets the same "incomplete application" refusal a subscription model would.
+Quality depends on the model. LM Studio does not enforce Codex's `--output-schema` (measured 2026-09-06: the model answered in prose), so for a local model the schema rides inside the instructions and Sidelook reads the one JSON object out of the reply, fenced or not. A reply with no JSON object gets the same "incomplete application" refusal a subscription model would.
+
+Effort for a local model: **low turns reasoning off** (Codex's `model_reasoning_effort="none"`, which LM Studio maps to its reasoning-off switch); medium and high leave it on. Measured with Qwen3 8B: a warm turn took 8 s with reasoning off and 28 to 48 s with it on.
+
+Speed on a small GPU. Codex's own prompt is about 12,700 tokens before Sidelook adds anything, so the model is loaded with a 32,768-token context, and that cache does not fit beside an 8B model in 8 GB. LM Studio's default of every layer on the GPU then swaps through the driver: prefill took 150 s and generation ran at 5 tokens/s on an RTX 3070 Ti. Sidelook therefore loads the model with a GPU share computed from the card (nvidia-smi) and the model's size, leaving 5 GB for the cache: 0.6 on that card, which measured 80 s for the first cold turn and 8 to 34 s warm, because LM Studio keeps the Codex prefix cached between turns. Machines without nvidia-smi leave the share to LM Studio. The first send after a load pays the cold prefill; local chats get a 300 s budget instead of 120 s.
 
 ## Setup
 
