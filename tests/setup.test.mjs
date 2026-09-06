@@ -36,7 +36,7 @@ test('installation is explicit, authenticated, and never starts during inference
   t.after(()=>{release();server.closeAllConnections();server.close();});
   const base=`http://127.0.0.1:${server.address().port}`;
   const {token}=await (await fetch(base+'/api/local-session')).json();
-  const post=(path,body,session=token,origin=base)=>fetch(base+path,{method:'POST',headers:{'Content-Type':'application/json','X-Jarvis-Session':session,Origin:origin},body:JSON.stringify(body)});
+  const post=(path,body,session=token,origin=base)=>fetch(base+path,{method:'POST',headers:{'Content-Type':'application/json','X-Sidelook-Session':session,Origin:origin},body:JSON.stringify(body)});
   assert.equal((await post('/api/install-codex',{})).status,403);
   assert.equal((await post('/api/install-codex',{consent:true},'wrong')).status,403);
   assert.equal((await post('/api/install-codex',{consent:true},token,'https://outside.invalid')).status,403);

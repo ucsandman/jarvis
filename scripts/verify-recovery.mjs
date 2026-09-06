@@ -53,7 +53,7 @@ try {
   await page.locator('#example').click();await chip().waitFor();assert.equal(await page.locator('#build-label').innerText(),'Build with frame');
   assert.equal(await page.locator('#composer input[type=checkbox]').count(),0,'no tick in the composer');
   const sketchDirection=await page.locator('#direction').inputValue();await page.locator('#direction').fill('');await page.locator('#build').click();
-  assert.match(await page.locator('#error-text').innerText(),/Tell Jarvis what should work first/);assert.equal(requests.length,0);
+  assert.match(await page.locator('#error-text').innerText(),/Tell Sidelook what should work first/);assert.equal(requests.length,0);
   await page.locator('#direction').fill(sketchDirection);await page.locator('#build').click();await ready(1);await idle();
   assert.deepEqual(requests.map(r=>r.path),['/api/build']);
   assert.ok(requests[0].body.image);assert.equal(await chip().isHidden(),true,'the frame leaves the box after it went');assert.equal(await page.locator('#build-label').innerText(),'Revise Version 01');

@@ -8,7 +8,7 @@ async function fixture({ generate, maxCalls = 2 } = {}) {
   await new Promise(resolve => server.listen(0,'127.0.0.1',resolve));
   const base = `http://127.0.0.1:${server.address().port}`;
   const { token } = await (await fetch(`${base}/api/session`)).json();
-  return { server, post:body => fetch(`${base}/api/chat`,{method:'POST',headers:{'Content-Type':'application/json','X-Jarvis-Session':token},body:JSON.stringify(body)}) };
+  return { server, post:body => fetch(`${base}/api/chat`,{method:'POST',headers:{'Content-Type':'application/json','X-Sidelook-Session':token},body:JSON.stringify(body)}) };
 }
 
 let calls = 0;
@@ -51,7 +51,7 @@ const stopping=new Promise(resolve=>{finished=resolve;});
 const cancel = await fixture({generate:async (_system,_parts,_schema,signal) => new Promise((resolve,reject) => {started();signal.addEventListener('abort',() => { aborted=true;finished();reject(new DOMException('Canceled','AbortError')); },{once:true});})});
 try {
   const controller = new AbortController();
-  const pending = fetch(`http://127.0.0.1:${cancel.server.address().port}/api/chat`,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json','X-Jarvis-Session':(await (await fetch(`http://127.0.0.1:${cancel.server.address().port}/api/session`)).json()).token},body:JSON.stringify({instruction:'cancel',consent:true})}).catch(error => error);
+  const pending = fetch(`http://127.0.0.1:${cancel.server.address().port}/api/chat`,{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json','X-Sidelook-Session':(await (await fetch(`http://127.0.0.1:${cancel.server.address().port}/api/session`)).json()).token},body:JSON.stringify({instruction:'cancel',consent:true})}).catch(error => error);
   await starting;
   controller.abort();
   await pending;

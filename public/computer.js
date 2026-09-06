@@ -34,7 +34,7 @@ export function initComputer({api,getSelection,onState}) {
     $('inspect').disabled||=!$('window').value;
     $('enable').disabled=busy || !!owner;$('stop').disabled=false;
     $('approve').disabled=busy || !owner || !proposal || Date.now()>proposal.expires;
-    $('title').textContent=windowTitle()?`Jarvis in ${windowTitle()}`:'Computer mode';
+    $('title').textContent=windowTitle()?`Sidelook in ${windowTitle()}`:'Computer mode';
     renderGate($('gate'),gateView());left();
   }
   const call=(op,body={},signal)=>api('/api/computer',{op,owner,...body},signal);
@@ -107,7 +107,7 @@ export function initComputer({api,getSelection,onState}) {
   $('next').onclick=()=>work(async(signal,current)=>{
     const sel=getSelection();
     if(!$('window').value)throw new Error('Choose the window first.');
-    if(!$('task').value.trim())throw new Error('Say what Jarvis should do first.');
+    if(!$('task').value.trim())throw new Error('Say what Sidelook should do first.');
     const refusal=gate({surface:'computer',configured:sel.configured,token:sel.token,remaining:sel.remaining});
     if(refusal)throw new Error(refusal);
     clearProposal();const start=Date.now();planning=true;notify();status(`${MODEL_LABEL[sel.model]} is planning the next action…`);

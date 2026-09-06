@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <meta name="description" content="Jarvis is a local desktop companion. Ask about the window you are in, build a prototype from a sketch, or let it work in a Windows app one approved action at a time.">
+  <meta name="description" content="Sidelook is a local desktop companion. Ask about the window you are in, build a prototype from a sketch, or let it work in a Windows app one approved action at a time.">
   <meta name="theme-color" content="#141719">
-  <title>Jarvis</title>
+  <title>Sidelook</title>
   <link rel="icon" href="/mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/style.css">
   <link rel="stylesheet" href="/companion.css">
@@ -43,7 +43,7 @@
         <div class="chip-row" id="rail-chips" aria-label="Prewritten directions"></div>
         <form id="composer" class="composer">
           <div class="frame-chip" id="frame-chip" hidden><img id="frame-chip-image" alt="Exact frame attached to the next build"><span><b id="frame-chip-label"></b><small>Goes with this build</small></span><button type="button" id="frame-remove" aria-label="Remove frame">×</button></div>
-          <div class="composer-row"><button type="button" class="mic-button" id="mic" aria-label="Dictate direction" aria-pressed="false"><svg><use href="#i-mic"/></svg></button><label class="sr-only" for="direction">Tell Jarvis what to build or change</label><textarea id="direction" rows="2" maxlength="4000" placeholder="Tell me what to build, or what to change…"></textarea></div>
+          <div class="composer-row"><button type="button" class="mic-button" id="mic" aria-label="Dictate direction" aria-pressed="false"><svg><use href="#i-mic"/></svg></button><label class="sr-only" for="direction">Tell Sidelook what to build or change</label><textarea id="direction" rows="2" maxlength="4000" placeholder="Tell me what to build, or what to change…"></textarea></div>
           <div class="send-gate" id="build-gate"><span class="consent-line" id="build-consent-line">Send this direction to Astra (your ChatGPT subscription).</span><button type="button" class="quiet" id="build-preview">See exactly what goes</button><p class="billing" id="build-billing" hidden></p></div>
           <div class="composer-actions"><span id="activity">Ready</span><button class="button amber build-button" id="build" type="submit"><span id="build-label">Build</span> <svg><use href="#i-arrow"/></svg></button></div>
         </form>
@@ -51,7 +51,7 @@
 
         <div class="viewfinder" id="viewfinder">
           <video id="camera" autoplay muted playsinline hidden></video>
-          <img id="reference" alt="The reference frame being used by Jarvis" hidden>
+          <img id="reference" alt="The reference frame being used by Sidelook" hidden>
           <div id="annotations" class="annotations" aria-hidden="true"></div>
           <div class="viewfinder-corners" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
           <div class="camera-empty" id="camera-empty">
@@ -76,7 +76,7 @@
 
         <section class="live-controls" id="live-controls" aria-label="Live build" hidden>
           <div class="live-heading"><strong>Live build</strong></div>
-          <p>After 3 quiet seconds Jarvis sends one changed snapshot and updates the prototype.</p>
+          <p>After 3 quiet seconds Sidelook sends one changed snapshot and updates the prototype.</p>
           <label for="live-interval">Minimum time between builds <select id="live-interval"><option value="30000">30 seconds</option><option value="60000">60 seconds</option><option value="120000">2 minutes</option></select></label>
           <div class="live-actions"><button class="quiet" id="screen-stop">Stop sharing</button></div>
           <p id="live-status" role="status">Sharing locally. No automatic frames sent.</p>
@@ -105,21 +105,21 @@
           </div>
           <div class="prototype-footer"><span id="preview-note">A real preview will appear here.</span><button class="quiet" id="retry-preview" hidden>Retry preview</button><div><button class="quiet" id="source" disabled><svg><use href="#i-code"/></svg> Source</button><button class="quiet" id="download" disabled><svg><use href="#i-download"/></svg> Download</button></div></div>
         </div>
-        <section class="reply" aria-label="Jarvis reply"><img class="reply-mark" src="/mark.svg" width="27" height="27" alt="" aria-hidden="true"><div><div class="reply-byline">Jarvis <span id="reply-status">Standing by</span></div><p id="reply-text" aria-live="polite">Show me a sketch and tell me what should work. I’ll take it from there.</p><ul id="changes"></ul></div></section>
+        <section class="reply" aria-label="Sidelook reply"><img class="reply-mark" src="/mark.svg" width="27" height="27" alt="" aria-hidden="true"><div><div class="reply-byline">Sidelook <span id="reply-status">Standing by</span></div><p id="reply-text" aria-live="polite">Show me a sketch and tell me what should work. I’ll take it from there.</p><ul id="changes"></ul></div></section>
         <div class="revision-heading"><span id="revision-count">Every build keeps the previous version.</span><button class="quiet" id="new-session">New project</button></div>
         <nav class="revisions" id="revisions" aria-label="Revision history"><p class="revision-empty">Your first version starts with an idea.</p></nav>
       </section>
     </main>
   </div>
 
-  <section id="companion" aria-label="Jarvis companion">
-    <header class="companion-header"><button id="companion-drag" class="companion-brand" aria-label="Drag Jarvis window" title="Jarvis"><img src="/mark.svg" alt=""></button><button type="button" id="companion-sense" class="companion-sense" aria-describedby="companion-status"><i id="companion-dot" aria-hidden="true"></i><span id="companion-status" role="status">Connecting</span></button><button id="companion-settings" aria-label="Settings" title="Settings">⚙</button><button id="companion-hide" aria-label="Return to dock" title="Return to dock">−</button></header>
+  <section id="companion" aria-label="Sidelook companion">
+    <header class="companion-header"><button id="companion-drag" class="companion-brand" aria-label="Drag Sidelook window" title="Sidelook"><img src="/mark.svg" alt=""></button><button type="button" id="companion-sense" class="companion-sense" aria-describedby="companion-status"><i id="companion-dot" aria-hidden="true"></i><span id="companion-status" role="status">Connecting</span></button><button id="companion-settings" aria-label="Settings" title="Settings">⚙</button><button id="companion-hide" aria-label="Return to dock" title="Return to dock">−</button></header>
     <div class="companion-scroll">
       <ol id="companion-messages" aria-label="Conversation" aria-live="polite" aria-relevant="additions"></ol>
       <div id="companion-deck">
         <button type="button" class="companion-tile" id="companion-front" aria-expanded="false" title="Pick another window" hidden><img id="companion-front-icon" alt="" hidden><span class="companion-tile-letter" id="companion-front-letter" aria-hidden="true"></span><span class="companion-tile-text"><b id="companion-front-title"></b><small id="companion-front-app"></small></span></button>
         <div class="companion-starters" id="companion-chips" aria-label="Things to ask"></div>
-        <div class="companion-starters companion-targets" id="companion-targets" aria-label="What Jarvis should look at" hidden></div>
+        <div class="companion-starters companion-targets" id="companion-targets" aria-label="What Sidelook should look at" hidden></div>
       </div>
     </div>
     <div class="companion-compose">
@@ -130,7 +130,7 @@
           <div class="companion-att" id="companion-text" hidden><span class="companion-att-text" aria-hidden="true">Aa</span><span><b id="companion-text-label"></b><small id="companion-text-volume"></small></span><button type="button" id="companion-text-remove" aria-label="Remove window text">×</button></div>
         </div>
         <pre id="companion-text-body" hidden></pre>
-        <label class="sr-only" for="companion-input">Message Jarvis</label><textarea id="companion-input" rows="1" maxlength="4000" placeholder="Ask about this window…"></textarea>
+        <label class="sr-only" for="companion-input">Message Sidelook</label><textarea id="companion-input" rows="1" maxlength="4000" placeholder="Ask about this window…"></textarea>
         <div class="companion-tools"><button type="button" id="companion-capture" aria-label="Screenshot" title="Screenshot"><svg><use href="#i-screen"/></svg></button><button type="button" id="companion-mic" aria-label="Dictate locally" title="Mic" aria-pressed="false"><svg><use href="#i-mic"/></svg></button><button type="submit" id="companion-send" aria-label="Send">↑</button></div>
         <span class="companion-grip" id="companion-grip" title="Drag to make the box taller"></span>
       </form>
@@ -150,14 +150,14 @@
           </div>
           <div class="computer-step">
             <div class="computer-lbl">2 · The task</div>
-            <textarea id="computer-task" maxlength="2000" rows="3" aria-label="What should Jarvis do?" placeholder="Example: enter 24 × 7 and show the result."></textarea>
+            <textarea id="computer-task" maxlength="2000" rows="3" aria-label="What should Sidelook do?" placeholder="Example: enter 24 × 7 and show the result."></textarea>
             <div class="computer-row"><button type="button" class="button amber" id="computer-next">Plan next action</button><button type="button" class="quiet" id="computer-preview">What goes</button></div>
             <div class="computer-goes" id="computer-gate"><span class="consent-line" id="computer-consent-line"></span><p class="billing" id="computer-billing" hidden></p></div>
             <p id="computer-status" role="status" aria-live="polite" hidden></p>
           </div>
           <section id="computer-review" class="computer-step computer-live" hidden aria-label="Review the next action"><div class="computer-lbl" id="computer-step-label">3 · Waiting for you</div><h3 id="computer-action-title"></h3><p id="computer-reason"></p><pre id="computer-action-detail"></pre><button type="button" class="quiet computer-reveal" id="computer-details" aria-expanded="false" aria-controls="computer-diagnostics">Details</button><pre id="computer-diagnostics" hidden></pre><div class="computer-row"><button type="button" class="button amber" id="computer-approve">Approve</button><button type="button" class="quiet" id="computer-reject">Reject</button><span id="computer-expiry"></span></div></section>
           <section id="computer-outcome" class="computer-step" hidden aria-label="After the action"><div class="computer-lbl">After the action</div><p id="computer-outcome-accepted"></p><p id="computer-outcome-text"></p><button type="button" class="quiet computer-reveal" id="computer-outcome-details" aria-expanded="false" aria-controls="computer-outcome-tree" hidden>Details</button><pre id="computer-outcome-tree" hidden></pre></section>
-          <section id="computer-read" hidden aria-label="What Jarvis read"><div class="computer-lbl">What Jarvis read</div><pre id="computer-snapshot"></pre></section>
+          <section id="computer-read" hidden aria-label="What Sidelook read"><div class="computer-lbl">What Sidelook read</div><pre id="computer-snapshot"></pre></section>
           <section id="computer-done" hidden aria-label="Actions done"><div class="computer-lbl">Done · <span id="computer-count">0 actions</span></div><ol id="computer-history"></ol></section>
         </div>
         <footer class="computer-foot"><span>Ctrl+Shift+F12 stops from any app</span><button type="button" id="computer-stop">Stop control</button></footer>
@@ -169,13 +169,13 @@
     <div class="settings-head"><h2 id="settings-title">Settings</h2><button class="quiet" id="settings-close" data-close="settings">Back</button></div>
     <section class="settings-section settings-more" aria-label="Do more">
       <button class="quiet" id="companion-expand">Open the studio · build a prototype from a sketch ↗</button>
-      <button class="quiet" id="computer-open">Computer mode · let Jarvis work in one Windows app, one approved action at a time</button>
+      <button class="quiet" id="computer-open">Computer mode · let Sidelook work in one Windows app, one approved action at a time</button>
     </section>
     <section class="settings-section" aria-label="Model">
       <label class="settings-field" for="model-choice">Model <select id="model-choice"></select></label>
       <p id="billing-note">Astra uses your ChatGPT subscription.</p>
       <p class="setup-line"><span class="status-dot" id="setup-dot"></span><span id="setup-summary">Checking</span></p>
-      <ol id="setup-checks"><li>Local Jarvis is running.</li><li id="cli-check">Checking the official Codex CLI…</li><li id="login-check">Checking ChatGPT subscription login…</li><li id="model-check">Selected model access is checked when you build. Jarvis never switches models automatically.</li></ol>
+      <ol id="setup-checks"><li>Local Sidelook is running.</li><li id="cli-check">Checking the official Codex CLI…</li><li id="login-check">Checking ChatGPT subscription login…</li><li id="model-check">Selected model access is checked when you build. Sidelook never switches models automatically.</li></ol>
       <p id="setup-message" role="status">The working example and saved source are available while setup finishes.</p>
       <div class="setup-actions"><button class="button secondary" id="install-codex" hidden>Install official Codex CLI</button><button class="button amber" id="login" hidden>Sign in with ChatGPT</button><button class="button secondary" id="recheck">Check again</button><button class="quiet" id="cancel-setup" hidden>Cancel setup action</button><a id="setup-help" href="https://developers.openai.com/codex/auth" target="_blank" rel="noreferrer">Official setup help</a></div>
       <p class="muted" id="setup-detail">Sign-in opens the official browser flow and updates Codex login on this device. Installing Codex adds its official npm package globally. Each action starts only when you choose it.</p>
@@ -195,18 +195,18 @@
     <section class="settings-section" aria-label="What leaves this device">
       <h3>What leaves this device</h3>
       <ol class="leaves">
-        <li>Nothing is captured until you press ＋ Window, Read text, Share window or Camera. Jarvis never watches the screen and never listens on its own.</li>
+        <li>Nothing is captured until you press ＋ Window, Read text, Share window or Camera. Sidelook never watches the screen and never listens on its own.</li>
         <li>Read text reads the accessible text of the window you came from, shows every character with a count and whether it was cut short, and goes only while it is attached in the box. Reading never clicks anything and never turns Computer mode on.</li>
-        <li>Copy puts a reply on your clipboard. Jarvis never reads the clipboard.</li>
+        <li>Copy puts a reply on your clipboard. Sidelook never reads the clipboard.</li>
         <li>A frame goes only while it is attached in the box, in the panel and in the studio alike. Sharing a window or camera attaches nothing; Use this frame does. The button says what goes, and the frame leaves the box after it went.</li>
         <li>Your message, up to 12 recent messages from this session, and the frame go to the model you picked: an OpenAI model through Codex on your ChatGPT subscription, or an Anthropic model through Claude Code on your Claude subscription. There is no API key and no fallback model.</li>
-        <li>Computer mode sends the chosen window's accessible text, your task and recent actions (each with the one-line reading Jarvis took after it) when you press Plan next action. The read-back after an approved action stays on this device until then. No screenshot, no audio. You approve every action, and Ctrl+Shift+F12 stops it from any app.</li>
+        <li>Computer mode sends the chosen window's accessible text, your task and recent actions (each with the one-line reading Sidelook took after it) when you press Plan next action. The read-back after an approved action stays on this device until then. No screenshot, no audio. You approve every action, and Ctrl+Shift+F12 stops it from any app.</li>
         <li>Prototypes and their reference images are saved on this device, up to 12 versions. New project clears them. Generated pages run with no network access.</li>
         <li>Live build sends changed snapshots automatically after its own permission, up to 10 per start, and never resumes after a reload.</li>
       </ol>
       <button class="quiet" id="settings-preview">See exactly what goes</button>
     </section>
-    <footer class="settings-foot"><p>Jarvis runs on your own ChatGPT or Claude subscription.</p><p id="hotkey-note" hidden>Ctrl+Shift+E is taken by another app; Ctrl+Shift+Space still works.</p></footer>
+    <footer class="settings-foot"><p>Sidelook runs on your own ChatGPT or Claude subscription.</p><p id="hotkey-note" hidden>Ctrl+Shift+E is taken by another app; Ctrl+Shift+Space still works.</p></footer>
   </dialog>
 
   <dialog id="send-preview" aria-labelledby="send-preview-title">
@@ -214,13 +214,13 @@
     <dl id="send-preview-list"></dl>
     <details><summary>The request body, as it will be posted</summary><pre id="send-preview-body"></pre></details>
     <h3>Sent this session</h3>
-    <p class="muted" id="send-ledger-empty">Nothing has been sent yet. The list resets when Jarvis reloads.</p>
+    <p class="muted" id="send-ledger-empty">Nothing has been sent yet. The list resets when Sidelook reloads.</p>
     <ol id="send-ledger"></ol>
   </dialog>
 
   <dialog id="computer-lease" aria-labelledby="computer-lease-title">
-    <h2 id="computer-lease-title">Let Jarvis act in one Windows app?</h2>
-    <p>For the next 10 minutes Jarvis can read one window you choose and propose one action at a time. Nothing runs until you approve it, every time.</p>
+    <h2 id="computer-lease-title">Let Sidelook act in one Windows app?</h2>
+    <p>For the next 10 minutes Sidelook can read one window you choose and propose one action at a time. Nothing runs until you approve it, every time.</p>
     <p>Accessible controls only. No terminals, no Explorer, no sign-in windows, no admin prompts, no drawing canvas.</p>
     <p>Ctrl+Shift+F12 stops it from any app. Stop prevents the next action; it cannot undo one already delivered.</p>
     <label class="check"><input id="computer-permission" type="checkbox"> Allow local window inspection and reviewed control for 10 minutes.</label>
@@ -229,15 +229,15 @@
   </dialog>
 
   <dialog id="screen-lease" aria-labelledby="screen-lease-title">
-    <h2 id="screen-lease-title">Let Jarvis follow your screen?</h2>
-    <p>For the next 10 minutes, whatever window you click is the one Jarvis looks at. A thin mint border marks it. Starters refit to that app.</p>
+    <h2 id="screen-lease-title">Let Sidelook follow your screen?</h2>
+    <p>For the next 10 minutes, whatever window you click is the one Sidelook looks at. A thin mint border marks it. Starters refit to that app.</p>
     <p>Pixels stay on this computer until you press Send. No microphone, no keyboard, no clicking on your behalf.</p>
     <p id="screen-lease-stop">Press the header line or Ctrl+Shift+F12 to stop early.</p>
     <p id="screen-lease-note" role="alert" class="lease-note"></p>
     <div class="dialog-actions"><button class="button secondary" data-close="screen-lease">Not now</button><button class="button amber" id="screen-follow">Follow my clicks</button><button class="button amber" id="screen-snapshots">Follow and keep a fresh screenshot</button></div>
   </dialog>
 
-  <dialog id="live-dialog" aria-labelledby="live-title"><h2 id="live-title">Build as you work?</h2><p id="live-consent-detail"></p><p>After 3 quiet seconds, Jarvis sends a changed snapshot, your direction, and the selected prototype source. Up to 10 builds per start, one at a time. Keep private content out of the shared surface. The latest sent frame remains visible for review.</p><p>Pause stops new snapshots and cancels an unfinished build. Stop sharing also releases the screen. Provider work already received may still consume allowance or credits. A reload never restarts sharing or Live build.</p><div class="dialog-actions"><button class="button secondary" data-close="live-dialog">Keep it local</button><button class="button amber" id="live-confirm">Allow automatic builds</button></div></dialog>
+  <dialog id="live-dialog" aria-labelledby="live-title"><h2 id="live-title">Build as you work?</h2><p id="live-consent-detail"></p><p>After 3 quiet seconds, Sidelook sends a changed snapshot, your direction, and the selected prototype source. Up to 10 builds per start, one at a time. Keep private content out of the shared surface. The latest sent frame remains visible for review.</p><p>Pause stops new snapshots and cancels an unfinished build. Stop sharing also releases the screen. Provider work already received may still consume allowance or credits. A reload never restarts sharing or Live build.</p><div class="dialog-actions"><button class="button secondary" data-close="live-dialog">Keep it local</button><button class="button amber" id="live-confirm">Allow automatic builds</button></div></dialog>
   <dialog id="reset-dialog" aria-labelledby="reset-title"><h2 id="reset-title">Start a new project?</h2><p>This clears this browser’s saved versions and their reference images. Download any source you want to keep first.</p><div class="dialog-actions"><button class="button secondary" data-close="reset-dialog">Keep working</button><button class="button amber" id="confirm-reset">Clear and start fresh</button></div></dialog>
   <dialog id="install-dialog"><h2 id="install-title">Install the official Codex CLI?</h2><p id="install-detail">This downloads the official @openai/codex package through npm and installs it globally on this device. No account or model request is made during installation.</p><div class="dialog-actions"><button class="button secondary" data-close="install-dialog">Cancel</button><a id="install-terms" href="https://code.claude.com/docs/en/legal-and-compliance" target="_blank" rel="noreferrer" hidden>Anthropic terms</a><button class="button amber" id="confirm-install">Install Codex</button></div></dialog>
   <dialog id="source-dialog" class="source-dialog" aria-labelledby="source-title"><div class="source-heading"><h2 id="source-title">The source is yours.</h2><button class="icon-button" data-close="source-dialog" aria-label="Close source"><svg><use href="#i-close"/></svg></button></div><p>One HTML file. Styles and interactions included.</p><pre><code id="source-code"></code></pre></dialog>

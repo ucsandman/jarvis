@@ -115,7 +115,7 @@ test('desktop route rejects foreign origins and missing session token',async()=>
     const session=await(await fetch(base+'/api/local-session')).json();
     const post=headers=>fetch(base+'/api/computer',{method:'POST',headers:{'Content-Type':'application/json',...headers},body:JSON.stringify({op:'enable',consent:true})});
     assert.equal((await post({})).status,403);
-    assert.equal((await post({'X-Jarvis-Session':session.token,Origin:'https://evil.example'})).status,403);
-    assert.equal((await post({'X-Jarvis-Session':session.token,Origin:base})).status,200);
+    assert.equal((await post({'X-Sidelook-Session':session.token,Origin:'https://evil.example'})).status,403);
+    assert.equal((await post({'X-Sidelook-Session':session.token,Origin:base})).status,200);
   }finally{await new Promise(r=>app.close(r));}
 });

@@ -14,7 +14,7 @@ const list=items=>items.length<2?items.join(''):`${items.slice(0,-1).join(', ')}
 const destination=model=>`${MODEL_LABEL[model] || MODEL_LABEL.astra} (your ${ACCOUNT[model] || ACCOUNT.astra} subscription)`;
 const clock=value=>new Date(value).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'});
 
-// What Jarvis is doing right now, and what the sensors are doing. Both computed from live state, never from a literal at a call site.
+// What Sidelook is doing right now, and what the sensors are doing. Both computed from live state, never from a literal at a call site.
 export const activityLine=(v={})=>v.dictating?'Listening':v.thinking?'Thinking':v.capturing?'Choosing a frame':v.busy?`Building · ${v.elapsed || 0}s`:v.planning?'Planning the next action'
   :v.live?`Live build on · ${v.liveCount || 0} of 10 sent`:v.setupBusy?'Setting up':v.checking?'Checking connection':!v.token?'Reconnect in Settings':!v.configured?'Sign in through Settings'
   :v.remaining===0?'Allowance used · open Settings':v.computerOn?'Computer mode on · Ctrl+Shift+F12 stops it':'Ready';
@@ -57,7 +57,7 @@ export function consentLine(v={}) {
 // Refusal text, or null when the press may go out. Order: the words, the connection, the allowance.
 // On every surface the button is the consent: Send and Build say what goes, Plan next action names the window whose reading goes. No tick anywhere.
 export function gate(v={}) {
-  if(v.surface==='build' && v.direction!==undefined && !String(v.direction).trim()) return 'Tell Jarvis what should work first.';
+  if(v.surface==='build' && v.direction!==undefined && !String(v.direction).trim()) return 'Tell Sidelook what should work first.';
   if(!v.configured || !v.token) return 'Open Settings and connect your subscription first.';
   if(v.remaining===0) return 'Your local allowance is used up. Open Settings, then Start new allowance.';
   return null;

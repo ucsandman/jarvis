@@ -12,7 +12,7 @@ try {
   if (launchKey && /^[a-f0-9]{64}$/.test(launchKey)) sessionStorage.setItem('jarvisLaunch',launchKey);
   else launchKey = sessionStorage.getItem('jarvisLaunch');
 } catch { /* This tab can still work when browser storage is unavailable. */ }
-const launchHeaders = () => launchKey ? {'X-Jarvis-Launch':launchKey} : {};
+const launchHeaders = () => launchKey ? {'X-Sidelook-Launch':launchKey} : {};
 
 const $ = id => document.getElementById(id);
 const state = { token:'', configured:false, stream:null, image:null, imageLabel:'', attached:false, observation:null,
@@ -52,11 +52,11 @@ function renderSelection() {
   $('billing-note').textContent=billingLine(state.model) || `${selectedLabel()} uses your ${selectedAccount()} subscription.`;
   const claude=selectedIsClaude();
   $('install-title').textContent=claude?'Install official Claude Code?':'Install the official Codex CLI?';
-  $('install-detail').textContent=claude?'Downloads the verified Claude Code runtime directly from Anthropic’s official npm package into Jarvis’s per-user tools folder. No terminal or administrator access is needed. Claude Code is subject to Anthropic’s terms. No model request is made during installation.':'Downloads the official @openai/codex package through npm and installs it globally on this device. No account or model request is made during installation.';
+  $('install-detail').textContent=claude?'Downloads the verified Claude Code runtime directly from Anthropic’s official npm package into Sidelook’s per-user tools folder. No terminal or administrator access is needed. Claude Code is subject to Anthropic’s terms. No model request is made during installation.':'Downloads the official @openai/codex package through npm and installs it globally on this device. No account or model request is made during installation.';
   $('confirm-install').textContent=claude?'Install Claude Code':'Install Codex';
   $('install-terms').hidden=!claude;
   $('setup-help').href=claude?'https://code.claude.com/docs/en/authentication':'https://developers.openai.com/codex/auth';
-  $('setup-detail').textContent=claude?'Sign-in opens Anthropic’s official browser flow and updates Claude Code login on this device. Installation downloads Claude Code into Jarvis’s own tools folder. Each action starts only when you choose it.':'Sign-in opens the official browser flow and updates Codex login on this device. Installing Codex adds its official npm package globally. Each action starts only when you choose it.';
+  $('setup-detail').textContent=claude?'Sign-in opens Anthropic’s official browser flow and updates Claude Code login on this device. Installation downloads Claude Code into Sidelook’s own tools folder. Each action starts only when you choose it.':'Sign-in opens the official browser flow and updates Codex login on this device. Installing Codex adds its official npm package globally. Each action starts only when you choose it.';
 }
 const current = () => state.revisions.find(r => r.id === state.selected);
 const showError = message => { $('error-text').textContent = message; $('error').hidden = false; };
@@ -108,7 +108,7 @@ $('show-working').addEventListener('click',()=>chooseDraft(false));
 
 async function api(path, body, signal, keepalive=false) {
   if (['/api/build','/api/observe','/api/chat','/api/login','/api/install-codex'].includes(path)) body={...body,model:state.model,effort:state.effort};
-  const response = await fetch(path,{ method:'POST',signal,keepalive,headers:{ ...launchHeaders(),'Content-Type':'application/json','X-Jarvis-Session':state.token,...(path==='/api/build'?{Accept:'application/x-ndjson'}:{}) },body:JSON.stringify(body) });
+  const response = await fetch(path,{ method:'POST',signal,keepalive,headers:{ ...launchHeaders(),'Content-Type':'application/json','X-Sidelook-Session':state.token,...(path==='/api/build'?{Accept:'application/x-ndjson'}:{}) },body:JSON.stringify(body) });
   let data;
   if(response.headers.get('content-type')?.includes('application/x-ndjson')) {
     const reader=response.body.getReader(),decoder=new TextDecoder();let pending='',received=0;
@@ -425,7 +425,7 @@ async function beginBuild(automatic=false) {
   if (state.busy || state.setupBusy || state.inputBusy || state.checking) return;
   hideError();
   const direction = $('direction').value.trim();
-  if (!direction) { showError('Tell Jarvis what should work first, such as “Build a task board.”'); $('direction').focus(); return; }
+  if (!direction) { showError('Tell Sidelook what should work first, such as “Build a task board.”'); $('direction').focus(); return; }
   if (!state.configured || !state.token) { openSettings(); showError('Check the selected model in Settings, then try again.'); return; }
   if (state.remaining === 0) { openSettings(); showError('Choose Start new allowance in Settings. This does not renew your provider subscription allowance.'); return; }
   // The button is the consent: it says what goes, and the line under the box names it. Only Live build takes a still on its own, under its own permission.
@@ -605,12 +605,12 @@ const renderProviderStatus = () => { $('provider-status').textContent = state.co
 const session = createSession({
   localSession: async () => {
     const local = await fetch('/api/local-session',{ signal:AbortSignal.timeout(3000),headers:launchHeaders() });
-    if (!local.ok) throw new Error('Local connection unavailable. Open Jarvis from its desktop shortcut, then choose Reconnect.');
+    if (!local.ok) throw new Error('Local connection unavailable. Open Sidelook from its desktop shortcut, then choose Reconnect.');
     return local.json();
   },
   providerSession: async ({ model,effort }) => {
-    const response = await fetch('/api/session',{ signal:AbortSignal.timeout(17000),headers:{...launchHeaders(),'X-Jarvis-Model':model,'X-Jarvis-Effort':effort} });
-    if (!response.ok) throw new Error('Could not connect to Jarvis. Reopen Jarvis, then choose Reconnect. Your saved source is available.');
+    const response = await fetch('/api/session',{ signal:AbortSignal.timeout(17000),headers:{...launchHeaders(),'X-Sidelook-Model':model,'X-Sidelook-Effort':effort} });
+    if (!response.ok) throw new Error('Could not connect to Sidelook. Reopen Sidelook, then choose Reconnect. Your saved source is available.');
     return response.json();
   },
   onLocal: connection => { state.token = connection.token; state.remaining = connection.remaining; state.dictation = connection.dictation; updateControls(); renderBudget(); },
@@ -729,7 +729,7 @@ initCompanion({api,getState:()=>state,updateControls,
   stopWork:()=>{pauseLive('Paused from the companion.');state.controller?.abort();state.setupController?.abort();stopDictation();stopCamera();$('computer-stop')?.click();},
   openWorkflow:(kind,instruction='',evidence)=>{
     if(kind==='setup'){openSettings();return;}
-    // A reply's "Let Jarvis do this" carries the task; the panel's "Open" carries none and keeps whatever was typed.
+    // A reply's "Let Sidelook do this" carries the task; the panel's "Open" carries none and keeps whatever was typed.
     if(kind==='computer'){if(instruction)$('computer-task').value=instruction.slice(0,2000);computer.open();return;}
     $('direction').value=instruction;if(evidence)setImage(evidence.image,evidence.label);else{state.attached=false;renderAttachment();}$('direction').focus();
   },

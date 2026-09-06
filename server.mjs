@@ -62,13 +62,13 @@ export function createApp({ vision = new Vision(), assistant = new Assistant({vi
     };
     try {
       if (!hosts.includes(host) || (origin && !hosts.some(h => origin === `http://${h}`))
-        || req.headers['sec-fetch-site'] === 'cross-site') throw new AppError('Only the local Jarvis page can use this service.',403);
+        || req.headers['sec-fetch-site'] === 'cross-site') throw new AppError('Only the local Sidelook page can use this service.',403);
       const url = new URL(req.url,`http://${host}`);
-      if (req.method === 'GET' && url.pathname === '/api/health') return send(200,{ app:'jarvis-workbench',ready:true,...(instanceId ? {instanceId} : {}) });
-      if (desktopKey && url.pathname.startsWith('/api/') && !matchesKey(req.headers['x-jarvis-launch'])) throw new AppError('Open Jarvis from its desktop shortcut to reconnect this browser.',403);
+      if (req.method === 'GET' && url.pathname === '/api/health') return send(200,{ app:'sidelook',ready:true,...(instanceId ? {instanceId} : {}) });
+      if (desktopKey && url.pathname.startsWith('/api/') && !matchesKey(req.headers['x-sidelook-launch'])) throw new AppError('Open Sidelook from its desktop shortcut to reconnect this browser.',403);
       if (req.method === 'GET' && url.pathname === '/api/local-session') return send(200,{ token,models:MODELS,remaining:maxCalls-calls,dictation:process.platform === 'win32' });
       if (req.method === 'GET' && url.pathname === '/api/session') {
-        const selected=selection({model:req.headers['x-jarvis-model'],effort:req.headers['x-jarvis-effort']});
+        const selected=selection({model:req.headers['x-sidelook-model'],effort:req.headers['x-sidelook-effort']});
         const status = await vision.status(AbortSignal.timeout(15000),selected);
         return send(200,{ token, ...status, remaining:maxCalls-calls,dictation:process.platform === 'win32' });
       }
@@ -87,7 +87,7 @@ export function createApp({ vision = new Vision(), assistant = new Assistant({vi
         res.writeHead(200,{'Content-Type':`${type}; charset=utf-8`}); return res.end(data);
       }
       if (req.method !== 'POST' || !['/api/chat','/api/computer','/api/observe','/api/build','/api/preview','/api/dictate','/api/login','/api/install-codex','/api/reset-budget'].includes(url.pathname)) throw new AppError('Not found.',404);
-      if (req.headers['x-jarvis-session'] !== token) throw new AppError('Reload Jarvis to reconnect your local session.',403);
+      if (req.headers['x-sidelook-session'] !== token) throw new AppError('Reload Sidelook to reconnect your local session.',403);
       const data = await readJson(req);
       if(url.pathname==='/api/computer') {
         if(data.op==='propose' && (busy || calls>=maxCalls)) throw new AppError(busy?'Another model request is running.':'Your local request allowance is used up. Reset it in Setup.',409);
@@ -138,7 +138,7 @@ export function createApp({ vision = new Vision(), assistant = new Assistant({vi
         if (data.consent !== true) throw new AppError('Allow sharing through your selected subscription before chatting.',403);
         if (busy) throw new AppError('Another request is still finishing. Try again in a moment.',409,'BUSY');
         assistant.validate(data);
-        if (calls >= maxCalls) throw new AppError('Your local Jarvis request allowance is used up. Choose Start new allowance in Setup. Your saved work stays here.',429,'SESSION_LIMIT');
+        if (calls >= maxCalls) throw new AppError('Your local Sidelook request allowance is used up. Choose Start new allowance in Setup. Your saved work stays here.',429,'SESSION_LIMIT');
         busy = true;
         const controller = new AbortController();
         const abort = () => controller.abort();
@@ -151,7 +151,7 @@ export function createApp({ vision = new Vision(), assistant = new Assistant({vi
       if (data.consent !== true) throw new AppError('Allow sharing through your OpenAI subscription before building.',403);
       if (busy) throw new AppError('Another request is still finishing. Try again in a moment.',409,'BUSY');
       vision.validate?.(data,url.pathname);
-      if (calls >= maxCalls) throw new AppError('Your local Jarvis request allowance is used up. Choose Start new allowance in Setup. Your saved work stays here.',429,'SESSION_LIMIT');
+      if (calls >= maxCalls) throw new AppError('Your local Sidelook request allowance is used up. Choose Start new allowance in Setup. Your saved work stays here.',429,'SESSION_LIMIT');
       busy = true;
       const controller = new AbortController();
       const abort = () => controller.abort();
@@ -180,7 +180,7 @@ export function createApp({ vision = new Vision(), assistant = new Assistant({vi
     } catch (error) {
       const interrupted = ['AbortError','TimeoutError'].includes(error.name);
       const safe = error instanceof AppError || error instanceof SubscriptionError || error instanceof SelectionError;
-      send(error.status || (interrupted ? 504 : 500),{ code:safe ? error.code : interrupted ? 'TIMEOUT' : 'REQUEST_FAILED',remaining:maxCalls-calls,error:safe ? error.message : interrupted ? 'The request timed out or was canceled. Your saved versions are safe. Try a smaller change.' : 'Jarvis could not complete that request. Try again.' });
+      send(error.status || (interrupted ? 504 : 500),{ code:safe ? error.code : interrupted ? 'TIMEOUT' : 'REQUEST_FAILED',remaining:maxCalls-calls,error:safe ? error.message : interrupted ? 'The request timed out or was canceled. Your saved versions are safe. Try a smaller change.' : 'Sidelook could not complete that request. Try again.' });
     }
   });
   server.requestTimeout = 320000;
@@ -197,6 +197,6 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   delete process.env.JARVIS_DESKTOP_KEY;
   if (desktopArg && !desktopKey) throw new Error('Desktop launch key is required.');
   const app = createApp({instanceId,desktopKey});
-  app.listen(4317,'127.0.0.1',() => console.log('Jarvis is ready at http://127.0.0.1:4317'));
-  app.on('error',error => { console.error(error.code === 'EADDRINUSE' ? 'Port 4317 is in use. Jarvis may already be running.' : 'Could not start Jarvis.'); process.exitCode = 1; });
+  app.listen(4317,'127.0.0.1',() => console.log('Sidelook is ready at http://127.0.0.1:4317'));
+  app.on('error',error => { console.error(error.code === 'EADDRINUSE' ? 'Port 4317 is in use. Sidelook may already be running.' : 'Could not start Sidelook.'); process.exitCode = 1; });
 }

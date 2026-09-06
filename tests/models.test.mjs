@@ -30,11 +30,11 @@ test('requests carry effort independently and invalid choices preserve allowance
   t.after(()=>{app.closeAllConnections();app.close();});
   const base=`http://127.0.0.1:${app.address().port}`;
   const {token,models}=await (await fetch(base+'/api/local-session')).json();assert.equal(models.length,MODELS.length);
-  const post=data=>fetch(base+'/api/build',{method:'POST',headers:{'Content-Type':'application/json','X-Jarvis-Session':token},body:JSON.stringify({instruction:'Build a board',consent:true,...data})});
+  const post=data=>fetch(base+'/api/build',{method:'POST',headers:{'Content-Type':'application/json','X-Sidelook-Session':token},body:JSON.stringify({instruction:'Build a board',consent:true,...data})});
   for(const data of [{model:'claude-opus-5'},{effort:'invalid'},{model:'gpt-5.5',effort:'max'}]) assert.equal((await post(data)).status,400);
   assert.equal(received.length,0);
   for (const effort of ['low','max']) {const reply=await (await post({model:'astra',effort})).json();assert.equal(reply.effort,effort);}
   assert.deepEqual(received.map(item=>item.effort),['low','max']);
   assert.equal((await (await fetch(base+'/api/local-session')).json()).remaining,58);
-  assert.equal((await fetch(base+'/api/session',{headers:{'X-Jarvis-Model':'injected'}})).status,400);
+  assert.equal((await fetch(base+'/api/session',{headers:{'X-Sidelook-Model':'injected'}})).status,400);
 });
