@@ -1,7 +1,7 @@
 # Public-site runbook
 
 Production: https://sidelook.practicalsystems.io/
-Repository: https://github.com/ucsandman/jarvis
+Repository: https://github.com/ucsandman/sidelook
 
 The public site is a static walkthrough and Windows download page. It doesn't run inference, take a subscription login, capture a camera or screen, or host the local API. Real builds happen in the downloaded app.
 
