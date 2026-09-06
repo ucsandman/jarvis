@@ -9,3 +9,4 @@
 These constraints apply to development, verification, and published code.
 
 - The maintainer explicitly approved Computer mode on 2026-09-05: a local Windows accessibility broker, opt-in sessions, per-action review, and emergency stop. Models still return structured data through the existing isolated subscription transports; do not enable arbitrary CLI tools. Keep fixed launch targets, fresh target validation, and fail-closed action permissions.
+- The maintainer approved Screen on on 2026-09-05: a leased, visible follow of the clicked window with an optional local screenshot in the box. It sends nothing on its own; automatic sends were considered and left out.

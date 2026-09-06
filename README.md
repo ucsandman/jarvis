@@ -3,7 +3,7 @@
   <h1>Jarvis</h1>
   <p><strong>A desktop companion for Windows that runs on the ChatGPT or Claude subscription you already pay for.</strong></p>
   <p><a href="https://github.com/ucsandman/jarvis/actions/workflows/ci.yml"><img src="https://github.com/ucsandman/jarvis/actions/workflows/ci.yml/badge.svg" alt="Windows and Linux checks"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-e5b977" alt="MIT license"></a> <a href="https://github.com/ucsandman/jarvis/releases/latest"><img src="https://img.shields.io/github/v/release/ucsandman/jarvis" alt="Latest release"></a></p>
-  <p><a href="https://jarvis-workbench.vercel.app/">Website</a> · <a href="https://github.com/ucsandman/jarvis/releases/download/v0.12.0/Jarvis-0.12.0-Windows-x64.exe">Download for Windows</a> · <a href="#getting-started">Get started</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
+  <p><a href="https://jarvis-workbench.vercel.app/">Website</a> · <a href="https://github.com/ucsandman/jarvis/releases/download/v0.13.0/Jarvis-0.13.0-Windows-x64.exe">Download for Windows</a> · <a href="#getting-started">Get started</a> · <a href="CONTRIBUTING.md">Contribute</a></p>
 </div>
 
 Jarvis sits in the corner of your screen. Hit **Ctrl+Shift+Space** and the panel opens already knowing which window you were in, with three questions written for it as buttons. Pick one, look at the screenshot it took, press **Send with screenshot**. Or hand it something bigger: turn a sketch into a working prototype in the studio, or let it drive a Windows app one approved click at a time. Pick any model in the catalog, OpenAI through ChatGPT or Anthropic through Claude, go. No API key, nothing metered.
@@ -21,6 +21,7 @@ It's experimental and built around how I work. Anthropic models can burn paid Cl
 ## What it does
 
 - **Knows what was in front, and lets you change it.** The panel reads the title and process of the window you came from and offers three starters for it, each saying what it takes: "Unstick me · reads the text of Notepad", "What does this output mean? · takes a screenshot of WindowsTerminal", "Draft a reply" for mail. **change** on the "Looking at" line lists **Whole desktop** and every open window; pick one and the starters and Screenshot follow it. A window half off the screen or on another monitor captures whole. No pixels, no model call, until you press a starter or Screenshot.
+- **Follows your clicks when you ask it to.** Press **Screen & mic off** in the header and choose **Follow my clicks** for ten minutes: whatever window you click is the one Jarvis looks at, a thin amber border marks it, and the starters refit to that app. **Follow and keep a fresh screenshot** also puts a screenshot of that window in the box three quiet seconds after each click, so your next question already has it; it never sends on its own. The header counts down and the same line stops it, as does **Ctrl+Shift+F12**.
 - **Reads the exact text.** Error, terminal, spreadsheet and settings starters pull the accessible text of the window you came from through the same broker as Computer mode, read-only: every character is shown in the box with a count and whether it was cut short. Nothing is armed and nothing can click.
 - **Copies, never reads.** Every reply has **Copy**. The clipboard is write-only; lint fails on any clipboard read in the page or the shell.
 - **The button says what goes.** No checkbox. A screenshot or window text sits in the box as a chip, and the Send button reads **Send**, **Send with screenshot** or **Send with window text**. × removes it. The line under the button names the model and the account, and **What goes** shows the request body and every send this session. After a send the attachment leaves the box and stays on the message as evidence.
@@ -31,14 +32,14 @@ It's experimental and built around how I work. Anthropic models can burn paid Cl
 
 ## Getting started
 
-1. [Download Jarvis 0.12.0](https://github.com/ucsandman/jarvis/releases/download/v0.12.0/Jarvis-0.12.0-Windows-x64.exe) and open it. No terminal, no Node, no admin.
+1. [Download Jarvis 0.13.0](https://github.com/ucsandman/jarvis/releases/download/v0.13.0/Jarvis-0.13.0-Windows-x64.exe) and open it. No terminal, no Node, no admin.
 2. Settings opens by itself until you're signed in. Pick an OpenAI or Anthropic model and use the sign-in button. Codex ships inside. For Anthropic models, **Install official Claude Code** downloads and verifies Anthropic's runtime.
 3. Press a starter or type a question, then **Send**. **Screenshot** grabs the window you came from and shows it in the box before anything leaves; the button then reads **Send with screenshot**.
 4. For a prototype, open the studio from Settings. **Share window**, describe the product, tick the line, **Make it real**. For hands-off updates, **Live build** has its own permission dialog.
 
 **Ctrl+Shift+Space** brings the panel back. So does the desktop or Start menu shortcut. Closing the panel leaves Jarvis in the tray; **Quit Jarvis** from the tray menu stops the server.
 
-Windows 10/11 x64 only. Chrome or Edge for screen sharing. The download is about 164 MiB. **The exe is unsigned**, so expect the unknown-publisher prompt. The [release has a SHA-256 checksum](https://github.com/ucsandman/jarvis/releases/tag/v0.12.0) and the bundled Node and Codex are publisher-verified. [Install, update, remove](docs/WINDOWS.md).
+Windows 10/11 x64 only. Chrome or Edge for screen sharing. The download is about 164 MiB. **The exe is unsigned**, so expect the unknown-publisher prompt. The [release has a SHA-256 checksum](https://github.com/ucsandman/jarvis/releases/tag/v0.13.0) and the bundled Node and Codex are publisher-verified. [Install, update, remove](docs/WINDOWS.md).
 
 The companion needs the Microsoft Edge WebView2 Runtime. Jarvis checks on launch and tells you where to get it if it's missing. Its WebView profile is separate from any browser profile you used with an older install, so old revisions don't show up on their own. Export the HTML from the old profile, then **Settings, Advanced, Import a saved HTML prototype**. Imports cap at 120,000 bytes and add a version when the 12-slot history has room.
 
@@ -82,6 +83,7 @@ Share the design window, not Jarvis, or you'll capture yourself. Animated window
 | Window text | A text starter puts the accessible controls and values of one window in the box, every character shown, and they go with the next Send while the chip is there. Read-only; Computer mode stays off. |
 | Clipboard | Copy writes a reply to it. Nothing reads it. |
 | Which window Jarvis looks at | The shell keeps the title and process name of the window that was in front, or the one you picked with **change**, only to pick starter labels and the capture target. **change** lists the titles and app names of open windows; no pixels. Nothing sends the title without a screenshot or text. A pick lasts until the next summon. **Whole desktop** captures every monitor with the panel hidden. |
+| Screen on | Off until you press the header line. While on, the shell watches mouse button-ups only (no keys, no coordinates kept), pins the window under each click, and reads the clicked control's accessible name and type, never its value. Screenshots land in the box and wait for Send. Ten minutes, a countdown, the border on the desktop, and one press to stop. |
 | Camera and screen | Preview stays local. A panel message sends the screenshot in the box, if any; a build sends one frame you ticked. Live build sends changed snapshots after its own permission. No video stream, no desktop audio. |
 | Model input | Your message or direction, the screenshot in the box and the selected source go to the provider through its official CLI. The Send button names the attachment; **What goes** shows the body. |
 | Accounts | The CLI owns sign-in. Jarvis never reads credential files, never takes an API key, never falls back to another model. |

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.13.0: Screen on
+
+- "Screen & mic off" in the panel header is now a button. It opens a ten-minute lease with two ways in: **Follow my clicks** and **Follow and keep a fresh screenshot**. No checkbox; the button is the consent. The header then reads "Screen on · following clicks · 9:42" (or "fresh screenshots"), the dot lights, and pressing the line stops it. Ctrl+Shift+F12 stops it too.
+- While on, the shell pins whatever top-level window you click as the thing Jarvis looks at. "Looking at" shows the window and the control you clicked ("Inbox – Gmail · Send button"); the starters refit once per window change. A 2px amber border on the desktop outlines the followed window.
+- With fresh screenshots on, three quiet seconds after a click a screenshot of that window replaces the chip in the box, only if the window looks different from the last one. Send reads "Send with screenshot". Nothing is sent without Send. × on the chip mutes that window until you click a different one.
+- The lease ends on its own after ten minutes; the header returns to "Screen & mic off" and a line under the box says "Screen off · followed for 10 minutes". A chip already in the box stays.
+- Shell: a `WH_MOUSE_LL` hook and the border exist only during a lease. Messages `screen-on`, `screen-off`, `screen`, and `target` with `via:'click'` and `element`. The Computer helper's shortcut refusal now names Screen on as a possible holder.
+- Not built, on purpose: automatic sends, any keyboard hook, following inside Computer mode (next release).
+
 ## 0.12.0: Any model, minimized windows too
 
 - Settings' model selector now lists the full catalog from `public/models.js` in two groups, "OpenAI · ChatGPT through Codex" and "Anthropic · Claude through Claude Code": Astra, GPT-5.6 Sol, GPT-5.6 Terra, GPT-5.6 Luna, GPT-5.5, GPT-5.4 Mini and GPT-5.3 Codex Spark on OpenAI; Fable 5.1, Opus 5, Sonnet 5 and Haiku 4.5 on Anthropic. Every Anthropic model can spend paid Claude usage credits.

@@ -55,3 +55,11 @@ The maintainer approved both after the redesign shipped. `op:'read'` on the Comp
 The two-model cap was never a technical limit, only an unreviewed default; the maintainer requested the change and it is now a catalog in `public/models.js` with 11 entries across OpenAI and Anthropic. What still holds: each transport pins exactly one model ID read from the catalog, never a free-text value from the page; missing subscription auth, model access or allowance still fails closed; and adding a model stays a one-line catalog change, not a new transport.
 
 The earlier "not built, on purpose: capturing minimized windows (nothing to render)" call is reversed. `PrintWindow` can render a minimized window off-screen without activating it, so the picker now lists minimized windows too, marked "minimized" under the title. A pick shows the window, captures it, and minimizes it again, restoring its exact placement; the window is visible for well under a second. The trade-off is that sub-second flash. Computer mode still needs real focus for input, so an approved action on a minimized window restores it first.
+
+## 2026-09-05: Screen on is a lease, not a status
+
+The maintainer asked why "Screen & mic off" was a label rather than a switch, and approved a mode in which Jarvis follows the window the user clicks. This reverses "no ambient screen monitoring" and "nothing that watches a window" from the same day. It holds because the mode is explicit (a button and a dialog with no tick), bounded (ten minutes, counted down in the header), visible on the desktop itself (the border), stoppable in one press or with Ctrl+Shift+F12, and still sends nothing on its own: a fresh screenshot waits in the box for Send. The line stays truthful in both states.
+
+Built page-side and shell-side only. No server, broker or model change; the existing `capture` message and chip carry the screenshot, and `public/follow.js` is a pure reducer under test. Only mouse button-up events are observed, only during the lease; element names are bounded and values are never read.
+
+Not built, on purpose: automatic sends with a budget (the button still says what goes), a keyboard hook, coordinate clicks, and the Act tier. Release B makes Computer mode follow the click with a highlight-and-Enter approval and the user's own input as the interrupt, one approval per action.
